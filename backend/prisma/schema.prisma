@@ -1,0 +1,330 @@
+// CENROWATCH — Prisma schema
+// Derived from the system ERD (Part 4) + Citizens Charter / SLA fields (Part 20).
+// Provider: MySQL. All app DB access goes through Prisma (no raw SQL).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  Admin
+  CENRO_Staff
+  Resident
+}
+
+enum ComplaintStatus {
+  Pending
+  Under_Review
+  In_Progress
+  Resolved
+  Rejected
+}
+
+enum ComplaintType {
+  Illegal_Dumping
+  Open_Burning
+  Noise_Disturbance
+  Improper_Hazardous_Waste_Storage
+  Drainage_Blockage
+  Air_Pollution
+  Water_Pollution
+  Other
+}
+
+enum RequestType {
+  Garbage_Hauling
+  Creek_River_Cleaning
+  Seedling_Distribution
+  Environmental_Education
+  Other_Service
+}
+
+enum RequestStatus {
+  Pending
+  Approved
+  Scheduled
+  Completed
+  Rejected
+}
+
+enum WildlifeStatus {
+  Pending_Review
+  Priority_Review
+  Under_Care
+  Released
+  Transferred
+  Deceased
+}
+
+enum AnimalCondition {
+  Healthy
+  Injured
+  Sick
+  Dead
+}
+
+// Citizens Charter — receipt channels & responsible roles (Part 20)
+enum ComplaintReceivedVia {
+  Walk_In
+  Email
+  Phone_Call
+  Facebook_Messenger
+  Logbook_Record
+}
+
+enum WildlifeReportedVia {
+  Walk_In
+  Phone_Call
+  Social_Media
+}
+
+enum CenroPersonRole {
+  CENRO_Head
+  Administrative_Staff
+  Environmental_Management_Specialist
+  Environmental_Inspector
+  Wildlife_Enforcer_Officer
+  Technical_Enforcement_Division_Personnel
+}
+
+// ============================================================
+// USERS
+// ============================================================
+
+model User {
+  user_id         Int       @id @default(autoincrement())
+  email           String    @unique @db.VarChar(255)
+  password_hash   String    @db.VarChar(255)
+  first_name      String    @db.VarChar(100)
+  last_name       String    @db.VarChar(100)
+  contact_number  String?   @db.VarChar(20)
+  role            Role      @default(Resident)
+  barangay_id     Int?
+  is_active       Boolean   @default(true)
+  privacy_consent Boolean   @default(false)
+  consent_date    DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  barangay            Barangay?              @relation(fields: [barangay_id], references: [barangay_id])
+  complaints          Complaint[]            @relation("UserComplaints")
+  assigned_complaints Complaint[]            @relation("AssignedStaff")
+  wildlife_turnovers  WildlifeTurnover[]     @relation("UserWildlife")
+  processed_wildlife  WildlifeTurnover[]     @relation("ProcessedByStaff")
+  env_requests        EnvironmentalRequest[] @relation("UserRequests")
+  processed_requests  EnvironmentalRequest[] @relation("ProcessedRequests")
+  audit_logs          AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+// ============================================================
+// BARANGAYS (18 barangays of Cabuyao City)
+// ============================================================
+
+model Barangay {
+  barangay_id      Int    @id @default(autoincrement())
+  name             String @unique @db.VarChar(100)
+  latitude         Float?
+  longitude        Float?
+  geojson_boundary Json? // GeoJSON Feature for the choropleth layer
+
+  users              User[]
+  complaints         Complaint[]
+  wildlife_turnovers WildlifeTurnover[]
+  env_requests       EnvironmentalRequest[]
+}
+
+// ============================================================
+// COMPLAINTS (Environmental Incidents)
+// ============================================================
+
+model Complaint {
+  complaint_id     Int             @id @default(autoincrement())
+  tracking_id      String          @unique @db.VarChar(20) // e.g. CMP-2026-00001
+  user_id          Int
+  barangay_id      Int
+  assigned_to      Int? // CENRO Staff user_id
+  complaint_type   ComplaintType
+  description      String          @db.Text
+  photo_path       String?         @db.VarChar(500) // GCS object path
+  latitude         Float?
+  longitude        Float?
+  address_details  String?         @db.VarChar(255)
+  status           ComplaintStatus @default(Pending)
+  priority         Boolean         @default(false)
+  staff_notes      String?         @db.Text
+  resolution_notes String?         @db.Text
+  submitted_at     DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+  resolved_at      DateTime?
+
+  // Citizens Charter workflow / SLA tracking (Part 20.1)
+  received_via         ComplaintReceivedVia?
+  is_highly_technical  Boolean               @default(false)
+  inspection_date      DateTime?
+  report_prepared_at   DateTime?
+  conference_date      DateTime?
+  commitment_signed_at DateTime?
+  monitoring_date      DateTime?
+  sla_deadline         DateTime? // submitted_at + 2d 8h 5m
+  exceeded_sla         Boolean               @default(false)
+  assigned_staff_role  CenroPersonRole?
+
+  user           User                     @relation("UserComplaints", fields: [user_id], references: [user_id])
+  barangay       Barangay                 @relation(fields: [barangay_id], references: [barangay_id])
+  assigned_staff User?                    @relation("AssignedStaff", fields: [assigned_to], references: [user_id])
+  status_history ComplaintStatusHistory[]
+
+  @@index([tracking_id])
+  @@index([status])
+  @@index([barangay_id])
+  @@index([user_id])
+}
+
+model ComplaintStatusHistory {
+  id           Int             @id @default(autoincrement())
+  complaint_id Int
+  old_status   ComplaintStatus
+  new_status   ComplaintStatus
+  changed_by   Int
+  note         String?         @db.Text
+  changed_at   DateTime        @default(now())
+
+  complaint Complaint @relation(fields: [complaint_id], references: [complaint_id])
+
+  @@index([complaint_id])
+}
+
+// ============================================================
+// WILDLIFE TURNOVERS
+// ============================================================
+
+model WildlifeTurnover {
+  turnover_id             Int             @id @default(autoincrement())
+  reference_id            String          @unique @db.VarChar(20) // e.g. WLD-2026-00001
+  reported_by             Int // Resident user_id
+  processed_by            Int? // CENRO Staff user_id
+  barangay_id             Int
+  species_name            String          @db.VarChar(200)
+  species_category        String?         @db.VarChar(100)
+  is_endangered           Boolean         @default(false)
+  is_priority_review      Boolean         @default(false)
+  animal_condition        AnimalCondition
+  description             String          @db.Text
+  photo_path              String?         @db.VarChar(500)
+  chain_of_custody_photos Json? // array of GCS paths
+  latitude                Float?
+  longitude               Float?
+  address_details         String?         @db.VarChar(255)
+  status                  WildlifeStatus  @default(Pending_Review)
+  intake_date             DateTime?
+  release_date            DateTime?
+  transfer_destination    String?         @db.VarChar(255)
+  staff_notes             String?         @db.Text
+  submitted_at            DateTime        @default(now())
+  updated_at              DateTime        @updatedAt
+
+  // Citizens Charter workflow / SLA tracking (Part 20.3)
+  reported_via              WildlifeReportedVia?
+  wildlife_info_form_filled Boolean              @default(false)
+  vet_clearance_secured     Boolean              @default(false)
+  vet_clearance_date        DateTime?
+  rescue_date               DateTime?
+  transport_date            DateTime?
+  rescue_report_prepared    Boolean              @default(false)
+  rescue_report_date        DateTime?
+  sla_deadline              DateTime? // submitted_at + 2d 5h 38m
+  exceeded_sla              Boolean              @default(false)
+  assigned_staff_role       CenroPersonRole?
+
+  resident User     @relation("UserWildlife", fields: [reported_by], references: [user_id])
+  staff    User?    @relation("ProcessedByStaff", fields: [processed_by], references: [user_id])
+  barangay Barangay @relation(fields: [barangay_id], references: [barangay_id])
+
+  @@index([reference_id])
+  @@index([barangay_id])
+  @@index([species_name])
+  @@index([status])
+}
+
+// ============================================================
+// ENVIRONMENTAL REQUESTS
+// ============================================================
+
+model EnvironmentalRequest {
+  request_id         Int           @id @default(autoincrement())
+  tracking_id        String        @unique @db.VarChar(20) // e.g. REQ-2026-00001
+  user_id            Int
+  barangay_id        Int
+  processed_by       Int?
+  request_type       RequestType
+  description        String        @db.Text
+  document_path      String?       @db.VarChar(500)
+  requested_quantity Int?
+  preferred_schedule DateTime?
+  status             RequestStatus @default(Pending)
+  scheduled_date     DateTime?
+  completion_date    DateTime?
+  staff_notes        String?       @db.Text
+  submitted_at       DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
+
+  // Citizens Charter SLA tracking (Part 20.2)
+  sla_deadline           DateTime? // per request_type
+  exceeded_sla           Boolean   @default(false)
+  approved_by_cenro_head Boolean   @default(false)
+  approval_date          DateTime?
+
+  user      User     @relation("UserRequests", fields: [user_id], references: [user_id])
+  barangay  Barangay @relation(fields: [barangay_id], references: [barangay_id])
+  processor User?    @relation("ProcessedRequests", fields: [processed_by], references: [user_id])
+
+  @@index([tracking_id])
+  @@index([status])
+  @@index([barangay_id])
+  @@index([user_id])
+}
+
+// ============================================================
+// AUDIT LOGS / SYSTEM REPORTS
+// ============================================================
+
+model AuditLog {
+  log_id              Int      @id @default(autoincrement())
+  performed_by        Int? // nullable: system-generated actions
+  action              String   @db.VarChar(200)
+  target_table        String   @db.VarChar(100)
+  target_id           Int?
+  data_generated_json Json
+  ip_address          String?  @db.VarChar(50)
+  performed_at        DateTime @default(now())
+
+  user User? @relation(fields: [performed_by], references: [user_id])
+
+  @@index([performed_by])
+  @@index([action])
+  @@index([performed_at])
+}
+
+// ============================================================
+// SYSTEM SETTINGS (Admin-configurable)
+// ============================================================
+
+model SystemSetting {
+  setting_id    Int      @id @default(autoincrement())
+  setting_key   String   @unique @db.VarChar(100)
+  setting_value String   @db.Text
+  description   String?  @db.VarChar(255)
+  updated_at    DateTime @updatedAt
+}
