@@ -1,4 +1,4 @@
-// Photo upload middleware — LOCAL-DISK STUB (Sprint 2, option A).
+// Photo/document upload middleware — LOCAL-DISK STUB (Sprint 2, option A).
 // Files are stored under backend/uploads/<subdir> and served read-only at
 // /uploads/... by app.js. Swapping to Google Cloud Storage later is a change
 // isolated to this file + the controller's path construction — no UI changes.
@@ -11,23 +11,28 @@ const crypto = require('crypto');
 const UPLOAD_ROOT = path.join(__dirname, '..', '..', 'uploads');
 
 const IMAGE_MIME = /^image\/(jpe?g|png|webp|heic|heif)$/i;
+const DOC_MIME = /^(image\/(jpe?g|png|webp|heic|heif)|application\/pdf)$/i;
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
-function diskUpload(subdir) {
+function diskUpload(subdir, allowedMime = IMAGE_MIME) {
   const dest = path.join(UPLOAD_ROOT, subdir);
   fs.mkdirSync(dest, { recursive: true });
 
   const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, dest),
     filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      const ext = path.extname(file.originalname).toLowerCase() || '.bin';
       cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
     },
   });
 
   function fileFilter(req, file, cb) {
-    if (IMAGE_MIME.test(file.mimetype)) return cb(null, true);
-    const err = new Error('Only image files (jpg, png, webp, heic) are allowed.');
+    if (allowedMime.test(file.mimetype)) return cb(null, true);
+    const err = new Error(
+      allowedMime === DOC_MIME
+        ? 'Unsupported file type. Allowed: images or PDF.'
+        : 'Only image files (jpg, png, webp, heic) are allowed.'
+    );
     err.statusCode = 422;
     return cb(err);
   }
@@ -40,4 +45,4 @@ function publicPathFor(subdir, filename) {
   return `/uploads/${subdir}/${filename}`;
 }
 
-module.exports = { diskUpload, publicPathFor, UPLOAD_ROOT };
+module.exports = { diskUpload, publicPathFor, UPLOAD_ROOT, IMAGE_MIME, DOC_MIME };

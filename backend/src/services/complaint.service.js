@@ -4,7 +4,7 @@
 const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
-const { formatTrackingId } = require('../utils/trackingId');
+const { createSequential } = require('../utils/createSequential');
 const { getSlaMinutes, addMinutes } = require('../utils/sla');
 
 // Returned to the owner (their own report) — includes the barangay name.
@@ -53,39 +53,25 @@ async function createComplaint(userId, input, photoPath, ctx = {}) {
   const slaMinutes = await getSlaMinutes('complaint_sla_minutes', 3365);
   const sla_deadline = addMinutes(submitted_at, slaMinutes);
 
-  // Per-year sequential tracking id (CMP-YYYY-NNNNN) computed inside a
-  // transaction; retry on the rare tracking_id collision under concurrency.
-  let complaint;
-  for (let attempt = 0; ; attempt++) {
-    try {
-      complaint = await prisma.$transaction(async (tx) => {
-        const count = await tx.complaint.count({
-          where: { tracking_id: { startsWith: `CMP-${year}-` } },
-        });
-        const tracking_id = formatTrackingId('complaint', count + 1, submitted_at);
-        return tx.complaint.create({
-          data: {
-            tracking_id,
-            user_id: userId,
-            barangay_id: input.barangay_id,
-            complaint_type: input.complaint_type,
-            description: input.description,
-            photo_path: photoPath || null,
-            latitude: input.latitude ?? null,
-            longitude: input.longitude ?? null,
-            address_details: input.address_details || null,
-            submitted_at,
-            sla_deadline,
-          },
-          select: DETAIL_SELECT,
-        });
-      });
-      break;
-    } catch (e) {
-      if (e.code === 'P2002' && attempt < 4) continue; // tracking_id race — retry
-      throw e;
-    }
-  }
+  const complaint = await createSequential({
+    model: 'complaint',
+    type: 'complaint',
+    idField: 'tracking_id',
+    year,
+    data: {
+      user_id: userId,
+      barangay_id: input.barangay_id,
+      complaint_type: input.complaint_type,
+      description: input.description,
+      photo_path: photoPath || null,
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
+      address_details: input.address_details || null,
+      submitted_at,
+      sla_deadline,
+    },
+    select: DETAIL_SELECT,
+  });
 
   await writeAuditLog({
     performedBy: userId,

@@ -10,4 +10,4 @@ function formatTrackingId(type, id, date = new Date()) {
   return `${prefix}-${date.getFullYear()}-${String(id).padStart(5, '0')}`;
 }
 
-module.exports = { formatTrackingId };
+module.exports = { formatTrackingId, PREFIX };
