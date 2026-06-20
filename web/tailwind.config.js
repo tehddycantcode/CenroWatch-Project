@@ -9,6 +9,10 @@ export default {
       screens: { '2xl': '1400px' },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['"DM Serif Display"', 'ui-serif', 'Georgia', 'serif'],
+      },
       colors: {
         // CENROWATCH brand palette (exact values from Figma)
         brand: {

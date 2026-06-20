@@ -55,7 +55,7 @@ export default function LandingPage() {
           <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground">
             Live · Cabuyao City Environmental System
           </span>
-          <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">
+          <h1 className="mt-6 font-display text-4xl tracking-tight sm:text-5xl">
             Guard <span className="text-primary">Cabuyao&apos;s</span> Environment Together
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
@@ -94,7 +94,7 @@ export default function LandingPage() {
       {/* Services */}
       <section className="border-t bg-muted/30">
         <div className="container py-16">
-          <h2 className="text-center text-2xl font-bold">What you can do</h2>
+          <h2 className="text-center font-display text-3xl">What you can do</h2>
           <div className="mx-auto mt-10 grid max-w-5xl gap-6 sm:grid-cols-3">
             {services.map((s) => (
               <div key={s.title} className="rounded-xl border bg-background p-6">
