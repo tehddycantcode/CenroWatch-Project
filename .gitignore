@@ -12,6 +12,10 @@ node_modules/
 gcs-key.json
 **/gcs-key.json
 
+# Uploaded files (local-disk storage stub) — keep the folder, ignore contents
+backend/uploads/*
+!backend/uploads/.gitkeep
+
 # Build output
 dist/
 build/

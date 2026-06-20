@@ -11,11 +11,14 @@ const rateLimit = require('express-rate-limit');
 
 const apiV1 = require('./routes');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
+const { UPLOAD_ROOT } = require('./middlewares/upload');
 
 const app = express();
 
 // ── Security headers ───────────────────────────────────────
-app.use(helmet());
+// crossOriginResourcePolicy 'cross-origin' lets the web/mobile clients embed
+// images served from /uploads (a different origin than the frontends).
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
 // ── CORS (only known frontends) ────────────────────────────
 const allowedOrigins = [process.env.CLIENT_URL, process.env.MOBILE_URL].filter(Boolean);
@@ -59,6 +62,9 @@ const authLimiter = rateLimit({
   message: { success: false, message: 'Too many requests, please try again later.' },
 });
 app.use('/api/v1/auth', authLimiter);
+
+// ── Uploaded files (local-disk storage stub) ──────────────
+app.use('/uploads', express.static(UPLOAD_ROOT));
 
 // ── API v1 ─────────────────────────────────────────────────
 app.use('/api/v1', apiV1);
