@@ -87,3 +87,10 @@ export const requestApi = {
   listMine: () => apiFetch('/requests/mine'),
   get: (trackingId) => apiFetch(`/requests/${trackingId}`),
 };
+
+// Public GIS / feed / stats (no auth, zero personal data).
+export const gisApi = {
+  map: () => apiFetch('/gis/map', { auth: false }),
+  stats: () => apiFetch('/gis/stats', { auth: false }),
+  feed: () => apiFetch('/gis/feed', { auth: false }),
+};

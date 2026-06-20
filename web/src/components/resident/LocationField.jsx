@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import MapView from '@/components/MapView';
 import { Button } from '@/components/ui/button';
 
-// Captures an optional lat/long for a report. Uses the browser's geolocation
-// ("Use my location"); an interactive MapLibre pin-picker lands with the map slice.
+// Optional location for a report: tap the map to drop a pin, or use the device's
+// current location. Stores { latitude, longitude }.
 export default function LocationField({ value, onChange }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -23,7 +24,7 @@ export default function LocationField({ value, onChange }) {
         setBusy(false);
       },
       () => {
-        setError('Could not get your location. You can submit without it.');
+        setError('Could not get your location. Tap the map instead, or submit without it.');
         setBusy(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -33,15 +34,21 @@ export default function LocationField({ value, onChange }) {
   const has = value?.latitude != null && value?.longitude != null;
 
   return (
-    <div className="rounded-lg border border-input bg-muted/30 px-3.5 py-3">
+    <div className="space-y-2">
+      <div className="overflow-hidden rounded-lg border">
+        <MapView
+          picker
+          value={value}
+          onPick={(lat, lng) => onChange({ latitude: lat, longitude: lng })}
+          className="h-56 w-full"
+        />
+      </div>
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm">
           {has ? (
-            <span className="text-foreground">
-              📍 {value.latitude.toFixed(5)}, {value.longitude.toFixed(5)}
-            </span>
+            <span className="text-foreground">📍 {value.latitude.toFixed(5)}, {value.longitude.toFixed(5)}</span>
           ) : (
-            <span className="text-muted-foreground">No location pinned (optional)</span>
+            <span className="text-muted-foreground">Tap the map to pin a location (optional)</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -59,7 +66,7 @@ export default function LocationField({ value, onChange }) {
           </Button>
         </div>
       </div>
-      {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }

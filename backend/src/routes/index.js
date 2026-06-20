@@ -24,7 +24,7 @@ router.use('/barangays', require('./barangay.routes'));
 router.use('/complaints', require('./complaint.routes'));
 router.use('/wildlife', require('./wildlife.routes'));
 router.use('/requests', require('./request.routes'));
-// Sprint 2+: router.use('/gis', require('./gis.routes'));
+router.use('/gis', require('./gis.routes'));
 // Sprint 4+: router.use('/admin', require('./admin.routes'));
 
 module.exports = router;

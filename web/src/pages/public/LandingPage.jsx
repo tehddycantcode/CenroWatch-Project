@@ -1,11 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-
-const stats = [
-  { label: 'Total Reports', value: '—' },
-  { label: 'Resolved', value: '—' },
-  { label: 'Wildlife Cases', value: '—' },
-  { label: 'Barangays Covered', value: '18' },
-];
+import { gisApi } from '@/lib/api';
 
 const services = [
   {
@@ -23,6 +18,28 @@ const services = [
 ];
 
 export default function LandingPage() {
+  const [stats, setStats] = useState([
+    { label: 'Total Reports', value: '—' },
+    { label: 'Resolved', value: '—' },
+    { label: 'Wildlife Cases', value: '—' },
+    { label: 'Barangays Covered', value: '18' },
+  ]);
+
+  useEffect(() => {
+    gisApi
+      .stats()
+      .then((r) => {
+        const s = r.data.stats;
+        setStats([
+          { label: 'Total Reports', value: String(s.total_reports) },
+          { label: 'Resolved', value: String(s.resolved) },
+          { label: 'Wildlife Cases', value: String(s.wildlife_cases) },
+          { label: 'Barangays Covered', value: String(s.barangays_covered) },
+        ]);
+      })
+      .catch(() => {}); // leave the placeholders if the API is unreachable
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

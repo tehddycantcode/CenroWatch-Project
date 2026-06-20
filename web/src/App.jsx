@@ -10,6 +10,8 @@ import WildlifeFormPage from '@/pages/resident/WildlifeFormPage';
 import ServiceRequestFormPage from '@/pages/resident/ServiceRequestFormPage';
 import MyReportsPage from '@/pages/resident/MyReportsPage';
 import TrackReportPage from '@/pages/resident/TrackReportPage';
+import PublicMapPage from '@/pages/public/PublicMapPage';
+import ReportsFeedPage from '@/pages/public/ReportsFeedPage';
 import Placeholder from '@/components/Placeholder';
 import NotFound from '@/components/NotFound';
 
@@ -18,10 +20,8 @@ const AREA_ROLES = {
   Admin: ['Admin'],
 };
 
-// Public routes (no auth) — still placeholders until their sprint.
+// Public placeholder routes (no auth) — still placeholders until their sprint.
 const publicRoutes = [
-  { path: '/map', title: 'Public GIS Incident Map', area: 'Public', sprint: 'Sprint 2' },
-  { path: '/feed', title: 'Environmental Reports Feed', area: 'Public', sprint: 'Sprint 2' },
   { path: '/wildlife', title: 'Wildlife & Biodiversity', area: 'Public', sprint: 'Sprint 2' },
 ];
 
@@ -53,6 +53,10 @@ export default function App() {
       {/* Auth (Sprint 1) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+
+      {/* Public GIS map + reports feed (Sprint 2) */}
+      <Route path="/map" element={<PublicMapPage />} />
+      <Route path="/feed" element={<ReportsFeedPage />} />
 
       {/* Resident interface (Sprint 2) — nested under the shared layout, role-gated */}
       <Route
