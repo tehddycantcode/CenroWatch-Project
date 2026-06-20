@@ -1,0 +1,50 @@
+// express-validator chains for the auth endpoints.
+
+const { body } = require('express-validator');
+
+const registerRules = [
+  body('email')
+    .trim()
+    .notEmpty().withMessage('Email is required.')
+    .isEmail().withMessage('A valid email is required.')
+    .normalizeEmail(),
+  body('password')
+    .isString()
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters.')
+    .matches(/[A-Za-z]/).withMessage('Password must contain a letter.')
+    .matches(/[0-9]/).withMessage('Password must contain a number.'),
+  body('first_name')
+    .trim()
+    .notEmpty().withMessage('First name is required.')
+    .isLength({ max: 100 }),
+  body('last_name')
+    .trim()
+    .notEmpty().withMessage('Last name is required.')
+    .isLength({ max: 100 }),
+  body('contact_number')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ max: 20 }).withMessage('Contact number is too long.'),
+  body('barangay_id')
+    .optional({ values: 'null' })
+    .isInt({ min: 1 }).withMessage('barangay_id must be a valid id.')
+    .toInt(),
+  // R.A. 10173 — explicit consent is required to process personal data.
+  // Accept a JSON boolean true or the strings 'true'/'1'.
+  body('privacy_consent')
+    .custom((v) => v === true || v === 'true' || v === 1 || v === '1')
+    .withMessage('Privacy consent is required to register.')
+    .bail()
+    .customSanitizer(() => true),
+];
+
+const loginRules = [
+  body('email')
+    .trim()
+    .notEmpty().withMessage('Email is required.')
+    .isEmail().withMessage('A valid email is required.')
+    .normalizeEmail(),
+  body('password').notEmpty().withMessage('Password is required.'),
+];
+
+module.exports = { registerRules, loginRules };

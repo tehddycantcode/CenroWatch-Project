@@ -40,10 +40,16 @@ Researchers: Moro, Edward Justine G. | Quizana, Koshi Cyrus G. | Zaspa, Holian I
 - Node.js v24.17.0 (Krypton LTS) installed to `C:\Users\Penar\nodejs\...` (user-scope, no admin).
 - A fresh shell does NOT auto-inherit Node on PATH. Prefix npm/node commands with:
   `$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine')`
-- MySQL is NOT installed yet. The Prisma schema + seed are written but migrations are
-  DEFERRED until a database is reachable (set `DATABASE_URL` in `backend/.env`, then
-  run `npx prisma migrate dev --name init` and `node prisma/seed.js`).
+- MySQL 8 IS installed and running locally (service `MySQL80`). `cenrowatch_db`
+  is migrated (`prisma/migrations/`) and seeded (18 barangays + SLA settings).
+  The `mysql` CLI is not on PATH, but Prisma connects over TCP via `DATABASE_URL`.
 
 ## Current Sprint
-Sprint 0 — Scaffolding. Do not build features yet. Sprints 1–4 defined in the
-development plan (auth → resident interface → staff dashboard → admin analytics).
+Sprint 1 — Authentication & RBAC (IN PROGRESS).
+- Backend DONE: register (Resident-only), login, `GET /me`, JWT (bcryptjs hashing),
+  `authenticate` + `authorize(...roles)` middleware, express-validator, AuditLog on
+  every mutation, public `GET /barangays`, and `npm run create-admin` to bootstrap
+  Admin/Staff. Pattern: routes → controllers → services → prisma.
+- Web + mobile auth UI: PENDING the user's Figma design (login/register screens,
+  auth context, protected routes, role-based redirects).
+- Remaining sprints: 2 resident interface → 3 staff dashboard → 4 admin analytics.
