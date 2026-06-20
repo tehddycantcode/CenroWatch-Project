@@ -22,7 +22,20 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "CENROWATCH needs access to your photos so you can attach evidence to a report.",
+          "cameraPermission": "CENROWATCH needs camera access so you can photograph an environmental concern."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "CENROWATCH uses your location to pin where an environmental report was made."
+        }
+      ]
     ]
   }
 }

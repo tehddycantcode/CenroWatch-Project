@@ -5,12 +5,14 @@ import { colors } from '../theme';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
+import ResidentNavigator from './ResidentNavigator';
 
 // Minimal auth-aware navigation: a splash while the session resolves, then either
-// the auth flow (login/register toggle) or the role-based authenticated home.
-// A full router (expo-router) can layer on in Sprint 2 when screens multiply.
+// the auth flow (login/register toggle) or the role-based authenticated area.
+// Residents get the full reporting interface (ResidentNavigator); Staff/Admin
+// keep the placeholder Home until their sprints (3–4).
 export default function RootNavigator() {
-  const { loading, isAuthenticated } = useAuth();
+  const { loading, isAuthenticated, user } = useAuth();
   const [screen, setScreen] = useState('login');
 
   if (loading) {
@@ -21,7 +23,9 @@ export default function RootNavigator() {
     );
   }
 
-  if (isAuthenticated) return <HomeScreen />;
+  if (isAuthenticated) {
+    return user?.role === 'Resident' ? <ResidentNavigator /> : <HomeScreen />;
+  }
 
   return screen === 'register' ? (
     <RegisterScreen onNavigate={setScreen} />

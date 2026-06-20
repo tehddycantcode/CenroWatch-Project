@@ -45,16 +45,22 @@ Researchers: Moro, Edward Justine G. | Quizana, Koshi Cyrus G. | Zaspa, Holian I
   The `mysql` CLI is not on PATH, but Prisma connects over TCP via `DATABASE_URL`.
 
 ## Current Sprint
-Sprint 1 — Authentication & RBAC (COMPLETE; awaiting confirmation for Sprint 2).
-- Backend: register (Resident-only), login, `GET /me`, JWT (bcryptjs hashing),
-  `authenticate` + `authorize(...roles)` middleware, express-validator, AuditLog on
-  every mutation, public `GET /barangays`, `npm run create-admin` for Admin/Staff.
-- Web: shared UI kit in `web/src/components/ui`, Inter + DM Serif Display fonts,
-  AuthContext (token in localStorage) + ProtectedRoute role gating, Login/Register
-  pages from Figma. Pattern: routes → controllers → services → prisma.
-- Mobile: shared UI kit in `mobile/src/components`, AuthContext (token in
-  expo-secure-store) + RootNavigator (role-based), Login/Register/Home screens.
-  Set the LAN IP in `mobile/src/config.js` (a phone can't reach localhost).
+Sprint 2 — Resident Interface & Reporting (COMPLETE; awaiting confirmation for Sprint 3).
+- Backend: complaints / wildlife / requests modules (create + listMine + getByTracking),
+  per-year sequential tracking IDs (CMP/WLD/REQ-YYYY-NNNNN via `createSequential`),
+  Citizens Charter SLA stamping, photo/document upload (local-disk stub at `/uploads`,
+  swappable to GCS), AuditLog on every create. Public GIS: `GET /gis/{map,stats,feed}`
+  — zero personal data, endangered coords obfuscated ±0.001°.
+- Web: resident interface (dashboard, 3 report forms, my-reports, track) under a
+  role-gated ResidentLayout; public MapLibre map (`/map`) + reports feed (`/feed`) +
+  live landing stats; in-form interactive map pin-picker (MapTiler).
+- Mobile: resident interface mirroring web — dependency-light ResidentNavigator
+  (screen stack + Home/My Reports tabs) routed by role from RootNavigator; Dashboard,
+  Complaint/Wildlife/Service-Request forms, My Reports, Track screens. Photo via
+  expo-image-picker, GPS via expo-location (no native map in Expo Go). Shared report
+  metadata in `mobile/src/lib/reports.js`. Set the LAN IP in `mobile/src/config.js`.
+- Sprint 1 (done): auth + RBAC across backend/web/mobile; shared UI kits; Figma palette.
 - Design source of truth: Figma (see memory `figma-design-file`). Palette + fonts
   mirrored in web Tailwind tokens and `mobile/src/theme.js`.
-- Remaining sprints: 2 resident interface → 3 staff dashboard → 4 admin analytics.
+- Remaining sprints: 3 staff dashboard → 4 admin analytics. STOP for confirmation
+  before starting Sprint 3.
