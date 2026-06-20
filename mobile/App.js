@@ -35,12 +35,14 @@ export default function App() {
   );
 }
 
-const BRAND = '#157F3C';
+// CENROWATCH palette (from Figma)
+const FOREST = '#0f3d1f';
+const PRIMARY = '#22a050';
 
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: BRAND,
+    backgroundColor: FOREST,
   },
   container: {
     flex: 1,
@@ -58,7 +60,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logoText: {
-    color: BRAND,
+    color: PRIMARY,
     fontSize: 28,
     fontWeight: '800',
   },

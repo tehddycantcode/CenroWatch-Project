@@ -10,6 +10,15 @@ export default {
     },
     extend: {
       colors: {
+        // CENROWATCH brand palette (exact values from Figma)
+        brand: {
+          forest: '#0f3d1f',
+          primary: '#22a050',
+          accent: '#2dc568',
+          light: '#8fe8ae',
+          tint: '#e6fdf0',
+          surface: '#f8faf9',
+        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',

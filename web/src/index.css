@@ -2,52 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
-/* shadcn/ui design tokens — CENROWATCH green-accented theme */
+/* shadcn/ui design tokens — CENROWATCH palette (from Figma)
+   Forest #0f3d1f · Primary #22a050 · Accent #2dc568 · Light #8fe8ae
+   Tint #e6fdf0 · Surface #f8faf9 */
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 141 35% 12%;          /* near-Forest for text/headings */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 141 35% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    /* CENRO green */
-    --primary: 142 72% 29%;
+    --popover-foreground: 141 35% 12%;
+    --primary: 142 65% 38%;             /* #22a050 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 142 40% 94%;
-    --accent-foreground: 142 72% 20%;
+    --secondary: 146 45% 95%;           /* light green-tint */
+    --secondary-foreground: 141 55% 16%;
+    --muted: 150 14% 96%;               /* ~Surface */
+    --muted-foreground: 150 9% 40%;
+    --accent: 146 77% 95%;              /* #e6fdf0 Tint */
+    --accent-foreground: 141 61% 15%;   /* #0f3d1f Forest */
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 142 72% 29%;
-    --radius: 0.5rem;
+    --destructive-foreground: 0 0% 100%;
+    --border: 150 18% 90%;
+    --input: 150 18% 90%;
+    --ring: 142 65% 38%;
+    --radius: 0.625rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 142 64% 45%;
-    --primary-foreground: 144 80% 10%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142 64% 45%;
+    --background: 141 61% 8%;           /* deep Forest */
+    --foreground: 146 30% 96%;
+    --card: 141 55% 11%;
+    --card-foreground: 146 30% 96%;
+    --popover: 141 55% 11%;
+    --popover-foreground: 146 30% 96%;
+    --primary: 143 63% 47%;             /* #2dc568 Accent */
+    --primary-foreground: 141 61% 10%;
+    --secondary: 141 30% 18%;
+    --secondary-foreground: 146 30% 96%;
+    --muted: 141 25% 18%;
+    --muted-foreground: 146 15% 70%;
+    --accent: 141 30% 18%;
+    --accent-foreground: 146 30% 96%;
+    --destructive: 0 62.8% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 141 25% 20%;
+    --input: 141 25% 20%;
+    --ring: 143 63% 47%;
   }
 }
 
