@@ -57,7 +57,12 @@ function whereFor(idOrTracking) {
 }
 
 async function listRequests(filters = {}) {
-  const { status, barangay_id, search, page = 1, limit = 20 } = filters;
+  // Express 5 makes req.query read-only, so coerce the query values here.
+  const { status, search } = filters;
+  const page = Number(filters.page) > 0 ? Number(filters.page) : 1;
+  const limit = Number(filters.limit) > 0 ? Number(filters.limit) : 20;
+  const barangay_id = filters.barangay_id ? Number(filters.barangay_id) : undefined;
+
   const where = {};
   if (status) where.status = status;
   if (barangay_id) where.barangay_id = barangay_id;

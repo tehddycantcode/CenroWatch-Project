@@ -63,7 +63,16 @@ function whereFor(idOrTracking) {
 }
 
 async function listComplaints(filters = {}) {
-  const { status, barangay_id, priority, search, page = 1, limit = 20 } = filters;
+  // Express 5 makes req.query read-only, so express-validator's toInt/toBoolean
+  // sanitizers don't persist — coerce the query values here.
+  const { status, search } = filters;
+  const page = Number(filters.page) > 0 ? Number(filters.page) : 1;
+  const limit = Number(filters.limit) > 0 ? Number(filters.limit) : 20;
+  const barangay_id = filters.barangay_id ? Number(filters.barangay_id) : undefined;
+  const priority = filters.priority === undefined || filters.priority === ''
+    ? undefined
+    : filters.priority === true || filters.priority === 'true';
+
   const where = {};
   if (status) where.status = status;
   if (barangay_id) where.barangay_id = barangay_id;
