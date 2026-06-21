@@ -1,0 +1,41 @@
+// Staff routes — mounted at /api/v1/staff. Every endpoint requires an
+// authenticated CENRO_Staff or Admin user. These return internal data (including
+// reporter contact info) and drive the queues, detail views, and status workflow.
+
+const express = require('express');
+const router = express.Router();
+
+const authenticate = require('../middlewares/authenticate');
+const authorize = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
+const v = require('../validators/staff.validators');
+
+const overview = require('../controllers/staff.overview.controller');
+const complaints = require('../controllers/staff.complaint.controller');
+const wildlife = require('../controllers/staff.wildlife.controller');
+const requests = require('../controllers/staff.request.controller');
+
+router.use(authenticate, authorize('CENRO_Staff', 'Admin'));
+
+// Dashboard
+router.get('/overview', overview.getOverview);
+
+// Complaints
+router.get('/complaints', v.listQueryRules, validate, complaints.list);
+router.get('/complaints/:id', complaints.getOne);
+router.patch('/complaints/:id/status', v.complaintStatusRules, validate, complaints.updateStatus);
+router.patch('/complaints/:id', v.complaintUpdateRules, validate, complaints.update);
+
+// Wildlife turnovers
+router.get('/wildlife', v.listQueryRules, validate, wildlife.list);
+router.get('/wildlife/:id', wildlife.getOne);
+router.patch('/wildlife/:id/status', v.wildlifeStatusRules, validate, wildlife.updateStatus);
+router.patch('/wildlife/:id', v.wildlifeUpdateRules, validate, wildlife.update);
+
+// Environmental requests
+router.get('/requests', v.listQueryRules, validate, requests.list);
+router.get('/requests/:id', requests.getOne);
+router.patch('/requests/:id/status', v.requestStatusRules, validate, requests.updateStatus);
+router.patch('/requests/:id', v.requestUpdateRules, validate, requests.update);
+
+module.exports = router;

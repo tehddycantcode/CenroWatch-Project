@@ -25,6 +25,9 @@ router.use('/complaints', require('./complaint.routes'));
 router.use('/wildlife', require('./wildlife.routes'));
 router.use('/requests', require('./request.routes'));
 router.use('/gis', require('./gis.routes'));
+
+// Sprint 3 — CENRO Staff interface (role-gated inside the router)
+router.use('/staff', require('./staff.routes'));
 // Sprint 4+: router.use('/admin', require('./admin.routes'));
 
 module.exports = router;

@@ -13,4 +13,12 @@ function addMinutes(date, minutes) {
   return new Date(date.getTime() + minutes * 60_000);
 }
 
-module.exports = { getSlaMinutes, addMinutes };
+// Whether a report breached its SLA. If completedAt is given (terminal status),
+// compare the completion time; otherwise compare against now (still open).
+function computeExceededSla(slaDeadline, completedAt = null) {
+  if (!slaDeadline) return false;
+  const ref = completedAt || new Date();
+  return ref.getTime() > new Date(slaDeadline).getTime();
+}
+
+module.exports = { getSlaMinutes, addMinutes, computeExceededSla };
