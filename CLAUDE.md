@@ -45,24 +45,26 @@ Researchers: Moro, Edward Justine G. | Quizana, Koshi Cyrus G. | Zaspa, Holian I
   The `mysql` CLI is not on PATH, but Prisma connects over TCP via `DATABASE_URL`.
 
 ## Current Sprint
-Sprint 3 — CENRO Staff Interface (COMPLETE; awaiting confirmation for Sprint 4).
-- Backend: role-gated `/staff` API (CENRO_Staff + Admin) — queues
-  `GET /staff/{complaints,wildlife,requests}` (status/barangay/priority/search +
-  pagination, reporter contact shown), detail by id-or-tracking, status workflow
-  `PATCH /staff/<kind>/:id/status` (ComplaintStatusHistory, side-effects: resolved_at /
-  intake-release / scheduled-completion / CENRO-head approval, recompute exceeded_sla,
-  AuditLog, resident email), field edits `PATCH /staff/<kind>/:id` (assign/priority/
-  notes), and `GET /staff/overview` dashboard stats. Graceful Nodemailer/Gmail mailer
-  (`utils/mailer.js` no-ops + logs in dev without creds; never throws) + status
-  templates (`utils/notify.js`). No schema change (staff fields already in schema).
-- Web: StaffLayout + dashboard (open/SLA/priority stats + recent), reusable StaffQueue
-  (filters + table + pagination) for the 3 queues, detail pages with StatusUpdateForm
-  (status + note→email + conditional field) and complaint status-history timeline.
-  Routes nested under `<ProtectedRoute roles={['CENRO_Staff','Admin']}>`.
+Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
+- Backend: Admin-only `/admin` API. `GET /admin/analytics` (Prisma groupBy + JS
+  bucketing, no raw SQL): users by role/active, report totals, status breakdowns,
+  by complaint/request type, per-barangay counts (with coords), 6-month trend, SLA
+  compliance, avg complaint resolution time, endangered count. Users
+  `GET/POST /admin/users` + `PATCH /admin/users/:id` (mint any role; self-lockout
+  guard). `GET /admin/audit-logs` (filter/paginate). Settings `GET /admin/settings`
+  + `PATCH /admin/settings/:key` (validates *_minutes). AuditLog on every mutation.
+- Web: AdminLayout + dashboard (dependency-light SVG/CSS charts: 6-month trend +
+  type/barangay bars, SLA + resolution cards), GIS analytics page (MapView + per-
+  barangay table), Users (create + inline role/active edits), Audit Log viewer,
+  System Settings (inline edit). All-reports views reuse the staff queue pages.
+  Routes nested under `<ProtectedRoute roles={['Admin']}>`.
+- Sprint 3 (done): CENRO Staff interface — `/staff` queues + status workflow +
+  ComplaintStatusHistory + SLA recompute + resident email (Nodemailer/Gmail,
+  graceful) + StaffLayout/queues/detail web UI.
 - Sprint 2 (done): resident reporting backend + web/mobile resident UI + public GIS map.
 - Sprint 1 (done): auth + RBAC across backend/web/mobile; shared UI kits; Figma palette.
-- Email: set EMAIL_USER + EMAIL_PASS (Gmail App Password) in backend/.env to send for
-  real; otherwise notifications are logged, not sent.
-- Test accounts (dev): staff@cenrowatch.local / StaffPass123 (CENRO_Staff);
-  admin@cenrowatch.local / AdminPass123 (Admin); juan.delacruz@example.com / Resident123.
-- Remaining sprint: 4 admin analytics. STOP for confirmation before starting Sprint 4.
+- Email: live — EMAIL_USER/EMAIL_PASS (Gmail App Password) set in backend/.env.
+- Test accounts (dev): admin@cenrowatch.local / AdminPass123 (Admin);
+  staff@cenrowatch.local / StaffPass123 (CENRO_Staff); juan.delacruz@example.com /
+  Resident123. Known gotcha: Express 5 req.query is read-only — coerce query params
+  in services (see memory `express5-query-readonly`).

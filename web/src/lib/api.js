@@ -121,3 +121,18 @@ export const staffApi = {
   wildlife: staffResource('wildlife'),
   requests: staffResource('requests'),
 };
+
+// Admin APIs (Admin only) — analytics, user management, audit log, settings.
+export const adminApi = {
+  analytics: () => apiFetch('/admin/analytics'),
+  users: {
+    list: (params) => apiFetch(`/admin/users${qs(params)}`),
+    create: (body) => apiFetch('/admin/users', { method: 'POST', body }),
+    update: (id, body) => apiFetch(`/admin/users/${id}`, { method: 'PATCH', body }),
+  },
+  auditLogs: (params) => apiFetch(`/admin/audit-logs${qs(params)}`),
+  settings: {
+    list: () => apiFetch('/admin/settings'),
+    update: (key, value) => apiFetch(`/admin/settings/${key}`, { method: 'PATCH', body: { setting_value: value } }),
+  },
+};

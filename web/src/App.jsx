@@ -20,29 +20,18 @@ import WildlifeQueuePage from '@/pages/staff/WildlifeQueuePage';
 import WildlifeDetailPage from '@/pages/staff/WildlifeDetailPage';
 import RequestsQueuePage from '@/pages/staff/RequestsQueuePage';
 import RequestDetailPage from '@/pages/staff/RequestDetailPage';
+import AdminLayout from '@/components/admin/AdminLayout';
+import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
+import AdminAnalyticsPage from '@/pages/admin/AdminAnalyticsPage';
+import AdminUsersPage from '@/pages/admin/AdminUsersPage';
+import AdminAuditLogsPage from '@/pages/admin/AdminAuditLogsPage';
+import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 import Placeholder from '@/components/Placeholder';
 import NotFound from '@/components/NotFound';
-
-const AREA_ROLES = {
-  Admin: ['Admin'],
-};
 
 // Public placeholder routes (no auth) — still placeholders until their sprint.
 const publicRoutes = [
   { path: '/wildlife', title: 'Wildlife & Biodiversity', area: 'Public', sprint: 'Sprint 2' },
-];
-
-// Admin remains a role-gated placeholder until Sprint 4. (The CENRO Staff
-// interface is implemented below under StaffLayout.)
-const protectedRoutes = [
-  { path: '/admin/dashboard', title: 'Admin Analytics Dashboard', area: 'Admin', sprint: 'Sprint 4' },
-  { path: '/admin/analytics', title: 'Analytics & GIS Dashboard', area: 'Admin', sprint: 'Sprint 4' },
-  { path: '/admin/users', title: 'User Account Management', area: 'Admin', sprint: 'Sprint 4' },
-  { path: '/admin/complaints', title: 'All Complaints', area: 'Admin', sprint: 'Sprint 4' },
-  { path: '/admin/wildlife', title: 'All Wildlife Cases', area: 'Admin', sprint: 'Sprint 4' },
-  { path: '/admin/requests', title: 'All Environmental Requests', area: 'Admin', sprint: 'Sprint 4' },
-  { path: '/admin/audit-logs', title: 'Audit Log Viewer', area: 'Admin', sprint: 'Sprint 4' },
-  { path: '/admin/settings', title: 'System Settings', area: 'Admin', sprint: 'Sprint 4' },
 ];
 
 export default function App() {
@@ -92,22 +81,29 @@ export default function App() {
         <Route path="/staff/requests/:id" element={<RequestDetailPage />} />
       </Route>
 
+      {/* Admin interface (Sprint 4) — nested under AdminLayout, Admin-only.
+          The all-reports views reuse the staff queue pages (which list all
+          reports); row clicks open the staff detail/workflow view. */}
+      <Route
+        element={
+          <ProtectedRoute roles={['Admin']}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+        <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
+        <Route path="/admin/complaints" element={<ComplaintsQueuePage />} />
+        <Route path="/admin/wildlife" element={<WildlifeQueuePage />} />
+        <Route path="/admin/requests" element={<RequestsQueuePage />} />
+        <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+        <Route path="/admin/settings" element={<AdminSettingsPage />} />
+      </Route>
+
       {/* Public placeholders */}
       {publicRoutes.map((r) => (
         <Route key={r.path} path={r.path} element={<Placeholder title={r.title} sprint={r.sprint} area={r.area} />} />
-      ))}
-
-      {/* Staff + Admin placeholders (role-gated) */}
-      {protectedRoutes.map((r) => (
-        <Route
-          key={r.path}
-          path={r.path}
-          element={
-            <ProtectedRoute roles={AREA_ROLES[r.area]}>
-              <Placeholder title={r.title} sprint={r.sprint} area={r.area} />
-            </ProtectedRoute>
-          }
-        />
       ))}
 
       <Route path="*" element={<NotFound />} />
