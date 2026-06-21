@@ -28,6 +28,8 @@ router.use('/gis', require('./gis.routes'));
 
 // Sprint 3 — CENRO Staff interface (role-gated inside the router)
 router.use('/staff', require('./staff.routes'));
-// Sprint 4+: router.use('/admin', require('./admin.routes'));
+
+// Sprint 4 — Admin analytics & management (Admin-only inside the router)
+router.use('/admin', require('./admin.routes'));
 
 module.exports = router;
