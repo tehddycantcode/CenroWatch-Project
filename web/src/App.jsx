@@ -12,11 +12,18 @@ import MyReportsPage from '@/pages/resident/MyReportsPage';
 import TrackReportPage from '@/pages/resident/TrackReportPage';
 import PublicMapPage from '@/pages/public/PublicMapPage';
 import ReportsFeedPage from '@/pages/public/ReportsFeedPage';
+import StaffLayout from '@/components/staff/StaffLayout';
+import StaffDashboardPage from '@/pages/staff/StaffDashboardPage';
+import ComplaintsQueuePage from '@/pages/staff/ComplaintsQueuePage';
+import ComplaintDetailPage from '@/pages/staff/ComplaintDetailPage';
+import WildlifeQueuePage from '@/pages/staff/WildlifeQueuePage';
+import WildlifeDetailPage from '@/pages/staff/WildlifeDetailPage';
+import RequestsQueuePage from '@/pages/staff/RequestsQueuePage';
+import RequestDetailPage from '@/pages/staff/RequestDetailPage';
 import Placeholder from '@/components/Placeholder';
 import NotFound from '@/components/NotFound';
 
 const AREA_ROLES = {
-  'CENRO Staff': ['CENRO_Staff'],
   Admin: ['Admin'],
 };
 
@@ -25,16 +32,9 @@ const publicRoutes = [
   { path: '/wildlife', title: 'Wildlife & Biodiversity', area: 'Public', sprint: 'Sprint 2' },
 ];
 
-// Staff + Admin remain role-gated placeholders until Sprints 3–4.
+// Admin remains a role-gated placeholder until Sprint 4. (The CENRO Staff
+// interface is implemented below under StaffLayout.)
 const protectedRoutes = [
-  { path: '/staff/dashboard', title: 'Staff Dashboard', area: 'CENRO Staff', sprint: 'Sprint 3' },
-  { path: '/staff/complaints', title: 'Complaints Validation Queue', area: 'CENRO Staff', sprint: 'Sprint 3' },
-  { path: '/staff/complaints/:id', title: 'Complaint Detail', area: 'CENRO Staff', sprint: 'Sprint 3' },
-  { path: '/staff/wildlife', title: 'Wildlife Management', area: 'CENRO Staff', sprint: 'Sprint 3' },
-  { path: '/staff/wildlife/:id', title: 'Wildlife Case Detail', area: 'CENRO Staff', sprint: 'Sprint 3' },
-  { path: '/staff/requests', title: 'Environmental Requests Queue', area: 'CENRO Staff', sprint: 'Sprint 3' },
-  { path: '/staff/requests/:id', title: 'Request Detail', area: 'CENRO Staff', sprint: 'Sprint 3' },
-
   { path: '/admin/dashboard', title: 'Admin Analytics Dashboard', area: 'Admin', sprint: 'Sprint 4' },
   { path: '/admin/analytics', title: 'Analytics & GIS Dashboard', area: 'Admin', sprint: 'Sprint 4' },
   { path: '/admin/users', title: 'User Account Management', area: 'Admin', sprint: 'Sprint 4' },
@@ -72,6 +72,24 @@ export default function App() {
         <Route path="/resident/request-service" element={<ServiceRequestFormPage />} />
         <Route path="/resident/my-reports" element={<MyReportsPage />} />
         <Route path="/resident/track/:trackingId" element={<TrackReportPage />} />
+      </Route>
+
+      {/* CENRO Staff interface (Sprint 3) — nested under StaffLayout, role-gated.
+          Admin is allowed too, mirroring the backend authorize('CENRO_Staff','Admin'). */}
+      <Route
+        element={
+          <ProtectedRoute roles={['CENRO_Staff', 'Admin']}>
+            <StaffLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/staff/dashboard" element={<StaffDashboardPage />} />
+        <Route path="/staff/complaints" element={<ComplaintsQueuePage />} />
+        <Route path="/staff/complaints/:id" element={<ComplaintDetailPage />} />
+        <Route path="/staff/wildlife" element={<WildlifeQueuePage />} />
+        <Route path="/staff/wildlife/:id" element={<WildlifeDetailPage />} />
+        <Route path="/staff/requests" element={<RequestsQueuePage />} />
+        <Route path="/staff/requests/:id" element={<RequestDetailPage />} />
       </Route>
 
       {/* Public placeholders */}

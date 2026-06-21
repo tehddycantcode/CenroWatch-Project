@@ -45,22 +45,24 @@ Researchers: Moro, Edward Justine G. | Quizana, Koshi Cyrus G. | Zaspa, Holian I
   The `mysql` CLI is not on PATH, but Prisma connects over TCP via `DATABASE_URL`.
 
 ## Current Sprint
-Sprint 2 — Resident Interface & Reporting (COMPLETE; awaiting confirmation for Sprint 3).
-- Backend: complaints / wildlife / requests modules (create + listMine + getByTracking),
-  per-year sequential tracking IDs (CMP/WLD/REQ-YYYY-NNNNN via `createSequential`),
-  Citizens Charter SLA stamping, photo/document upload (local-disk stub at `/uploads`,
-  swappable to GCS), AuditLog on every create. Public GIS: `GET /gis/{map,stats,feed}`
-  — zero personal data, endangered coords obfuscated ±0.001°.
-- Web: resident interface (dashboard, 3 report forms, my-reports, track) under a
-  role-gated ResidentLayout; public MapLibre map (`/map`) + reports feed (`/feed`) +
-  live landing stats; in-form interactive map pin-picker (MapTiler).
-- Mobile: resident interface mirroring web — dependency-light ResidentNavigator
-  (screen stack + Home/My Reports tabs) routed by role from RootNavigator; Dashboard,
-  Complaint/Wildlife/Service-Request forms, My Reports, Track screens. Photo via
-  expo-image-picker, GPS via expo-location (no native map in Expo Go). Shared report
-  metadata in `mobile/src/lib/reports.js`. Set the LAN IP in `mobile/src/config.js`.
+Sprint 3 — CENRO Staff Interface (COMPLETE; awaiting confirmation for Sprint 4).
+- Backend: role-gated `/staff` API (CENRO_Staff + Admin) — queues
+  `GET /staff/{complaints,wildlife,requests}` (status/barangay/priority/search +
+  pagination, reporter contact shown), detail by id-or-tracking, status workflow
+  `PATCH /staff/<kind>/:id/status` (ComplaintStatusHistory, side-effects: resolved_at /
+  intake-release / scheduled-completion / CENRO-head approval, recompute exceeded_sla,
+  AuditLog, resident email), field edits `PATCH /staff/<kind>/:id` (assign/priority/
+  notes), and `GET /staff/overview` dashboard stats. Graceful Nodemailer/Gmail mailer
+  (`utils/mailer.js` no-ops + logs in dev without creds; never throws) + status
+  templates (`utils/notify.js`). No schema change (staff fields already in schema).
+- Web: StaffLayout + dashboard (open/SLA/priority stats + recent), reusable StaffQueue
+  (filters + table + pagination) for the 3 queues, detail pages with StatusUpdateForm
+  (status + note→email + conditional field) and complaint status-history timeline.
+  Routes nested under `<ProtectedRoute roles={['CENRO_Staff','Admin']}>`.
+- Sprint 2 (done): resident reporting backend + web/mobile resident UI + public GIS map.
 - Sprint 1 (done): auth + RBAC across backend/web/mobile; shared UI kits; Figma palette.
-- Design source of truth: Figma (see memory `figma-design-file`). Palette + fonts
-  mirrored in web Tailwind tokens and `mobile/src/theme.js`.
-- Remaining sprints: 3 staff dashboard → 4 admin analytics. STOP for confirmation
-  before starting Sprint 3.
+- Email: set EMAIL_USER + EMAIL_PASS (Gmail App Password) in backend/.env to send for
+  real; otherwise notifications are logged, not sent.
+- Test accounts (dev): staff@cenrowatch.local / StaffPass123 (CENRO_Staff);
+  admin@cenrowatch.local / AdminPass123 (Admin); juan.delacruz@example.com / Resident123.
+- Remaining sprint: 4 admin analytics. STOP for confirmation before starting Sprint 4.

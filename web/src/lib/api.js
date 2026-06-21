@@ -94,3 +94,30 @@ export const gisApi = {
   stats: () => apiFetch('/gis/stats', { auth: false }),
   feed: () => apiFetch('/gis/feed', { auth: false }),
 };
+
+// Build a query string from a params object, skipping empty values.
+function qs(params = {}) {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') sp.append(k, v);
+  }
+  const s = sp.toString();
+  return s ? `?${s}` : '';
+}
+
+// Staff APIs (CENRO_Staff + Admin) — queues, detail, status workflow, dashboard.
+function staffResource(name) {
+  return {
+    list: (params) => apiFetch(`/staff/${name}${qs(params)}`),
+    get: (id) => apiFetch(`/staff/${name}/${id}`),
+    updateStatus: (id, body) => apiFetch(`/staff/${name}/${id}/status`, { method: 'PATCH', body }),
+    update: (id, body) => apiFetch(`/staff/${name}/${id}`, { method: 'PATCH', body }),
+  };
+}
+
+export const staffApi = {
+  overview: () => apiFetch('/staff/overview'),
+  complaints: staffResource('complaints'),
+  wildlife: staffResource('wildlife'),
+  requests: staffResource('requests'),
+};
