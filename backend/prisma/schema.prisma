@@ -122,11 +122,28 @@ model User {
   processed_wildlife  WildlifeTurnover[]     @relation("ProcessedByStaff")
   env_requests        EnvironmentalRequest[] @relation("UserRequests")
   processed_requests  EnvironmentalRequest[] @relation("ProcessedRequests")
-  audit_logs          AuditLog[]
-  notifications       Notification[]
+  audit_logs           AuditLog[]
+  notifications        Notification[]
+  password_reset_tokens PasswordResetToken[]
 
   @@index([email])
   @@index([role])
+}
+
+// Password reset tokens. We store only the SHA-256 hash of the token, never the
+// token itself, so a database leak cannot be used to reset accounts. Tokens are
+// single-use (used_at) and time-limited (expires_at).
+model PasswordResetToken {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  token_hash String    @unique @db.VarChar(64) // sha256 hex
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [user_id])
+
+  @@index([user_id])
 }
 
 // ============================================================

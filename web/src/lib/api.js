@@ -93,6 +93,8 @@ export const authApi = {
   register: (payload) => apiFetch('/auth/register', { method: 'POST', body: payload, auth: false }),
   login: (payload) => apiFetch('/auth/login', { method: 'POST', body: payload, auth: false }),
   me: () => apiFetch('/auth/me'),
+  forgotPassword: (email) => apiFetch('/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),
+  resetPassword: (token, password) => apiFetch('/auth/reset-password', { method: 'POST', body: { token, password }, auth: false }),
 };
 
 export const barangayApi = {

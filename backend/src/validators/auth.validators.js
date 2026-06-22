@@ -47,4 +47,21 @@ const loginRules = [
   body('password').notEmpty().withMessage('Password is required.'),
 ];
 
-module.exports = { registerRules, loginRules };
+const forgotPasswordRules = [
+  body('email')
+    .trim()
+    .notEmpty().withMessage('Email is required.')
+    .isEmail().withMessage('A valid email is required.')
+    .normalizeEmail(),
+];
+
+const resetPasswordRules = [
+  body('token').isString().trim().notEmpty().withMessage('Reset token is required.'),
+  body('password')
+    .isString()
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters.')
+    .matches(/[A-Za-z]/).withMessage('Password must contain a letter.')
+    .matches(/[0-9]/).withMessage('Password must contain a number.'),
+];
+
+module.exports = { registerRules, loginRules, forgotPasswordRules, resetPasswordRules };

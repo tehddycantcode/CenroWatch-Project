@@ -1,11 +1,21 @@
 // Auth business logic: registration, login, and profile lookup.
 // All DB access goes through Prisma; every successful mutation writes an AuditLog.
 
+const crypto = require('crypto');
 const prisma = require('../utils/prisma');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { signToken } = require('../utils/jwt');
 const { writeAuditLog } = require('../utils/audit');
+const { notifyPasswordReset } = require('../utils/notify');
 const HttpError = require('../utils/httpError');
+
+const RESET_TTL_MINUTES = 60;
+
+// We never store the reset token itself — only this hash. A leaked DB row is
+// therefore useless for resetting an account.
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 // Whitelist of fields safe to return to clients (never the password hash).
 const PUBLIC_USER_FIELDS = {
@@ -102,6 +112,71 @@ async function login(input, ctx = {}) {
   return { user: safeUser, token: tokenFor(user) };
 }
 
+/**
+ * Begin a password reset. To avoid leaking which emails are registered, this
+ * ALWAYS resolves the same way; a token is only minted (and emailed) when an
+ * active account actually matches. Any prior unused token for the user is
+ * invalidated so only the newest link works.
+ */
+async function requestPasswordReset(email, ctx = {}) {
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (user && user.is_active) {
+    await prisma.passwordResetToken.deleteMany({ where: { user_id: user.user_id, used_at: null } });
+
+    const token = crypto.randomBytes(32).toString('hex'); // 256-bit
+    const expires_at = new Date(Date.now() + RESET_TTL_MINUTES * 60 * 1000);
+    await prisma.passwordResetToken.create({
+      data: { user_id: user.user_id, token_hash: hashToken(token), expires_at },
+    });
+
+    await writeAuditLog({
+      performedBy: user.user_id,
+      action: 'PASSWORD_RESET_REQUEST',
+      targetTable: 'User',
+      targetId: user.user_id,
+      data: { email: user.email },
+      ipAddress: ctx.ipAddress || null,
+    });
+
+    // Sends only if email is configured; never throws.
+    await notifyPasswordReset({ to: user.email, name: user.first_name, token });
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Complete a password reset. The token must exist, be unused, and be unexpired.
+ * On success the password is updated, the token is consumed, and any other
+ * outstanding tokens for the user are invalidated.
+ */
+async function resetPassword(token, password, ctx = {}) {
+  const record = await prisma.passwordResetToken.findUnique({ where: { token_hash: hashToken(token) } });
+
+  if (!record || record.used_at || record.expires_at < new Date()) {
+    throw new HttpError(400, 'This reset link is invalid or has expired. Please request a new one.');
+  }
+
+  const password_hash = await hashPassword(password);
+  await prisma.$transaction([
+    prisma.user.update({ where: { user_id: record.user_id }, data: { password_hash } }),
+    prisma.passwordResetToken.update({ where: { id: record.id }, data: { used_at: new Date() } }),
+    prisma.passwordResetToken.deleteMany({ where: { user_id: record.user_id, used_at: null } }),
+  ]);
+
+  await writeAuditLog({
+    performedBy: record.user_id,
+    action: 'PASSWORD_RESET_COMPLETE',
+    targetTable: 'User',
+    targetId: record.user_id,
+    data: {},
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return { ok: true };
+}
+
 async function getProfile(userId) {
   const user = await prisma.user.findUnique({
     where: { user_id: userId },
@@ -111,4 +186,4 @@ async function getProfile(userId) {
   return user;
 }
 
-module.exports = { register, login, getProfile };
+module.exports = { register, login, getProfile, requestPasswordReset, resetPassword };

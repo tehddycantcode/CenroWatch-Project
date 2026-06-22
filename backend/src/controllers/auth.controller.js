@@ -27,4 +27,19 @@ const me = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: { user } });
 });
 
-module.exports = { register, login, me };
+// Public. Generic response regardless of whether the email exists (no enumeration).
+const forgotPassword = asyncHandler(async (req, res) => {
+  await authService.requestPasswordReset(req.body.email, { ipAddress: req.ip });
+  res.status(200).json({
+    success: true,
+    message: 'If an account exists for that email, a password reset link has been sent.',
+  });
+});
+
+// Public. Consumes the token and sets the new password.
+const resetPassword = asyncHandler(async (req, res) => {
+  await authService.resetPassword(req.body.token, req.body.password, { ipAddress: req.ip });
+  res.status(200).json({ success: true, message: 'Your password has been reset. You can now sign in.' });
+});
+
+module.exports = { register, login, me, forgotPassword, resetPassword };

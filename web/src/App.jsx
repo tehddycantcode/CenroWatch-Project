@@ -2,6 +2,8 @@ import { Routes, Route } from 'react-router-dom';
 import LandingPage from '@/pages/public/LandingPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
+import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ResidentLayout from '@/components/resident/ResidentLayout';
 import DashboardPage from '@/pages/resident/DashboardPage';
@@ -40,6 +42,8 @@ export default function App() {
       {/* Auth (Sprint 1) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Public GIS map + reports feed (Sprint 2) */}
       <Route path="/map" element={<PublicMapPage />} />

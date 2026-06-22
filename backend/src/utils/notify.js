@@ -56,6 +56,42 @@ function notifyReportStatus({ to, name, kind, trackingId, status, note }) {
   return sendMail({ to, subject, html, text });
 }
 
+// Where the user completes a password reset (web app; works for mobile via browser).
+function resetUrl(token) {
+  const base = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
+  return `${base}/reset-password?token=${encodeURIComponent(token)}`;
+}
+
+/**
+ * Email a password-reset link. Never throws. The raw token is only ever sent
+ * here (the DB stores its hash). The link is single-use and expires in ~1 hour.
+ * @param {Object} p
+ * @param {string} p.to     recipient email
+ * @param {string} p.name   recipient first name
+ * @param {string} p.token  raw reset token
+ */
+function notifyPasswordReset({ to, name, token }) {
+  const url = resetUrl(token);
+  const subject = '[CENROWATCH] Reset your password';
+
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto;color:#0f3d1f">
+      <h2 style="color:#22a050;margin-bottom:4px">CENROWATCH</h2>
+      <p style="color:#66756e;margin-top:0">CENRO Cabuyao · Environmental Monitoring</p>
+      <p>Hi ${escapeHtml(name || 'there')},</p>
+      <p>We received a request to reset your CENROWATCH password. Click the button below to choose a new one. This link expires in 1 hour and can be used once.</p>
+      <p><a href="${url}" style="display:inline-block;background:#22a050;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">Reset my password</a></p>
+      <p style="color:#66756e;font-size:13px">If the button doesn't work, copy this link into your browser:<br/>${escapeHtml(url)}</p>
+      <p style="color:#66756e;font-size:12px;margin-top:24px">
+        If you did not request a password reset, you can safely ignore this email — your password will not change.
+      </p>
+    </div>`;
+
+  const text = `CENROWATCH — Password reset\n\nHi ${name || 'there'},\n\nWe received a request to reset your password. Open this link to choose a new one (expires in 1 hour, single use):\n${url}\n\nIf you did not request this, ignore this email — your password will not change.`;
+
+  return sendMail({ to, subject, html, text });
+}
+
 function escapeHtml(s = '') {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -64,4 +100,4 @@ function escapeHtml(s = '') {
     .replace(/"/g, '&quot;');
 }
 
-module.exports = { notifyReportStatus };
+module.exports = { notifyReportStatus, notifyPasswordReset };
