@@ -8,7 +8,11 @@ const router = express.Router();
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
+const { diskUpload } = require('../middlewares/upload');
 const v = require('../validators/staff.validators');
+
+// Chain-of-custody photos are images only; up to 10 per upload batch.
+const custodyUpload = diskUpload('custody');
 
 const overview = require('../controllers/staff.overview.controller');
 const complaints = require('../controllers/staff.complaint.controller');
@@ -31,6 +35,8 @@ router.get('/wildlife', v.listQueryRules, validate, wildlife.list);
 router.get('/wildlife/:id', wildlife.getOne);
 router.patch('/wildlife/:id/status', v.wildlifeStatusRules, validate, wildlife.updateStatus);
 router.patch('/wildlife/:id', v.wildlifeUpdateRules, validate, wildlife.update);
+router.post('/wildlife/:id/custody-photos', custodyUpload.array('photos', 10), wildlife.addCustodyPhotos);
+router.delete('/wildlife/:id/custody-photos', wildlife.removeCustodyPhoto);
 
 // Environmental requests
 router.get('/requests', v.listQueryRules, validate, requests.list);

@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import { Rows, ReporterCard, Attachment } from '@/components/staff/detail';
+import CustodyPhotos from '@/components/staff/CustodyPhotos';
 
 export default function WildlifeDetailPage() {
   const { id } = useParams();
@@ -76,6 +77,15 @@ export default function WildlifeDetailPage() {
               <ReporterCard user={w.resident} />
               {w.photo_path && <Attachment path={w.photo_path} />}
             </div>
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold">Chain-of-custody documentation</h2>
+            <p className="mb-4 mt-1 text-sm text-muted-foreground">
+              Photographic record of the animal&apos;s condition, handling, and transfer — kept for legal and
+              conservation accountability.
+            </p>
+            <CustodyPhotos id={id} photos={w.chain_of_custody_photos || []} onChange={load} />
           </Card>
         </div>
 

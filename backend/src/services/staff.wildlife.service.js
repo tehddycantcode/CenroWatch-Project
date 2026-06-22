@@ -37,6 +37,7 @@ const DETAIL_SELECT = {
   animal_condition: true,
   description: true,
   photo_path: true,
+  chain_of_custody_photos: true,
   latitude: true,
   longitude: true,
   address_details: true,
@@ -182,4 +183,73 @@ async function updateTurnover(staffId, idOrRef, input, ctx = {}) {
   return getTurnover(existing.turnover_id);
 }
 
-module.exports = { listTurnovers, getTurnover, updateTurnoverStatus, updateTurnover };
+// Chain-of-custody photos (manuscript Objective 2.3) — staff document the
+// animal's condition, handling, and transfer. Stored as an array of upload paths
+// in chain_of_custody_photos; appended to (never replaced) so the trail is additive.
+async function addCustodyPhotos(staffId, idOrRef, newPaths, ctx = {}) {
+  if (!Array.isArray(newPaths) || newPaths.length === 0) {
+    throw new HttpError(422, 'No photos were uploaded.');
+  }
+  const existing = await prisma.wildlifeTurnover.findFirst({
+    where: whereFor(idOrRef),
+    select: { turnover_id: true, reference_id: true, chain_of_custody_photos: true },
+  });
+  if (!existing) throw new HttpError(404, 'Wildlife record not found.');
+
+  const current = Array.isArray(existing.chain_of_custody_photos) ? existing.chain_of_custody_photos : [];
+  const updated = [...current, ...newPaths];
+
+  await prisma.wildlifeTurnover.update({
+    where: { turnover_id: existing.turnover_id },
+    data: { chain_of_custody_photos: updated },
+  });
+
+  await writeAuditLog({
+    performedBy: staffId,
+    action: 'WILDLIFE_CUSTODY_PHOTO_ADD',
+    targetTable: 'WildlifeTurnover',
+    targetId: existing.turnover_id,
+    data: { reference_id: existing.reference_id, added: newPaths.length, total: updated.length },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return getTurnover(existing.turnover_id);
+}
+
+async function removeCustodyPhoto(staffId, idOrRef, targetPath, ctx = {}) {
+  if (!targetPath) throw new HttpError(422, 'No photo was specified.');
+  const existing = await prisma.wildlifeTurnover.findFirst({
+    where: whereFor(idOrRef),
+    select: { turnover_id: true, reference_id: true, chain_of_custody_photos: true },
+  });
+  if (!existing) throw new HttpError(404, 'Wildlife record not found.');
+
+  const current = Array.isArray(existing.chain_of_custody_photos) ? existing.chain_of_custody_photos : [];
+  const updated = current.filter((p) => p !== targetPath);
+  if (updated.length === current.length) throw new HttpError(404, 'That photo is not on this record.');
+
+  await prisma.wildlifeTurnover.update({
+    where: { turnover_id: existing.turnover_id },
+    data: { chain_of_custody_photos: updated },
+  });
+
+  await writeAuditLog({
+    performedBy: staffId,
+    action: 'WILDLIFE_CUSTODY_PHOTO_REMOVE',
+    targetTable: 'WildlifeTurnover',
+    targetId: existing.turnover_id,
+    data: { reference_id: existing.reference_id, removed: targetPath, total: updated.length },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return getTurnover(existing.turnover_id);
+}
+
+module.exports = {
+  listTurnovers,
+  getTurnover,
+  updateTurnoverStatus,
+  updateTurnover,
+  addCustodyPhotos,
+  removeCustodyPhoto,
+};

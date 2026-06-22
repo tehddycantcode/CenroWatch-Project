@@ -1,5 +1,6 @@
 const asyncHandler = require('../utils/asyncHandler');
 const service = require('../services/staff.wildlife.service');
+const { publicPathFor } = require('../middlewares/upload');
 
 const list = asyncHandler(async (req, res) => {
   const result = await service.listTurnovers(req.query);
@@ -21,4 +22,15 @@ const update = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Wildlife record updated.', data: { turnover } });
 });
 
-module.exports = { list, getOne, updateStatus, update };
+const addCustodyPhotos = asyncHandler(async (req, res) => {
+  const paths = (req.files || []).map((f) => publicPathFor('custody', f.filename));
+  const turnover = await service.addCustodyPhotos(req.user.user_id, req.params.id, paths, { ipAddress: req.ip });
+  res.status(201).json({ success: true, message: 'Chain-of-custody photos added.', data: { turnover } });
+});
+
+const removeCustodyPhoto = asyncHandler(async (req, res) => {
+  const turnover = await service.removeCustodyPhoto(req.user.user_id, req.params.id, req.body?.path, { ipAddress: req.ip });
+  res.json({ success: true, message: 'Photo removed.', data: { turnover } });
+});
+
+module.exports = { list, getOne, updateStatus, update, addCustodyPhotos, removeCustodyPhoto };

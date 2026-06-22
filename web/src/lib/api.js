@@ -118,7 +118,12 @@ function staffResource(name) {
 export const staffApi = {
   overview: () => apiFetch('/staff/overview'),
   complaints: staffResource('complaints'),
-  wildlife: staffResource('wildlife'),
+  wildlife: {
+    ...staffResource('wildlife'),
+    // Chain-of-custody photos — form is a FormData with one or more `photos` fields.
+    addCustodyPhotos: (id, form) => apiFetch(`/staff/wildlife/${id}/custody-photos`, { method: 'POST', body: form }),
+    removeCustodyPhoto: (id, path) => apiFetch(`/staff/wildlife/${id}/custody-photos`, { method: 'DELETE', body: { path } }),
+  },
   requests: staffResource('requests'),
 };
 
