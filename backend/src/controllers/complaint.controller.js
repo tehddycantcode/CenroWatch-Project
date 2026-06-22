@@ -10,6 +10,23 @@ const create = asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, message: 'Complaint submitted.', data: { complaint } });
 });
 
+// Public anonymous/whistleblower submission — no auth, no reporter identity.
+const createAnonymous = asyncHandler(async (req, res) => {
+  const photoPath = req.file ? publicPathFor('complaints', req.file.filename) : null;
+  const complaint = await complaintService.createComplaint(null, req.body, photoPath, { ipAddress: req.ip }, { anonymous: true });
+  res.status(201).json({
+    success: true,
+    message: 'Anonymous report submitted. Save your reference number to track its status.',
+    data: { complaint },
+  });
+});
+
+// Public status lookup by tracking id (zero personal data).
+const trackPublic = asyncHandler(async (req, res) => {
+  const complaint = await complaintService.getPublicComplaintStatus(req.params.trackingId);
+  res.json({ success: true, data: { complaint } });
+});
+
 const listMine = asyncHandler(async (req, res) => {
   const complaints = await complaintService.listMyComplaints(req.user.user_id);
   res.json({ success: true, data: { complaints } });
@@ -23,4 +40,4 @@ const getByTracking = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { complaint } });
 });
 
-module.exports = { create, listMine, getByTracking };
+module.exports = { create, createAnonymous, trackPublic, listMine, getByTracking };

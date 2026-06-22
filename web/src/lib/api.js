@@ -74,6 +74,9 @@ export const complaintApi = {
   create: (form) => apiFetch('/complaints', { method: 'POST', body: form }),
   listMine: () => apiFetch('/complaints/mine'),
   get: (trackingId) => apiFetch(`/complaints/${trackingId}`),
+  // Public anonymous/whistleblower submission + status lookup (no auth).
+  createAnonymous: (form) => apiFetch('/complaints/anonymous', { method: 'POST', body: form, auth: false }),
+  track: (trackingId) => apiFetch(`/complaints/track/${trackingId}`, { auth: false }),
 };
 
 export const wildlifeApi = {

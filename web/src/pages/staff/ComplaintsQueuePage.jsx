@@ -16,7 +16,15 @@ const columns = [
   },
   { header: 'Type', render: (r) => humanize(r.complaint_type) },
   { header: 'Barangay', render: (r) => r.barangay?.name || '—' },
-  { header: 'Reporter', render: (r) => `${r.user?.first_name || ''} ${r.user?.last_name || ''}`.trim() || '—' },
+  {
+    header: 'Reporter',
+    render: (r) =>
+      r.is_anonymous ? (
+        <span className="italic text-muted-foreground">Anonymous</span>
+      ) : (
+        `${r.user?.first_name || ''} ${r.user?.last_name || ''}`.trim() || '—'
+      ),
+  },
   { header: 'Submitted', render: (r) => <span className="text-muted-foreground">{fmtDay(r.submitted_at)}</span> },
   {
     header: 'Status',

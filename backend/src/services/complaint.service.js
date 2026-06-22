@@ -12,6 +12,7 @@ const DETAIL_SELECT = {
   complaint_id: true,
   tracking_id: true,
   user_id: true,
+  is_anonymous: true,
   complaint_type: true,
   description: true,
   photo_path: true,
@@ -44,7 +45,11 @@ const LIST_SELECT = {
   barangay: { select: { name: true } },
 };
 
-async function createComplaint(userId, input, photoPath, ctx = {}) {
+// userId is null for anonymous/whistleblower reports (options.anonymous = true);
+// no reporter identity is stored in that case.
+async function createComplaint(userId, input, photoPath, ctx = {}, options = {}) {
+  const isAnonymous = options.anonymous === true || userId == null;
+
   const barangay = await prisma.barangay.findUnique({ where: { barangay_id: input.barangay_id } });
   if (!barangay) throw new HttpError(422, 'Selected barangay does not exist.');
 
@@ -59,7 +64,8 @@ async function createComplaint(userId, input, photoPath, ctx = {}) {
     idField: 'tracking_id',
     year,
     data: {
-      user_id: userId,
+      user_id: isAnonymous ? null : userId,
+      is_anonymous: isAnonymous,
       barangay_id: input.barangay_id,
       complaint_type: input.complaint_type,
       description: input.description,
@@ -74,14 +80,15 @@ async function createComplaint(userId, input, photoPath, ctx = {}) {
   });
 
   await writeAuditLog({
-    performedBy: userId,
-    action: 'COMPLAINT_CREATE',
+    performedBy: isAnonymous ? null : userId,
+    action: isAnonymous ? 'COMPLAINT_CREATE_ANONYMOUS' : 'COMPLAINT_CREATE',
     targetTable: 'Complaint',
     targetId: complaint.complaint_id,
     data: {
       tracking_id: complaint.tracking_id,
       complaint_type: complaint.complaint_type,
       barangay_id: input.barangay_id,
+      anonymous: isAnonymous,
     },
     ipAddress: ctx.ipAddress || null,
   });
@@ -107,4 +114,23 @@ async function getMyComplaintByTracking(userId, trackingId) {
   return complaint;
 }
 
-module.exports = { createComplaint, listMyComplaints, getMyComplaintByTracking };
+// PUBLIC status lookup by tracking id — zero personal data (R.A. 10173).
+// Lets an anonymous reporter follow up using only their reference number.
+async function getPublicComplaintStatus(trackingId) {
+  const complaint = await prisma.complaint.findUnique({
+    where: { tracking_id: trackingId },
+    select: {
+      tracking_id: true,
+      complaint_type: true,
+      status: true,
+      submitted_at: true,
+      updated_at: true,
+      resolved_at: true,
+      barangay: { select: { name: true } },
+    },
+  });
+  if (!complaint) throw new HttpError(404, 'No report found with that reference number.');
+  return complaint;
+}
+
+module.exports = { createComplaint, listMyComplaints, getMyComplaintByTracking, getPublicComplaintStatus };

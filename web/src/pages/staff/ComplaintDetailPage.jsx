@@ -41,6 +41,7 @@ export default function ComplaintDetailPage() {
               </div>
               <div className="flex flex-col items-end gap-2">
                 <StatusBadge status={c.status} />
+                {c.is_anonymous && <span className="rounded bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-700">Anonymous</span>}
                 {c.exceeded_sla && <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">SLA past due</span>}
               </div>
             </div>
@@ -71,7 +72,17 @@ export default function ComplaintDetailPage() {
             )}
 
             <div className="mt-6 space-y-6">
-              <ReporterCard user={c.user} />
+              {c.is_anonymous ? (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Reporter</div>
+                  <div className="mt-1 font-medium text-foreground">Anonymous (whistleblower)</div>
+                  <p className="text-sm text-muted-foreground">
+                    No identity was collected. CENRO cannot contact this reporter; status updates are not emailed.
+                  </p>
+                </div>
+              ) : (
+                <ReporterCard user={c.user} />
+              )}
               {c.photo_path && <Attachment path={c.photo_path} />}
             </div>
           </Card>

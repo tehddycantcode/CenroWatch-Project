@@ -12,6 +12,8 @@ import MyReportsPage from '@/pages/resident/MyReportsPage';
 import TrackReportPage from '@/pages/resident/TrackReportPage';
 import PublicMapPage from '@/pages/public/PublicMapPage';
 import ReportsFeedPage from '@/pages/public/ReportsFeedPage';
+import AnonymousReportPage from '@/pages/public/AnonymousReportPage';
+import PublicTrackPage from '@/pages/public/PublicTrackPage';
 import StaffLayout from '@/components/staff/StaffLayout';
 import StaffDashboardPage from '@/pages/staff/StaffDashboardPage';
 import ComplaintsQueuePage from '@/pages/staff/ComplaintsQueuePage';
@@ -46,6 +48,10 @@ export default function App() {
       {/* Public GIS map + reports feed (Sprint 2) */}
       <Route path="/map" element={<PublicMapPage />} />
       <Route path="/feed" element={<ReportsFeedPage />} />
+
+      {/* Public anonymous/whistleblower reporting + status tracking (no auth) */}
+      <Route path="/report-anonymous" element={<AnonymousReportPage />} />
+      <Route path="/track" element={<PublicTrackPage />} />
 
       {/* Resident interface (Sprint 2) — nested under the shared layout, role-gated */}
       <Route

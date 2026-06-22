@@ -44,4 +44,13 @@ const createComplaintRules = [
     .isLength({ max: 255 }).withMessage('Address is too long.'),
 ];
 
-module.exports = { createComplaintRules, COMPLAINT_TYPES };
+// Anonymous submissions reuse the same fields but must explicitly acknowledge
+// the privacy notice (consent). Multipart sends booleans as strings.
+const createAnonymousComplaintRules = [
+  ...createComplaintRules,
+  body('consent')
+    .custom((v) => v === true || v === 'true')
+    .withMessage('You must acknowledge the privacy notice to submit an anonymous report.'),
+];
+
+module.exports = { createComplaintRules, createAnonymousComplaintRules, COMPLAINT_TYPES };

@@ -87,12 +87,22 @@ export default function LandingPage() {
               File a Report
             </Link>
             <Link
+              to="/report-anonymous"
+              className="rounded-md border px-6 py-3 text-sm font-semibold hover:bg-accent"
+            >
+              Report Anonymously
+            </Link>
+            <Link
               to="/map"
               className="rounded-md border px-6 py-3 text-sm font-semibold hover:bg-accent"
             >
               View Live Map
             </Link>
           </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Have a reference number?{' '}
+            <Link to="/track" className="font-medium text-primary hover:underline">Track your report</Link>.
+          </p>
         </div>
 
         {/* Stats */}

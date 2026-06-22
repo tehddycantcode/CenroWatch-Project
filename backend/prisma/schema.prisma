@@ -152,7 +152,8 @@ model Barangay {
 model Complaint {
   complaint_id     Int             @id @default(autoincrement())
   tracking_id      String          @unique @db.VarChar(20) // e.g. CMP-2026-00001
-  user_id          Int
+  user_id          Int? // null = anonymous / whistleblower report (no identity captured)
+  is_anonymous     Boolean         @default(false)
   barangay_id      Int
   assigned_to      Int? // CENRO Staff user_id
   complaint_type   ComplaintType
@@ -181,7 +182,7 @@ model Complaint {
   exceeded_sla         Boolean               @default(false)
   assigned_staff_role  CenroPersonRole?
 
-  user           User                     @relation("UserComplaints", fields: [user_id], references: [user_id])
+  user           User?                    @relation("UserComplaints", fields: [user_id], references: [user_id])
   barangay       Barangay                 @relation(fields: [barangay_id], references: [barangay_id])
   assigned_staff User?                    @relation("AssignedStaff", fields: [assigned_to], references: [user_id])
   status_history ComplaintStatusHistory[]
