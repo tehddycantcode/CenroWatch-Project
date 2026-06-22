@@ -8,6 +8,7 @@ const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
 const { computeExceededSla } = require('../utils/sla');
 const { notifyReportStatus } = require('../utils/notify');
+const { notifyStatusChange } = require('./notification.service');
 
 const TERMINAL = ['Released', 'Transferred', 'Deceased'];
 
@@ -105,7 +106,7 @@ async function updateTurnoverStatus(staffId, idOrRef, input, ctx = {}) {
     where: whereFor(idOrRef),
     select: {
       turnover_id: true, reference_id: true, status: true, sla_deadline: true,
-      intake_date: true, release_date: true,
+      intake_date: true, release_date: true, reported_by: true,
       resident: { select: { email: true, first_name: true } },
     },
   });
@@ -148,6 +149,13 @@ async function updateTurnoverStatus(staffId, idOrRef, input, ctx = {}) {
     await notifyReportStatus({
       to: existing.resident?.email,
       name: existing.resident?.first_name,
+      kind: 'wildlife',
+      trackingId: existing.reference_id,
+      status: newStatus,
+      note: input.note,
+    });
+    await notifyStatusChange({
+      userId: existing.reported_by,
       kind: 'wildlife',
       trackingId: existing.reference_id,
       status: newStatus,

@@ -138,6 +138,13 @@ function qs(params = {}) {
   return s ? `?${s}` : '';
 }
 
+// In-app notifications (any authenticated user, scoped to self).
+export const notificationApi = {
+  list: (params) => apiFetch(`/notifications${qs(params)}`),
+  markRead: (id) => apiFetch(`/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllRead: () => apiFetch('/notifications/read-all', { method: 'PATCH' }),
+};
+
 // Staff APIs (CENRO_Staff + Admin) — queues, detail, status workflow, dashboard.
 function staffResource(name) {
   return {

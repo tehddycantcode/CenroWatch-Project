@@ -9,6 +9,7 @@ const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
 const { computeExceededSla } = require('../utils/sla');
 const { notifyReportStatus } = require('../utils/notify');
+const { notifyStatusChange } = require('./notification.service');
 
 const TERMINAL = ['Resolved', 'Rejected'];
 
@@ -108,6 +109,7 @@ async function updateComplaintStatus(staffId, idOrTracking, input, ctx = {}) {
     where: whereFor(idOrTracking),
     select: {
       complaint_id: true, tracking_id: true, status: true, sla_deadline: true, resolved_at: true,
+      user_id: true,
       user: { select: { email: true, first_name: true } },
     },
   });
@@ -157,6 +159,13 @@ async function updateComplaintStatus(staffId, idOrTracking, input, ctx = {}) {
     await notifyReportStatus({
       to: existing.user?.email,
       name: existing.user?.first_name,
+      kind: 'complaint',
+      trackingId: existing.tracking_id,
+      status: newStatus,
+      note: input.note,
+    });
+    await notifyStatusChange({
+      userId: existing.user_id,
       kind: 'complaint',
       trackingId: existing.tracking_id,
       status: newStatus,

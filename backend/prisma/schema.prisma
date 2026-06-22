@@ -123,6 +123,7 @@ model User {
   env_requests        EnvironmentalRequest[] @relation("UserRequests")
   processed_requests  EnvironmentalRequest[] @relation("ProcessedRequests")
   audit_logs          AuditLog[]
+  notifications       Notification[]
 
   @@index([email])
   @@index([role])
@@ -316,6 +317,26 @@ model AuditLog {
   @@index([performed_by])
   @@index([action])
   @@index([performed_at])
+}
+
+// ============================================================
+// IN-APP NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  notification_id Int      @id @default(autoincrement())
+  user_id         Int
+  type            String   @db.VarChar(50) // e.g. STATUS_UPDATE
+  title           String   @db.VarChar(200)
+  body            String   @db.Text
+  link            String?  @db.VarChar(255) // in-app route, e.g. /resident/track/CMP-2026-00001
+  is_read         Boolean  @default(false)
+  created_at      DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [user_id])
+
+  @@index([user_id, is_read])
+  @@index([created_at])
 }
 
 // ============================================================

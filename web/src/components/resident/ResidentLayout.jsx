@@ -1,6 +1,7 @@
 import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import NotificationBell from '@/components/resident/NotificationBell';
 
 const navItems = [
   { to: '/resident/dashboard', label: 'Dashboard' },
@@ -46,6 +47,7 @@ export default function ResidentLayout() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <div className="hidden text-right sm:block">
               <div className="text-sm font-medium leading-tight">{user?.first_name} {user?.last_name}</div>
               <div className="text-xs text-muted-foreground">Resident</div>

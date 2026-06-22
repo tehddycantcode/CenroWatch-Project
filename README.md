@@ -68,10 +68,16 @@ npm start                     # opens Expo; scan QR with Expo Go
 ---
 
 ## Development Status
-- [x] **Sprint 0** — Workspace scaffolding (in progress)
-- [ ] **Sprint 1** — Authentication & user management
-- [ ] **Sprint 2** — Resident interface (complaint/wildlife/request forms + public pages)
-- [ ] **Sprint 3** — CENRO Staff dashboard + notifications
-- [ ] **Sprint 4** — Admin analytics, GIS dashboard, audit logs, PDF export
+- [x] **Sprint 0** — Workspace scaffolding
+- [x] **Sprint 1** — Authentication & user management
+- [x] **Sprint 2** — Resident interface (complaint/wildlife/request forms + public pages)
+- [x] **Sprint 3** — CENRO Staff dashboard + status workflow + email/in-app notifications
+- [x] **Sprint 4** — Admin analytics, GIS dashboard, audit logs, PDF export
+
+### Notifications
+Residents are notified of report status changes via **email** (Nodemailer/Gmail) and an
+**in-app notification panel** (the bell in the resident header; `/notifications` API).
+Mobile/web **push notifications (FCM)** are intentionally **out of scope** for this capstone —
+documented as a future enhancement.
 
 See [`CLAUDE.md`](./CLAUDE.md) for the authoritative project context and rules.
