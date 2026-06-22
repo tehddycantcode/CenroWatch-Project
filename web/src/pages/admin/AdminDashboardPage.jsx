@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/icons';
 import { BarChart, TrendChart } from '@/components/admin/charts';
 
@@ -34,10 +35,24 @@ function SlaCard({ label, sla }) {
 export default function AdminDashboardPage() {
   const [a, setA] = useState(null);
   const [error, setError] = useState('');
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState('');
 
   useEffect(() => {
     adminApi.analytics().then((r) => setA(r.data.analytics)).catch((e) => setError(e.message));
   }, []);
+
+  async function downloadReport() {
+    setDownloadError('');
+    setDownloading(true);
+    try {
+      await adminApi.downloadReport();
+    } catch (e) {
+      setDownloadError(e.message || 'Could not generate the report.');
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   if (error) return <p className="text-sm text-destructive">{error}</p>;
   if (!a) return <div className="flex justify-center py-16"><Spinner className="h-7 w-7 text-primary" /></div>;
@@ -49,9 +64,17 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-3xl">Analytics Dashboard</h1>
-        <p className="mt-1 text-muted-foreground">CENRO Cabuyao · system-wide overview</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl">Analytics Dashboard</h1>
+          <p className="mt-1 text-muted-foreground">CENRO Cabuyao · system-wide overview</p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <Button variant="outline" onClick={downloadReport} loading={downloading}>
+            Download PDF report
+          </Button>
+          {downloadError && <span className="text-xs text-destructive">{downloadError}</span>}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

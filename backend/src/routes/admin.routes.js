@@ -15,6 +15,7 @@ router.use(authenticate, authorize('Admin'));
 
 // Analytics dashboard
 router.get('/analytics', controller.analytics);
+router.get('/analytics/report', controller.analyticsReport);
 
 // User account management
 router.get('/users', controller.listUsers);

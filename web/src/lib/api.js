@@ -59,6 +59,36 @@ export async function apiFetch(path, { method = 'GET', body, auth = true, header
   return data;
 }
 
+// Download an authenticated binary response (e.g. a PDF) and save it as a file.
+export async function downloadFile(path, filename) {
+  const token = getToken();
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  } catch {
+    throw new Error('Cannot reach the server. Is the backend running?');
+  }
+  if (!res.ok) {
+    let msg = `Download failed (${res.status})`;
+    try {
+      const j = await res.json();
+      msg = j.message || msg;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'download';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export const authApi = {
   register: (payload) => apiFetch('/auth/register', { method: 'POST', body: payload, auth: false }),
   login: (payload) => apiFetch('/auth/login', { method: 'POST', body: payload, auth: false }),
@@ -133,6 +163,7 @@ export const staffApi = {
 // Admin APIs (Admin only) — analytics, user management, audit log, settings.
 export const adminApi = {
   analytics: () => apiFetch('/admin/analytics'),
+  downloadReport: () => downloadFile('/admin/analytics/report', `cenrowatch-analytics-${new Date().toISOString().slice(0, 10)}.pdf`),
   users: {
     list: (params) => apiFetch(`/admin/users${qs(params)}`),
     create: (body) => apiFetch('/admin/users', { method: 'POST', body }),
