@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { wildlifeApi } from '@/lib/api';
 import { ANIMAL_CONDITIONS } from '@/lib/reports';
+import { SPECIES } from '@/lib/species';
 import ReportFormShell from '@/components/resident/ReportFormShell';
 import BarangaySelect from '@/components/resident/BarangaySelect';
 import PhotoField from '@/components/resident/PhotoField';
@@ -22,13 +23,36 @@ export default function WildlifeFormPage() {
   });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
   const [photo, setPhoto] = useState(null);
+  const [speciesChoice, setSpeciesChoice] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
 
+  const otherSpecies = speciesChoice === '__other__';
+
+  // Common species are sorted alphabetically for the dropdown.
+  const speciesOptions = [...SPECIES].sort((a, b) => a.name.localeCompare(b.name));
+
   const set = (k) => (e) =>
     setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+
+  // Picking a known species fills its name and (if blank) auto-fills the category.
+  // "Other" clears the name so the resident can type a custom one.
+  function onSpeciesChoice(e) {
+    const val = e.target.value;
+    setSpeciesChoice(val);
+    if (val === '__other__' || !val) {
+      setForm((f) => ({ ...f, species_name: '' }));
+      return;
+    }
+    const sp = SPECIES.find((s) => s.name === val);
+    setForm((f) => ({
+      ...f,
+      species_name: val,
+      species_category: f.species_category || (sp ? sp.group : ''),
+    }));
+  }
 
   function validate() {
     const errs = {};
@@ -85,9 +109,26 @@ export default function WildlifeFormPage() {
       success={success}
       submitLabel="Submit Report"
     >
-      <FormField id="species_name" label="Species" error={fieldErrors.species_name}>
-        <Input id="species_name" placeholder="e.g. Monitor lizard, Sea turtle" value={form.species_name} onChange={set('species_name')} />
+      <FormField id="species_choice" label="Species" error={otherSpecies ? undefined : fieldErrors.species_name}>
+        <Select id="species_choice" value={speciesChoice} onChange={onSpeciesChoice}>
+          <option value="">Select a species</option>
+          {speciesOptions.map((s) => (
+            <option key={s.name} value={s.name}>{s.name}</option>
+          ))}
+          <option value="__other__">Other (specify)…</option>
+        </Select>
       </FormField>
+
+      {otherSpecies && (
+        <FormField id="species_name" label="Species name" error={fieldErrors.species_name}>
+          <Input
+            id="species_name"
+            placeholder="e.g. Sea turtle, Tarsier"
+            value={form.species_name}
+            onChange={set('species_name')}
+          />
+        </FormField>
+      )}
 
       <FormField id="species_category" label="Category" hint="Optional — e.g. Reptile, Bird, Mammal">
         <Input id="species_category" placeholder="Reptile / Bird / Mammal…" value={form.species_category} onChange={set('species_category')} />
