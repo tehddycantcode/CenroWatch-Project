@@ -10,6 +10,7 @@ const navItems = [
   { to: '/admin/wildlife', label: 'Wildlife' },
   { to: '/admin/requests', label: 'Requests' },
   { to: '/admin/users', label: 'Users' },
+  { to: '/admin/archive', label: 'Archive' },
   { to: '/admin/audit-logs', label: 'Audit' },
   { to: '/admin/settings', label: 'Settings' },
 ];

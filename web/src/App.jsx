@@ -27,6 +27,7 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminAnalyticsPage from '@/pages/admin/AdminAnalyticsPage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
+import AdminArchivePage from '@/pages/admin/AdminArchivePage';
 import AdminAuditLogsPage from '@/pages/admin/AdminAuditLogsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 import NotFound from '@/components/NotFound';
@@ -101,6 +102,7 @@ export default function App() {
         <Route path="/admin/wildlife" element={<WildlifeQueuePage />} />
         <Route path="/admin/requests" element={<RequestsQueuePage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route path="/admin/archive" element={<AdminArchivePage />} />
         <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
       </Route>
