@@ -14,6 +14,7 @@ import PublicMapPage from '@/pages/public/PublicMapPage';
 import ReportsFeedPage from '@/pages/public/ReportsFeedPage';
 import AnonymousReportPage from '@/pages/public/AnonymousReportPage';
 import PublicTrackPage from '@/pages/public/PublicTrackPage';
+import WildlifePage from '@/pages/public/WildlifePage';
 import StaffLayout from '@/components/staff/StaffLayout';
 import StaffDashboardPage from '@/pages/staff/StaffDashboardPage';
 import ComplaintsQueuePage from '@/pages/staff/ComplaintsQueuePage';
@@ -28,13 +29,7 @@ import AdminAnalyticsPage from '@/pages/admin/AdminAnalyticsPage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
 import AdminAuditLogsPage from '@/pages/admin/AdminAuditLogsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
-import Placeholder from '@/components/Placeholder';
 import NotFound from '@/components/NotFound';
-
-// Public placeholder routes (no auth) — still placeholders until their sprint.
-const publicRoutes = [
-  { path: '/wildlife', title: 'Wildlife & Biodiversity', area: 'Public', sprint: 'Sprint 2' },
-];
 
 export default function App() {
   return (
@@ -52,6 +47,9 @@ export default function App() {
       {/* Public anonymous/whistleblower reporting + status tracking (no auth) */}
       <Route path="/report-anonymous" element={<AnonymousReportPage />} />
       <Route path="/track" element={<PublicTrackPage />} />
+
+      {/* Public Wildlife & Biodiversity educational module (no auth) */}
+      <Route path="/wildlife" element={<WildlifePage />} />
 
       {/* Resident interface (Sprint 2) — nested under the shared layout, role-gated */}
       <Route
@@ -106,11 +104,6 @@ export default function App() {
         <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
       </Route>
-
-      {/* Public placeholders */}
-      {publicRoutes.map((r) => (
-        <Route key={r.path} path={r.path} element={<Placeholder title={r.title} sprint={r.sprint} area={r.area} />} />
-      ))}
 
       <Route path="*" element={<NotFound />} />
     </Routes>
