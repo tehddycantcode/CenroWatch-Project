@@ -20,6 +20,23 @@ export const ANIMAL_CONDITIONS = [
   { value: 'Dead', label: 'Dead' },
 ];
 
+// Common wildlife species for the report dropdown. `value` is the species name
+// submitted to the API (species_name is free text). `group` auto-fills the
+// category. Mirrors web/src/lib/species.js; "__other__" reveals a free-text field.
+export const WILDLIFE_SPECIES = [
+  { value: 'Asian Palm Civet', label: 'Asian Palm Civet', group: 'Mammal' },
+  { value: 'Asian Water Monitor', label: 'Asian Water Monitor', group: 'Reptile' },
+  { value: 'Black-crowned Night Heron', label: 'Black-crowned Night Heron', group: 'Bird' },
+  { value: 'Collared Kingfisher', label: 'Collared Kingfisher', group: 'Bird' },
+  { value: 'Large Flying Fox', label: 'Large Flying Fox', group: 'Mammal' },
+  { value: 'Philippine Cobra', label: 'Philippine Cobra', group: 'Reptile' },
+  { value: 'Philippine Duck', label: 'Philippine Duck', group: 'Bird' },
+  { value: 'Philippine Eagle-Owl', label: 'Philippine Eagle-Owl', group: 'Bird' },
+  { value: 'Reticulated Python', label: 'Reticulated Python', group: 'Reptile' },
+  { value: 'Southeast Asian Box Turtle', label: 'Southeast Asian Box Turtle', group: 'Reptile' },
+  { value: '__other__', label: 'Other (specify)…' },
+];
+
 export const REQUEST_TYPES = [
   { value: 'Garbage_Hauling', label: 'Garbage Hauling' },
   { value: 'Creek_River_Cleaning', label: 'Creek / River Cleaning' },

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
-import { ANIMAL_CONDITIONS } from '../../lib/reports';
+import { ANIMAL_CONDITIONS, WILDLIFE_SPECIES } from '../../lib/reports';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
 import ReportFormShell, { Field } from '../../components/ReportFormShell';
@@ -26,12 +26,31 @@ export default function WildlifeFormScreen() {
   });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
   const [photo, setPhoto] = useState(null);
+  const [speciesChoice, setSpeciesChoice] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
 
+  const otherSpecies = speciesChoice === '__other__';
+
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Picking a known species fills its name and (if blank) auto-fills the category.
+  // "Other" clears the name so the resident can type a custom one.
+  function onSpeciesChoice(v) {
+    setSpeciesChoice(v);
+    if (v === '__other__' || !v) {
+      setForm((f) => ({ ...f, species_name: '' }));
+      return;
+    }
+    const sp = WILDLIFE_SPECIES.find((s) => s.value === v);
+    setForm((f) => ({
+      ...f,
+      species_name: v,
+      species_category: f.species_category || (sp && sp.group ? sp.group : ''),
+    }));
+  }
 
   function validate() {
     const e = {};
@@ -87,15 +106,26 @@ export default function WildlifeFormScreen() {
       error={error}
       success={success}
     >
-      <Field label="Species" error={fieldErrors.species_name}>
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. Monitor lizard, Sea turtle"
-          placeholderTextColor={colors.placeholder}
-          value={form.species_name}
-          onChangeText={set('species_name')}
-        />
-      </Field>
+      <Select
+        label="Species"
+        options={WILDLIFE_SPECIES}
+        value={speciesChoice}
+        onChange={onSpeciesChoice}
+        placeholder="Select a species"
+        error={otherSpecies ? undefined : fieldErrors.species_name}
+      />
+
+      {otherSpecies ? (
+        <Field label="Species name" error={fieldErrors.species_name}>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Sea turtle, Tarsier"
+            placeholderTextColor={colors.placeholder}
+            value={form.species_name}
+            onChangeText={set('species_name')}
+          />
+        </Field>
+      ) : null}
 
       <Field label="Category" hint="Optional — e.g. Reptile, Bird, Mammal">
         <TextInput
