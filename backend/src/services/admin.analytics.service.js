@@ -28,6 +28,32 @@ function lastSixMonths() {
 const statusMap = (rows) => Object.fromEntries(rows.map((r) => [r.status, r._count._all]));
 const sum = (obj) => Object.values(obj).reduce((a, b) => a + b, 0);
 
+// Merge free-text wildlife species names case-insensitively (trim + lowercase),
+// displaying the most common original casing. Blank names group as "Unspecified".
+// groupBy already returns one row per exact string; this folds the casings.
+function mergeSpecies(rows) {
+  const map = new Map(); // normalizedKey -> { count, casings: Map<original, count> }
+  for (const r of rows) {
+    const raw = (r.species_name || '').trim();
+    const key = raw.toLowerCase() || '__unspecified__';
+    const display = raw || 'Unspecified';
+    const entry = map.get(key) || { count: 0, casings: new Map() };
+    entry.count += r._count._all;
+    entry.casings.set(display, (entry.casings.get(display) || 0) + r._count._all);
+    map.set(key, entry);
+  }
+  return [...map.values()]
+    .map((e) => {
+      let label = '';
+      let best = -1;
+      for (const [casing, c] of e.casings) {
+        if (c > best) { best = c; label = casing; }
+      }
+      return { key: label, count: e.count };
+    })
+    .sort((a, b) => b.count - a.count);
+}
+
 async function slaFor(model, openStatuses, terminalStatuses) {
   const now = new Date();
   const [closed, closedLate, overdueOpen] = await Promise.all([
@@ -47,7 +73,7 @@ async function getAnalytics() {
   const [
     usersByRole, activeUsers,
     cStatus, wStatus, rStatus,
-    cByType, rByType,
+    cByType, rByType, wBySpecies,
     cByBgy, wByBgy, rByBgy, barangays,
     cTrend, wTrend, rTrend,
     cSla, wSla, rSla,
@@ -62,6 +88,7 @@ async function getAnalytics() {
 
     prisma.complaint.groupBy({ by: ['complaint_type'], _count: { _all: true } }),
     prisma.environmentalRequest.groupBy({ by: ['request_type'], _count: { _all: true } }),
+    prisma.wildlifeTurnover.groupBy({ by: ['species_name'], _count: { _all: true } }),
 
     prisma.complaint.groupBy({ by: ['barangay_id'], _count: { _all: true } }),
     prisma.wildlifeTurnover.groupBy({ by: ['barangay_id'], _count: { _all: true } }),
@@ -97,6 +124,7 @@ async function getAnalytics() {
   const by_type = {
     complaints: cByType.map((r) => ({ key: r.complaint_type, count: r._count._all })).sort((a, b) => b.count - a.count),
     requests: rByType.map((r) => ({ key: r.request_type, count: r._count._all })).sort((a, b) => b.count - a.count),
+    wildlife: mergeSpecies(wBySpecies),
   };
 
   // By barangay (merged, with coords for the GIS layer)
@@ -147,4 +175,4 @@ async function getAnalytics() {
   };
 }
 
-module.exports = { getAnalytics };
+module.exports = { getAnalytics, mergeSpecies };

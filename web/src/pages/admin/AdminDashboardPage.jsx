@@ -107,6 +107,15 @@ export default function AdminDashboardPage() {
       </div>
 
       <Card className="p-6">
+        <h2 className="mb-4 text-lg font-semibold">Wildlife by species</h2>
+        <BarChart
+          data={a.by_type.wildlife.slice(0, 8).map((s) => ({ label: s.key, value: s.count }))}
+          color="bg-emerald-500"
+          format={(s) => s}
+        />
+      </Card>
+
+      <Card className="p-6">
         <h2 className="mb-4 text-lg font-semibold">Top barangays by reports</h2>
         <BarChart data={topBarangays} color="bg-primary" format={(s) => s} />
       </Card>
