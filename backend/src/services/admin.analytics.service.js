@@ -66,7 +66,7 @@ async function getAnalytics() {
     prisma.complaint.groupBy({ by: ['barangay_id'], _count: { _all: true } }),
     prisma.wildlifeTurnover.groupBy({ by: ['barangay_id'], _count: { _all: true } }),
     prisma.environmentalRequest.groupBy({ by: ['barangay_id'], _count: { _all: true } }),
-    prisma.barangay.findMany({ select: { barangay_id: true, name: true, latitude: true, longitude: true }, orderBy: { name: 'asc' } }),
+    prisma.barangay.findMany({ select: { barangay_id: true, name: true, latitude: true, longitude: true, geojson_boundary: true }, orderBy: { name: 'asc' } }),
 
     prisma.complaint.findMany({ where: { submitted_at: { gte: sixMonthsAgo } }, select: { submitted_at: true } }),
     prisma.wildlifeTurnover.findMany({ where: { submitted_at: { gte: sixMonthsAgo } }, select: { submitted_at: true } }),
