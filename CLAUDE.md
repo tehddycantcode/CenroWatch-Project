@@ -64,6 +64,14 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
 - **Don't stage `uploads/` or throwaway test scripts:** verify `git status` before
   every commit; `uploads/` and `dist/` are gitignored, and `_*.mjs` test scaffolds
   must be deleted (not committed).
+- **`/auth` is rate-limited — don't hammer it in e2e tests:** the `authLimiter`
+  throttles `/api/v1/auth/*`, so a test making many rapid auth calls hits 429 and any
+  HTTP-based cleanup at the end silently fails — this once left the `juan` test account
+  modified. Keep auth calls minimal, and restore/verify test data via Prisma directly
+  (not the rate-limited HTTP endpoints).
+- **Proofread Edit strings for stray non-ASCII characters:** twice I injected garbage
+  into code/strings (`.километрwithMessage`, `częuploads`). Copy `old_string` verbatim
+  from a fresh Read, keep new code ASCII-only, and re-read after writing.
 
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.

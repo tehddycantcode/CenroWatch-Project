@@ -12,6 +12,7 @@ import WildlifeFormPage from '@/pages/resident/WildlifeFormPage';
 import ServiceRequestFormPage from '@/pages/resident/ServiceRequestFormPage';
 import MyReportsPage from '@/pages/resident/MyReportsPage';
 import TrackReportPage from '@/pages/resident/TrackReportPage';
+import ProfilePage from '@/pages/resident/ProfilePage';
 import PublicMapPage from '@/pages/public/PublicMapPage';
 import ReportsFeedPage from '@/pages/public/ReportsFeedPage';
 import AnonymousReportPage from '@/pages/public/AnonymousReportPage';
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="/resident/report-wildlife" element={<WildlifeFormPage />} />
         <Route path="/resident/request-service" element={<ServiceRequestFormPage />} />
         <Route path="/resident/my-reports" element={<MyReportsPage />} />
+        <Route path="/resident/profile" element={<ProfilePage />} />
         <Route path="/resident/track/:trackingId" element={<TrackReportPage />} />
       </Route>
 

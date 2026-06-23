@@ -27,6 +27,16 @@ const me = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: { user } });
 });
 
+const updateMe = asyncHandler(async (req, res) => {
+  const user = await authService.updateProfile(req.user.user_id, req.body, { ipAddress: req.ip });
+  res.status(200).json({ success: true, message: 'Profile updated.', data: { user } });
+});
+
+const changePassword = asyncHandler(async (req, res) => {
+  await authService.changePassword(req.user.user_id, req.body.current_password, req.body.new_password, { ipAddress: req.ip });
+  res.status(200).json({ success: true, message: 'Your password has been changed.' });
+});
+
 // Public. Generic response regardless of whether the email exists (no enumeration).
 const forgotPassword = asyncHandler(async (req, res) => {
   await authService.requestPasswordReset(req.body.email, { ipAddress: req.ip });
@@ -42,4 +52,4 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: 'Your password has been reset. You can now sign in.' });
 });
 
-module.exports = { register, login, me, forgotPassword, resetPassword };
+module.exports = { register, login, me, updateMe, changePassword, forgotPassword, resetPassword };

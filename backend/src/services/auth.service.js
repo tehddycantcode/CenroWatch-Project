@@ -186,4 +186,67 @@ async function getProfile(userId) {
   return user;
 }
 
-module.exports = { register, login, getProfile, requestPasswordReset, resetPassword };
+// Self-service profile edit. Email and role are intentionally NOT editable here.
+async function updateProfile(userId, input, ctx = {}) {
+  const data = {};
+  if (input.first_name !== undefined) data.first_name = input.first_name;
+  if (input.last_name !== undefined) data.last_name = input.last_name;
+  if (input.contact_number !== undefined) data.contact_number = input.contact_number || null;
+  if (input.barangay_id !== undefined) {
+    if (input.barangay_id === '' || input.barangay_id === null) {
+      data.barangay_id = null;
+    } else {
+      const barangay = await prisma.barangay.findUnique({ where: { barangay_id: input.barangay_id } });
+      if (!barangay) throw new HttpError(422, 'Selected barangay does not exist.');
+      data.barangay_id = input.barangay_id;
+    }
+  }
+
+  const user = await prisma.user.update({ where: { user_id: userId }, data, select: PUBLIC_USER_FIELDS });
+
+  await writeAuditLog({
+    performedBy: userId,
+    action: 'PROFILE_UPDATE',
+    targetTable: 'User',
+    targetId: userId,
+    data: { fields: Object.keys(data) },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return user;
+}
+
+// Self-service password change (requires the current password).
+async function changePassword(userId, currentPassword, newPassword, ctx = {}) {
+  const user = await prisma.user.findUnique({ where: { user_id: userId } });
+  if (!user) throw new HttpError(404, 'User not found.');
+
+  const ok = await verifyPassword(currentPassword, user.password_hash);
+  if (!ok) throw new HttpError(400, 'Your current password is incorrect.');
+
+  const password_hash = await hashPassword(newPassword);
+  await prisma.user.update({ where: { user_id: userId }, data: { password_hash } });
+  // Any outstanding reset links are no longer needed.
+  await prisma.passwordResetToken.deleteMany({ where: { user_id: userId, used_at: null } });
+
+  await writeAuditLog({
+    performedBy: userId,
+    action: 'PASSWORD_CHANGE',
+    targetTable: 'User',
+    targetId: userId,
+    data: {},
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return { ok: true };
+}
+
+module.exports = {
+  register,
+  login,
+  getProfile,
+  updateProfile,
+  changePassword,
+  requestPasswordReset,
+  resetPassword,
+};

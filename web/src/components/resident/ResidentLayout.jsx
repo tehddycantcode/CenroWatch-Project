@@ -6,6 +6,7 @@ import NotificationBell from '@/components/resident/NotificationBell';
 const navItems = [
   { to: '/resident/dashboard', label: 'Dashboard' },
   { to: '/resident/my-reports', label: 'My Reports' },
+  { to: '/resident/profile', label: 'Profile' },
   { to: '/map', label: 'Live Map' },
 ];
 

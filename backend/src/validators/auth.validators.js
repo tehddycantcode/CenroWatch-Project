@@ -64,4 +64,27 @@ const resetPasswordRules = [
     .matches(/[0-9]/).withMessage('Password must contain a number.'),
 ];
 
-module.exports = { registerRules, loginRules, forgotPasswordRules, resetPasswordRules };
+const updateProfileRules = [
+  body('first_name').optional().trim().notEmpty().withMessage('First name cannot be empty.').isLength({ max: 100 }),
+  body('last_name').optional().trim().notEmpty().withMessage('Last name cannot be empty.').isLength({ max: 100 }),
+  body('contact_number').optional({ values: 'falsy' }).trim().isLength({ max: 20 }).withMessage('Contact number is too long.'),
+  body('barangay_id').optional({ values: 'falsy' }).isInt({ min: 1 }).withMessage('barangay_id must be a valid id.').toInt(),
+];
+
+const changePasswordRules = [
+  body('current_password').notEmpty().withMessage('Current password is required.'),
+  body('new_password')
+    .isString()
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters.')
+    .matches(/[A-Za-z]/).withMessage('Password must contain a letter.')
+    .matches(/[0-9]/).withMessage('Password must contain a number.'),
+];
+
+module.exports = {
+  registerRules,
+  loginRules,
+  forgotPasswordRules,
+  resetPasswordRules,
+  updateProfileRules,
+  changePasswordRules,
+};
