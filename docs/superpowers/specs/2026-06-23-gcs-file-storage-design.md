@@ -1,6 +1,6 @@
 # GCS File Storage — Design Spec
 
-**Date:** 2026-06-23
+**Date:** 2026-06-23 (rev. 2 — serving model changed to sign-at-response)
 **Author:** CENROWATCH team (via Claude Code brainstorming)
 **Status:** Approved design — ready for implementation plan
 
@@ -20,11 +20,11 @@ uploaded photos and documents would silently disappear. The manuscript specifies
 ## Goals
 
 - Persist all uploads in GCS so they survive restarts/redeploys.
-- Keep the change **contained to the storage layer** — controllers, services, web
-  and mobile UIs change minimally or not at all.
+- Keep the change **contained to the storage layer** — controllers change minimally,
+  services and UIs almost not at all.
 - Keep **local development free and credential-free** — devs run on disk; only the
   deployed host talks to GCS.
-- Honor RA 10173: sensitive files must never be world-readable by guessable URL.
+- Honor RA 10173: files are never world-readable by a permanent guessable URL.
 
 ## Non-Goals
 
@@ -58,84 +58,92 @@ committed.
 
 New module `backend/src/services/storage/`:
 
-- `index.js` — selects the driver from `STORAGE_DRIVER` and exposes a uniform
-  interface (all functions operate on the **object key** — the tier+subdir+filename
-  string, e.g. `public/complaints/169-ab.jpg`, with no `/files` prefix):
-  - `save(subdir, file) -> Promise<{ servingPath }>` — persists one Multer file and
-    returns the DB-stored serving path `/files/<key>` (see §3).
-  - `url(key) -> Promise<string>` — resolves a key to a servable URL (signed GCS URL,
-    or, for `local`, a path the endpoint streams from disk).
-  - `remove(key) -> Promise<void>` — deletes the object/file.
-
-  A `TIER_BY_SUBDIR` map (`complaints`/`wildlife` → `public`, `custody`/`requests` →
-  `private`) is the single source of truth for which tier a subdir belongs to; `save`
-  uses it to build the key.
-- `local.driver.js` — current disk behavior, refactored behind the interface.
-- `gcs.driver.js` — uses `@google-cloud/storage`; uploads the buffer, generates V4
-  signed URLs for reads, deletes objects.
+- `index.js` — selects the driver from `STORAGE_DRIVER` and exposes:
+  - `save(subdir, file) -> Promise<string>` — persists one Multer (memory) file and
+    returns the **stored path** `/uploads/<subdir>/<generated-filename>` (see §3). The
+    filename is generated here (`<timestamp>-<random><ext>`), since memory storage
+    has no filename.
+  - `fileUrl(storedPath) -> Promise<string|null>` — resolves a stored path to a
+    servable URL. `local`: returns the path unchanged (served by the `/uploads` static
+    mount). `gcs`: returns a fresh **V4 signed URL** (1-hour expiry). `null`/empty in,
+    `null` out.
+  - `signFiles(payload) -> Promise<payload>` — returns a deep copy of an API response
+    payload with known file fields resolved to URLs via `fileUrl` (see §5).
+  - `remove(storedPath) -> Promise<void>` — deletes the underlying object/file
+    (best-effort; never throws to callers).
+- `local.driver.js` — disk behavior: `save` writes the Multer `buffer` to
+  `UPLOAD_ROOT/<subdir>/<filename>`; `fileUrl` returns the path as-is; `remove`
+  unlinks the file.
+- `gcs.driver.js` — uses `@google-cloud/storage`: `save` uploads the buffer to object
+  `<subdir>/<filename>`; `fileUrl` generates a V4 signed read URL; `remove` deletes
+  the object.
 
 Multer switches from `diskStorage` to `memoryStorage()` (the existing 5 MB cap makes
-in-memory buffering trivial). After Multer validates MIME/size, the active driver
-persists `req.file` / `req.files`. The `upload.js` middleware keeps the same exported
-shape (`diskUpload(subdir, allowedMime)` factory returning a Multer instance), so
-controllers change by at most one line.
+in-memory buffering trivial); MIME/size validation in `diskUpload(subdir, allowedMime)`
+is unchanged. The factory keeps its name and signature so route files don't change.
 
-### 3. Driver-agnostic serving paths
+### 3. Stored path shape (back-compatible)
 
-The DB stores a **serving path** of the form `/files/<tier>/<subdir>/<filename>` —
-e.g. `/files/public/complaints/1699999999-ab12cd.jpg` or
-`/files/private/custody/1699999999-ab12cd.jpg` — instead of today's
-`/uploads/complaints/...`. This is a drop-in replacement for what `publicPathFor`
-returns: a root-relative path, so the web/mobile `fileUrl()` helpers (which prefix the
-API origin onto a stored path) keep working unchanged.
+The DB stores `/uploads/<subdir>/<filename>` for **both** drivers — the same shape
+`publicPathFor` produces today — so existing dev rows keep working and the web/mobile
+`fileUrl()` helpers need no change. The GCS **object name** is the stored path minus
+the leading `/uploads/` (e.g. stored `/uploads/custody/169-ab.jpg` → object
+`custody/169-ab.jpg`).
 
-The **object key** handed to a driver is the serving path with the leading `/files/`
-stripped — i.e. `<tier>/<subdir>/<filename>`. The GCS object name (and the local
-relative path) is exactly this key. The `local` driver still understands legacy
-`/uploads/...` values already present in a dev DB (backward-compatible), so existing
-dev data keeps working.
-
-### 4. Single private bucket + signed URLs on read
+### 4. One private bucket, signed URLs at read time
 
 The bucket uses **uniform bucket-level access** (Google's recommended posture) and is
-**private**. Every read is served through a freshly generated **V4 signed URL**
-(default 1-hour expiry). No object is ever made world-readable, and there are no
-per-object ACLs or second bucket to manage. Signing is performed locally with the
-service-account key — no API call, no cost.
+**private**. No object is ever public. Every served URL is a freshly generated **V4
+signed URL** (1-hour expiry), produced when the API builds a response (§5). Signing is
+performed locally with the service-account key — no API call, no cost.
 
-This uniformly satisfies RA 10173: custody photos and request documents (staff-only,
-potentially PII-bearing) are never reachable by a guessable URL, and report photos
-shown on the public map are served via short-lived signed URLs too.
+Authorization is **the endpoint that returns the URL**, which is already correctly
+role-gated:
 
-### 5. One serving endpoint: `GET /files/*` (named wildcard)
+| File field | Returned by | Who reaches it |
+|---|---|---|
+| Report `photo_path` | resident/public/staff report endpoints | reporter, staff, public map |
+| Request `document_path` | owner's request endpoint + staff request endpoints | owning resident, staff |
+| `chain_of_custody_photos` | staff wildlife **detail** only (`/staff/wildlife/:id`) | Admin / CENRO_Staff |
 
-A single route centralizes access control so **existing response code does not
-change** — services keep returning the stored serving path, and the web/mobile
-`fileUrl()` helpers keep prefixing the API origin. Because the key contains slashes,
-the route uses an **Express 5 named wildcard** (e.g. `/files/*key`), not a `:key`
-segment param (which only matches one path segment). The exact wildcard syntax is
-pinned during implementation; the captured tail is the object key. The endpoint:
+A short-lived signed URL is the capability, so it works directly in `<img src>` and
+download links with **no `Authorization` header** — which is exactly what a browser
+cannot send for image/download requests. This is why a header-authenticated serving
+endpoint was rejected.
 
-- **Public files** — complaint and wildlife **report photos** (tier `public/`, subdirs
-  `complaints`, `wildlife`): anonymous allowed → 302 redirect to a signed URL.
-- **Private files** — **custody photos** and **request documents** (tier `private/`,
-  subdirs `custody`, `requests`): require an authenticated Admin or CENRO_Staff → then
-  302 redirect to a signed URL.
+### 5. Sign at response time (`signFiles`)
 
-The key's first segment (`public` vs `private`) determines the access tier. The key is
-built by the `TIER_BY_SUBDIR` map from §2, which replaces `publicPathFor`.
+`signFiles(payload)` deep-copies an API response payload and replaces known file
+fields with resolved URLs:
 
-For the `local` driver, the endpoint streams the file from disk (same authz rules), so
-the two drivers behave identically from the client's perspective.
+- `photo_path` (string) → `await fileUrl(value)`
+- `document_path` (string) → `await fileUrl(value)`
+- `chain_of_custody_photos` (string[]) → `[{ key, url }]`, where `key` is the stored
+  path (unchanged, used for removal) and `url` is `await fileUrl(key)` (for display).
 
-### 6. Audit, deletion, serving wiring
+It recurses through plain objects and arrays (nested `barangay`, `resident`, etc. have
+no file fields, so they pass through untouched) and is idempotent on already-absolute
+URLs. Controllers wrap their `data` object in one `await signFiles(...)` call before
+`res.json`. Under the `local` driver every replacement is a no-op string pass-through,
+so local responses are byte-for-byte unchanged (regression-safe); only `gcs` produces
+signed URLs.
 
-- Custody-photo removal already writes an AuditLog; the `gcs` driver's `remove()`
-  also deletes the object. No audit changes needed elsewhere (uploads are audited by
-  the existing create/update mutations).
-- `app.js`: mount `/files`; keep the `/uploads` static mount **only** when
-  `STORAGE_DRIVER=local` (it is dead weight under `gcs`).
-- `package.json`: add `@google-cloud/storage`.
+### 6. Custody add/remove identity
+
+`chain_of_custody_photos` is an additive array with a per-photo remove. The DB keeps
+storing **plain stored-path strings** (`/uploads/custody/...`); only the *response* is
+reshaped to `{ key, url }` by `signFiles`. On removal the web client sends back the
+`key`, so the service's existing exact-match filter is unchanged; it additionally calls
+`storage.remove(key)` (best-effort) so the bucket object is also deleted. The only web
+change is `CustodyPhotos.jsx` reading `photo.url`/`photo.key` instead of a bare string.
+
+### 7. Wiring
+
+- `app.js`: keep the `/uploads` static mount **only** when `STORAGE_DRIVER=local` (dead
+  weight under `gcs`, where no files are written locally).
+- `package.json`: `@google-cloud/storage` is already a dependency (`^7.21.0`) — confirm
+  it is installed; no add needed.
+- No new routes, no new endpoint.
 
 ## Affected files
 
@@ -143,65 +151,72 @@ the two drivers behave identically from the client's perspective.
 - `backend/src/services/storage/index.js`
 - `backend/src/services/storage/local.driver.js`
 - `backend/src/services/storage/gcs.driver.js`
-- `backend/src/routes/files.routes.js`
-- `backend/src/controllers/files.controller.js`
 
 **Changed**
-- `backend/src/middlewares/upload.js` — `memoryStorage()` + delegate to driver; key
-  builder with tier prefix replacing `publicPathFor`.
-- `backend/src/controllers/{complaint,wildlife,request,staff.wildlife}.controller.js`
-  — call the storage `save()`/key builder (≈1 line each).
-- `backend/src/app.js` — mount `/files`; gate `/uploads` static behind `local`.
+- `backend/src/middlewares/upload.js` — `memoryStorage()`; drop `publicPathFor`
+  (replaced by `storage.save`); keep `diskUpload` factory + `UPLOAD_ROOT` export.
+- `backend/src/controllers/complaint.controller.js` — `save` on create; `signFiles` on
+  `listMine`/`getByTracking` (and `create` response).
+- `backend/src/controllers/wildlife.controller.js` — `save` on create; `signFiles` on
+  `listMine`/`getByRef`/create response.
+- `backend/src/controllers/request.controller.js` — `save` on create; `signFiles` on
+  `listMine`/`getByTracking`/create response.
+- `backend/src/controllers/staff.complaint.controller.js` — `signFiles` on list/detail.
+- `backend/src/controllers/staff.wildlife.controller.js` — `save` on custody upload;
+  `signFiles` on list/detail/status/update responses.
+- `backend/src/controllers/staff.request.controller.js` — `signFiles` on list/detail.
+- `backend/src/services/staff.wildlife.service.js` — `removeCustodyPhoto` calls
+  `storage.remove(key)` (best-effort).
+
+(The public map / gis payload carries no `photo_path`, and the public complaint-track
+endpoint returns zero file fields, so neither is touched.)
+- `backend/src/app.js` — gate `/uploads` static behind `local`.
 - `backend/.env.example` — new keys with placeholders.
-- `backend/package.json` — add dependency.
+
+**Changed (web)**
+- `web/src/components/staff/CustodyPhotos.jsx` — read `{ key, url }` items.
 
 **Unchanged (by design)**
-- All services' response shapes (still return the stored serving-path string).
-- `web/src/lib` `fileUrl`/`FILE_BASE`; `mobile/src/api/client.js` `fileUrl` — they
-  already resolve a relative path against the API origin and pass through absolute
-  URLs.
-
-## Access-control summary (RA 10173)
-
-| File type | Subdir | Tier | Who can fetch |
-|---|---|---|---|
-| Complaint report photo | `complaints` | public | anyone (signed URL) |
-| Wildlife report photo | `wildlife` | public | anyone (signed URL) |
-| Chain-of-custody photo | `custody` | private | Admin / CENRO_Staff |
-| Request document | `requests` | private | Admin / CENRO_Staff |
+- Web/mobile `fileUrl`/`FILE_BASE` helpers (absolute signed URLs pass straight through;
+  local paths resolve against the API origin as today).
+- All route files (the `diskUpload` factory keeps its name/signature).
+- Report-photo / request-document display components (they render a URL string either
+  way).
 
 ## Error handling
 
 - Missing/invalid `STORAGE_DRIVER` → fail fast at boot with a clear error.
-- `gcs` driver with missing/invalid credentials → fail fast at boot (don't start a
-  server that can't store files).
-- `/files/*` for a nonexistent key → 404. For a private key without a valid
-  staff/admin token → 401/403. Never leak whether a private key exists to anonymous
-  callers (treat unauthorized as 404-or-401 consistently).
-- Upload failure to GCS → surface as a 5xx from the create/update mutation; no DB row
-  references a key that was never stored (persist file first, then write the row, or
-  wrap so a failed upload aborts the mutation).
+- `gcs` driver with missing/invalid `GCS_*` config → fail fast at boot (don't start a
+  server that cannot store files).
+- `save` failure (GCS upload error) → propagates as a 5xx from the create/upload
+  mutation, before any DB row references a key that was never stored.
+- `fileUrl`/`signFiles` for a missing object → return the best available value without
+  throwing (a broken image is preferable to a 500 on a list endpoint); log server-side.
+- `remove` failure → swallow (best-effort); the DB array entry is already gone.
 
 ## Verification plan
 
 Local dev cannot exercise GCS without credentials, and that is acceptable:
 
-1. **Local driver unaffected** — full report/upload/serve flow keeps working on
-   `STORAGE_DRIVER=local` exactly as today (regression check).
-2. **GCS driver smoke test** — a throwaway script points the `gcs` driver at the real
-   bucket using the service-account key to confirm `save` → `url` (signed, fetchable)
-   → `remove`. Script is deleted, never committed.
-3. **Deployed smoke test** — after deploy, submit one report with a photo and one
-   request with a document; confirm the photo renders (public) and the document is
-   reachable only when authenticated as staff (private).
-4. **Cost guard** — a GCS Budget Alert with a low cap is configured so usage cannot
+1. **Local driver unaffected** — full report/upload/serve flow works on
+   `STORAGE_DRIVER=local` exactly as today; responses are unchanged (regression check).
+2. **`signFiles` unit check** — a small Node script asserts that under `local`,
+   `signFiles` passes paths through unchanged and reshapes `chain_of_custody_photos` to
+   `{ key, url }` with `url === key`.
+3. **GCS driver smoke test** — a throwaway script points the `gcs` driver at the real
+   bucket using the service-account key to confirm `save` → `fileUrl` (signed,
+   fetchable) → `remove`. Script is deleted, never committed.
+4. **Deployed smoke test** — after deploy, submit one report with a photo and one
+   request with a document; confirm both render via signed URLs and that the URLs expire.
+5. **Cost guard** — a GCS Budget Alert with a low cap is configured so usage cannot
    produce a surprise charge.
 
 ## Out-of-band follow-ups (not code)
 
 - Create the GCS project + bucket (uniform bucket-level access, private).
 - Create a service-account with `Storage Object Admin` on that bucket; download its
-  key; set `GCS_CREDENTIALS_JSON` on the host.
+  key; set `GCS_CREDENTIALS_JSON` on the host. Choose an **Always-Free region**
+  (`us-east1`, `us-west1`, or `us-central1`) so free-tier storage applies.
 - Set a Budget Alert / cap to guarantee no spend.
 - Set `CLIENT_URL` on the host (already-flagged deploy follow-up for password-reset
   email links).
