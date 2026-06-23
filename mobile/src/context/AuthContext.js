@@ -64,7 +64,10 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const value = { user, token, loading, isAuthenticated: !!user, login, register, logout };
+  // Refresh the cached user after a self-service profile edit.
+  const updateUser = useCallback((next) => setUser(next), []);
+
+  const value = { user, token, loading, isAuthenticated: !!user, login, register, logout, updateUser };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

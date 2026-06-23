@@ -8,6 +8,7 @@ import ComplaintFormScreen from '../screens/resident/ComplaintFormScreen';
 import WildlifeFormScreen from '../screens/resident/WildlifeFormScreen';
 import RequestFormScreen from '../screens/resident/RequestFormScreen';
 import TrackReportScreen from '../screens/resident/TrackReportScreen';
+import ProfileScreen from '../screens/resident/ProfileScreen';
 
 // Dependency-light navigation for the resident area: a small screen stack with
 // two tab roots (Dashboard, My Reports) and pushable detail/form screens. This
@@ -15,11 +16,12 @@ import TrackReportScreen from '../screens/resident/TrackReportScreen';
 // be swapped for expo-router later without touching the screens (they only use
 // the navigate/goBack hook from navContext).
 
-const TAB_ROOTS = ['dashboard', 'reports'];
+const TAB_ROOTS = ['dashboard', 'reports', 'profile'];
 
 const TABS = [
   { key: 'dashboard', label: 'Home', icon: '🏠' },
   { key: 'reports', label: 'My Reports', icon: '📋' },
+  { key: 'profile', label: 'Profile', icon: '👤' },
 ];
 
 function renderScreen(entry) {
@@ -36,6 +38,8 @@ function renderScreen(entry) {
       return <RequestFormScreen />;
     case 'track':
       return <TrackReportScreen id={entry.params.id} />;
+    case 'profile':
+      return <ProfileScreen />;
     default:
       return <DashboardScreen />;
   }

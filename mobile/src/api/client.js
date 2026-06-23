@@ -75,6 +75,8 @@ export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
   me: (token) => request('/auth/me', { token }),
+  updateProfile: (payload, token) => request('/auth/me', { method: 'PATCH', body: payload, token }),
+  changePassword: (payload, token) => request('/auth/change-password', { method: 'POST', body: payload, token }),
   barangays: () => request('/barangays'),
 
   // Resident report APIs — create() takes a FormData so an optional photo attaches.
