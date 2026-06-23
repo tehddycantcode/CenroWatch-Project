@@ -44,6 +44,27 @@ Researchers: Moro, Edward Justine G. | Quizana, Koshi Cyrus G. | Zaspa, Holian I
   is migrated (`prisma/migrations/`) and seeded (18 barangays + SLA settings).
   The `mysql` CLI is not on PATH, but Prisma connects over TCP via `DATABASE_URL`.
 
+## Lessons Learned (avoid repeating)
+Standing rule: whenever I make a mistake, append the lesson here (and to
+`mobile/AGENTS.md` for mobile-specific ones) so it never repeats.
+- **PowerShell + inline `node -e` and `$`:** Don't put `$`-prefixed JS
+  (`prisma.$disconnect()`, template `${...}`) inside a PowerShell `node -e "..."` —
+  PowerShell mangles `$...` (e.g. `$disconnect()` became `\(`). Write a temporary
+  `.mjs`/`.js` file, run it, then delete it; or use a single-quoted PS string.
+- **One PowerShell command per concern:** Don't separate multiple statements with
+  newlines in a single PowerShell tool call — they may silently not all run (a
+  `Remove-Item` after a `node -e` got skipped). Chain with `&&` (pwsh 7 supports it)
+  or make separate tool calls.
+- **Edit needs an in-session Read:** In a continued/compacted session, Read a file
+  in the current session before Edit even if its contents already appear earlier in
+  context, or Edit fails with "File has not been read yet."
+- **Stop the backend before `prisma migrate`/`generate` on Windows:** a running
+  `node src/server.js` locks the query-engine DLL and generation can EPERM. Stop the
+  background server first, migrate, then restart.
+- **Don't stage `uploads/` or throwaway test scripts:** verify `git status` before
+  every commit; `uploads/` and `dist/` are gitignored, and `_*.mjs` test scaffolds
+  must be deleted (not committed).
+
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
 - Backend: Admin-only `/admin` API. `GET /admin/analytics` (Prisma groupBy + JS
