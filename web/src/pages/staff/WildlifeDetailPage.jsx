@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
+import StatusHistory from '@/components/staff/StatusHistory';
 import { Rows, ReporterCard, Attachment } from '@/components/staff/detail';
 import CustodyPhotos from '@/components/staff/CustodyPhotos';
 
@@ -87,6 +88,8 @@ export default function WildlifeDetailPage() {
             </p>
             <CustodyPhotos id={id} photos={w.chain_of_custody_photos || []} onChange={load} />
           </Card>
+
+          <StatusHistory history={w.status_history} />
         </div>
 
         <div className="space-y-6">

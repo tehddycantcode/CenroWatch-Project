@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
+import StatusHistory from '@/components/staff/StatusHistory';
 import { Rows, ReporterCard, Attachment } from '@/components/staff/detail';
 
 export default function RequestDetailPage() {
@@ -72,6 +73,8 @@ export default function RequestDetailPage() {
               {q.document_path && <Attachment path={q.document_path} />}
             </div>
           </Card>
+
+          <StatusHistory history={q.status_history} />
         </div>
 
         <div className="space-y-6">

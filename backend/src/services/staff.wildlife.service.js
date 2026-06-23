@@ -55,6 +55,10 @@ const DETAIL_SELECT = {
   barangay: { select: { barangay_id: true, name: true } },
   resident: { select: { user_id: true, first_name: true, last_name: true, email: true, contact_number: true } },
   staff: { select: { user_id: true, first_name: true, last_name: true } },
+  status_history: {
+    orderBy: { changed_at: 'asc' },
+    select: { id: true, old_status: true, new_status: true, note: true, changed_at: true, changed_by: true },
+  },
 };
 
 function whereFor(idOrRef) {
@@ -134,7 +138,20 @@ async function updateTurnoverStatus(staffId, idOrRef, input, ctx = {}) {
     data.transfer_destination = input.transfer_destination;
   }
 
-  await prisma.wildlifeTurnover.update({ where: { turnover_id: existing.turnover_id }, data });
+  await prisma.$transaction(async (tx) => {
+    await tx.wildlifeTurnover.update({ where: { turnover_id: existing.turnover_id }, data });
+    if (changed) {
+      await tx.wildlifeStatusHistory.create({
+        data: {
+          turnover_id: existing.turnover_id,
+          old_status: existing.status,
+          new_status: newStatus,
+          changed_by: staffId,
+          note: input.note || null,
+        },
+      });
+    }
+  });
 
   await writeAuditLog({
     performedBy: staffId,

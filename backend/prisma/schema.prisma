@@ -270,6 +270,7 @@ model WildlifeTurnover {
   resident User     @relation("UserWildlife", fields: [reported_by], references: [user_id])
   staff    User?    @relation("ProcessedByStaff", fields: [processed_by], references: [user_id])
   barangay Barangay @relation(fields: [barangay_id], references: [barangay_id])
+  status_history WildlifeStatusHistory[]
 
   @@index([reference_id])
   @@index([barangay_id])
@@ -308,11 +309,42 @@ model EnvironmentalRequest {
   user      User     @relation("UserRequests", fields: [user_id], references: [user_id])
   barangay  Barangay @relation(fields: [barangay_id], references: [barangay_id])
   processor User?    @relation("ProcessedRequests", fields: [processed_by], references: [user_id])
+  status_history RequestStatusHistory[]
 
   @@index([tracking_id])
   @@index([status])
   @@index([barangay_id])
   @@index([user_id])
+}
+
+// Status-change timeline for wildlife turnovers (mirrors ComplaintStatusHistory).
+model WildlifeStatusHistory {
+  id          Int            @id @default(autoincrement())
+  turnover_id Int
+  old_status  WildlifeStatus
+  new_status  WildlifeStatus
+  changed_by  Int
+  note        String?        @db.Text
+  changed_at  DateTime       @default(now())
+
+  turnover WildlifeTurnover @relation(fields: [turnover_id], references: [turnover_id])
+
+  @@index([turnover_id])
+}
+
+// Status-change timeline for environmental requests.
+model RequestStatusHistory {
+  id         Int           @id @default(autoincrement())
+  request_id Int
+  old_status RequestStatus
+  new_status RequestStatus
+  changed_by Int
+  note       String?       @db.Text
+  changed_at DateTime      @default(now())
+
+  request EnvironmentalRequest @relation(fields: [request_id], references: [request_id])
+
+  @@index([request_id])
 }
 
 // ============================================================

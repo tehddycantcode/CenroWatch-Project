@@ -49,6 +49,10 @@ const DETAIL_SELECT = {
   barangay: { select: { barangay_id: true, name: true } },
   user: { select: { user_id: true, first_name: true, last_name: true, email: true, contact_number: true } },
   processor: { select: { user_id: true, first_name: true, last_name: true } },
+  status_history: {
+    orderBy: { changed_at: 'asc' },
+    select: { id: true, old_status: true, new_status: true, note: true, changed_at: true, changed_by: true },
+  },
 };
 
 function whereFor(idOrTracking) {
@@ -125,7 +129,20 @@ async function updateRequestStatus(staffId, idOrTracking, input, ctx = {}) {
     ...(approved ? { approved_by_cenro_head: true } : {}),
   };
 
-  await prisma.environmentalRequest.update({ where: { request_id: existing.request_id }, data });
+  await prisma.$transaction(async (tx) => {
+    await tx.environmentalRequest.update({ where: { request_id: existing.request_id }, data });
+    if (changed) {
+      await tx.requestStatusHistory.create({
+        data: {
+          request_id: existing.request_id,
+          old_status: existing.status,
+          new_status: newStatus,
+          changed_by: staffId,
+          note: input.note || null,
+        },
+      });
+    }
+  });
 
   await writeAuditLog({
     performedBy: staffId,
