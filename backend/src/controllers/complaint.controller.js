@@ -1,9 +1,9 @@
 const asyncHandler = require('../utils/asyncHandler');
 const complaintService = require('../services/complaint.service');
-const { publicPathFor } = require('../middlewares/upload');
+const storage = require('../services/storage');
 
 const create = asyncHandler(async (req, res) => {
-  const photoPath = req.file ? publicPathFor('complaints', req.file.filename) : null;
+  const photoPath = req.file ? await storage.save('complaints', req.file) : null;
   const complaint = await complaintService.createComplaint(req.user.user_id, req.body, photoPath, {
     ipAddress: req.ip,
   });
@@ -12,7 +12,7 @@ const create = asyncHandler(async (req, res) => {
 
 // Public anonymous/whistleblower submission — no auth, no reporter identity.
 const createAnonymous = asyncHandler(async (req, res) => {
-  const photoPath = req.file ? publicPathFor('complaints', req.file.filename) : null;
+  const photoPath = req.file ? await storage.save('complaints', req.file) : null;
   const complaint = await complaintService.createComplaint(null, req.body, photoPath, { ipAddress: req.ip }, { anonymous: true });
   res.status(201).json({
     success: true,

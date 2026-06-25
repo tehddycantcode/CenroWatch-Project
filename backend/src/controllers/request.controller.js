@@ -1,9 +1,9 @@
 const asyncHandler = require('../utils/asyncHandler');
 const requestService = require('../services/request.service');
-const { publicPathFor } = require('../middlewares/upload');
+const storage = require('../services/storage');
 
 const create = asyncHandler(async (req, res) => {
-  const documentPath = req.file ? publicPathFor('requests', req.file.filename) : null;
+  const documentPath = req.file ? await storage.save('requests', req.file) : null;
   const request = await requestService.createRequest(req.user.user_id, req.body, documentPath, {
     ipAddress: req.ip,
   });

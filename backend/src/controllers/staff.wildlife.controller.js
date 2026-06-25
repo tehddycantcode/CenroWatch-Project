@@ -1,6 +1,6 @@
 const asyncHandler = require('../utils/asyncHandler');
 const service = require('../services/staff.wildlife.service');
-const { publicPathFor } = require('../middlewares/upload');
+const storage = require('../services/storage');
 
 const list = asyncHandler(async (req, res) => {
   const result = await service.listTurnovers(req.query);
@@ -23,7 +23,7 @@ const update = asyncHandler(async (req, res) => {
 });
 
 const addCustodyPhotos = asyncHandler(async (req, res) => {
-  const paths = (req.files || []).map((f) => publicPathFor('custody', f.filename));
+  const paths = await Promise.all((req.files || []).map((f) => storage.save('custody', f)));
   const turnover = await service.addCustodyPhotos(req.user.user_id, req.params.id, paths, { ipAddress: req.ip });
   res.status(201).json({ success: true, message: 'Chain-of-custody photos added.', data: { turnover } });
 });

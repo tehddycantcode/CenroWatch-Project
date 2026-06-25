@@ -1,9 +1,9 @@
 const asyncHandler = require('../utils/asyncHandler');
 const wildlifeService = require('../services/wildlife.service');
-const { publicPathFor } = require('../middlewares/upload');
+const storage = require('../services/storage');
 
 const create = asyncHandler(async (req, res) => {
-  const photoPath = req.file ? publicPathFor('wildlife', req.file.filename) : null;
+  const photoPath = req.file ? await storage.save('wildlife', req.file) : null;
   const turnover = await wildlifeService.createTurnover(req.user.user_id, req.body, photoPath, {
     ipAddress: req.ip,
   });
