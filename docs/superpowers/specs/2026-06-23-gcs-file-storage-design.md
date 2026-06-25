@@ -47,12 +47,14 @@ with placeholder values only):
 | Var | Purpose |
 |---|---|
 | `STORAGE_DRIVER` | `local` or `gcs` |
-| `GCS_BUCKET` | target bucket name |
+| `GCS_BUCKET_NAME` | target bucket name (reuses the existing `.env.example` key) |
 | `GCS_PROJECT_ID` | GCP project id |
+| `GCS_KEY_FILE` | path to a service-account key file (handy for local smoke tests) |
 | `GCS_CREDENTIALS_JSON` | service-account key as inline JSON (cloud hosts can't hold a key *file*) |
 
-The service-account key is treated like `.env` — gitignored, never echoed, never
-committed.
+Credentials are provided via **exactly one** of `GCS_KEY_FILE` or
+`GCS_CREDENTIALS_JSON`. The service-account key is treated like `.env` — gitignored,
+never echoed, never committed.
 
 ### 2. Storage abstraction with two drivers
 
