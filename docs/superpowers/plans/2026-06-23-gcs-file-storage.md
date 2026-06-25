@@ -244,7 +244,7 @@ function genFilename(originalname) {
   return `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
 }
 
-// Upload one in-memory Multer file. Returns "/uploads/<subdir>/<filename>" — the same
+// Upload one in-memory Multer file. Returns "/uploads/<subdir>/<filename>" - the same
 // shape the local driver uses, so the stored DB value is driver-agnostic.
 async function save(subdir, file) {
   const name = `${subdir}/${genFilename(file.originalname)}`;
@@ -345,7 +345,7 @@ Replace the entire contents of `backend/src/middlewares/upload.js` with:
 ```js
 // Photo/document upload middleware. Parses multipart into memory (Multer
 // memoryStorage); the active storage driver (local disk or GCS) persists the buffer
-// — see services/storage. Buffering in memory makes the storage backend a runtime
+// (see services/storage). Buffering in memory makes the storage backend a runtime
 // choice (STORAGE_DRIVER) with no controller changes. 5 MB cap; MIME-validated.
 
 const multer = require('multer');
