@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { fileUrl, staffApi } from '@/lib/api';
+import { staffApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 
 // Chain-of-custody photo gallery + uploader for the staff wildlife detail view
@@ -55,13 +55,13 @@ export default function CustodyPhotos({ id, photos = [], onChange }) {
       ) : (
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {photos.map((p) => (
-            <div key={p} className="group relative">
-              <a href={fileUrl(p)} target="_blank" rel="noreferrer">
-                <img src={fileUrl(p)} alt="chain of custody" className="h-28 w-full rounded-lg border object-cover" />
+            <div key={p.key} className="group relative">
+              <a href={p.url} target="_blank" rel="noreferrer">
+                <img src={p.url} alt="chain of custody" className="h-28 w-full rounded-lg border object-cover" />
               </a>
               <button
                 type="button"
-                onClick={() => remove(p)}
+                onClick={() => remove(p.key)}
                 disabled={busy}
                 title="Remove photo"
                 className="absolute right-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-xs font-bold text-white opacity-0 transition group-hover:opacity-100 disabled:opacity-50"

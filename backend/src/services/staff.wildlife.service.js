@@ -9,6 +9,7 @@ const { writeAuditLog } = require('../utils/audit');
 const { computeExceededSla } = require('../utils/sla');
 const { notifyReportStatus } = require('../utils/notify');
 const { notifyStatusChange } = require('./notification.service');
+const storage = require('./storage');
 
 const TERMINAL = ['Released', 'Transferred', 'Deceased'];
 
@@ -257,6 +258,8 @@ async function removeCustodyPhoto(staffId, idOrRef, targetPath, ctx = {}) {
     where: { turnover_id: existing.turnover_id },
     data: { chain_of_custody_photos: updated },
   });
+
+  await storage.remove(targetPath); // best-effort; never throws
 
   await writeAuditLog({
     performedBy: staffId,
