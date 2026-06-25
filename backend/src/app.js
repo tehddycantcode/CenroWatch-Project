@@ -63,8 +63,11 @@ const authLimiter = rateLimit({
 });
 app.use('/api/v1/auth', authLimiter);
 
-// ── Uploaded files (local-disk storage stub) ──────────────
-app.use('/uploads', express.static(UPLOAD_ROOT));
+// ── Uploaded files: served locally only under the local driver. Under the GCS
+//    driver, files live in the bucket and are reached via signed URLs instead.
+if ((process.env.STORAGE_DRIVER || 'local').toLowerCase() === 'local') {
+  app.use('/uploads', express.static(UPLOAD_ROOT));
+}
 
 // ── API v1 ─────────────────────────────────────────────────
 app.use('/api/v1', apiV1);
