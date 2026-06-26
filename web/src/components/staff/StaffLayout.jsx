@@ -26,7 +26,7 @@ export default function StaffLayout() {
         <div className="container flex h-16 items-center justify-between gap-4">
           <Link to="/staff/dashboard" className="flex items-center gap-2.5">
             <BrandMark />
-            <span className="text-lg font-bold tracking-tight">
+            <span className="whitespace-nowrap text-lg font-bold tracking-tight">
               CENROWATCH <span className="text-muted-foreground">- Staff</span>
             </span>
           </Link>
