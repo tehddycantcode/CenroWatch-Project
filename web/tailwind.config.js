@@ -62,6 +62,11 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      boxShadow: {
+        soft: '0 1px 2px rgba(15,61,31,0.04), 0 1px 3px rgba(15,61,31,0.06)',
+        'soft-md': '0 2px 4px rgba(15,61,31,0.05), 0 6px 16px rgba(15,61,31,0.08)',
+        'soft-lg': '0 8px 30px rgba(15,61,31,0.10)',
+      },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },

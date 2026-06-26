@@ -60,4 +60,21 @@
     @apply bg-background text-foreground font-sans;
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
+  h1, h2, h3 {
+    @apply tracking-tight;
+  }
+}
+
+@layer components {
+  /* Light hero wash for public pages - stays bright (light theme preserved). */
+  .bg-eco-soft {
+    background:
+      radial-gradient(58rem 30rem at 82% -12%, #e6fdf0 0%, transparent 62%),
+      radial-gradient(46rem 24rem at -5% 112%, #f0fbf4 0%, transparent 58%),
+      #ffffff;
+  }
+  /* Forest brand panel for the auth split layout. */
+  .bg-eco-gradient {
+    background: linear-gradient(135deg, #0f3d1f 0%, #14532d 52%, #166534 100%);
+  }
 }
