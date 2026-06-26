@@ -1,18 +1,28 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FileText, Clock, CircleCheck, Bird, Trash2, Sprout } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { complaintApi, wildlifeApi, requestApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { Card, cardHover } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
+import { IconChip } from '@/components/ui/icon-chip';
 import { Spinner } from '@/components/ui/icons';
 
 const DONE = ['Resolved', 'Completed', 'Released'];
 
+// Icon + tone per report kind (used by the action cards and the recent list).
+const KIND = {
+  complaint: { icon: Trash2, tone: 'amber' },
+  wildlife: { icon: Bird, tone: 'violet' },
+  request: { icon: Sprout, tone: 'primary' },
+};
+
 const actions = [
-  { to: '/resident/report-complaint', emoji: '🗑️', title: 'Report a Complaint', desc: 'Illegal dumping, burning, noise, pollution…' },
-  { to: '/resident/report-wildlife', emoji: '🦅', title: 'Wildlife Turnover', desc: 'Report or turn over rescued wildlife.' },
-  { to: '/resident/request-service', emoji: '🌱', title: 'Request a Service', desc: 'Seedlings, hauling, creek cleaning…' },
+  { to: '/resident/report-complaint', kind: 'complaint', title: 'Report a Complaint', desc: 'Illegal dumping, burning, noise, pollution...' },
+  { to: '/resident/report-wildlife', kind: 'wildlife', title: 'Wildlife Turnover', desc: 'Report or turn over rescued wildlife.' },
+  { to: '/resident/request-service', kind: 'request', title: 'Request a Service', desc: 'Seedlings, hauling, creek cleaning...' },
 ];
 
 function normalize(complaints, wildlife, requests) {
@@ -22,10 +32,11 @@ function normalize(complaints, wildlife, requests) {
   return [...a, ...b, ...c].sort((x, y) => new Date(y.date) - new Date(x.date));
 }
 
-function Stat({ label, value }) {
+function Stat({ icon, tone, label, value }) {
   return (
     <Card className="p-5">
-      <div className="text-3xl font-bold text-primary">{value}</div>
+      <IconChip icon={icon} tone={tone} size="sm" />
+      <div className="mt-3 text-3xl font-bold text-primary">{value}</div>
       <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
     </Card>
   );
@@ -63,31 +74,30 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-3xl">Good day, {user?.first_name} 👋</h1>
+        <h1 className="font-display text-3xl">Good day, {user?.first_name}</h1>
         <p className="mt-1 text-muted-foreground">Cabuyao Environmental Monitor</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="Total Reports" value={total} />
-        <Stat label="Active" value={active} />
-        <Stat label="Resolved" value={resolved} />
-        <Stat label="Wildlife Cases" value={wildlifeCount} />
+        <Stat icon={FileText} tone="primary" label="Total Reports" value={total} />
+        <Stat icon={Clock} tone="amber" label="Active" value={active} />
+        <Stat icon={CircleCheck} tone="forest" label="Resolved" value={resolved} />
+        <Stat icon={Bird} tone="violet" label="Wildlife Cases" value={wildlifeCount} />
       </div>
 
       <div>
         <h2 className="mb-3 text-lg font-semibold">What would you like to do?</h2>
         <div className="grid gap-4 sm:grid-cols-3">
-          {actions.map((a) => (
-            <Link
-              key={a.to}
-              to={a.to}
-              className="rounded-2xl border bg-card p-5 transition-colors hover:border-primary hover:bg-accent/40"
-            >
-              <div className="text-2xl">{a.emoji}</div>
-              <div className="mt-2 font-semibold text-foreground">{a.title}</div>
-              <div className="mt-1 text-sm text-muted-foreground">{a.desc}</div>
-            </Link>
-          ))}
+          {actions.map((a) => {
+            const k = KIND[a.kind];
+            return (
+              <Link key={a.to} to={a.to} className={cn('rounded-2xl border bg-card p-5', cardHover)}>
+                <IconChip icon={k.icon} tone={k.tone} size="lg" />
+                <div className="mt-3 font-semibold text-foreground">{a.title}</div>
+                <div className="mt-1 text-sm text-muted-foreground">{a.desc}</div>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -104,17 +114,21 @@ export default function DashboardPage() {
           </Card>
         ) : (
           <Card className="divide-y">
-            {recent.map((r) => (
-              <Link key={r.id} to={`/resident/track/${r.id}`} className="flex items-center justify-between gap-4 p-4 hover:bg-accent/40">
-                <div className="min-w-0">
-                  <div className="truncate font-medium text-foreground">{r.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {r.id} · {new Date(r.date).toLocaleDateString()}
+            {recent.map((r) => {
+              const k = KIND[r.kind] || KIND.complaint;
+              return (
+                <Link key={r.id} to={`/resident/track/${r.id}`} className="flex items-center gap-4 p-4 transition-colors hover:bg-accent/40">
+                  <IconChip icon={k.icon} tone={k.tone} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium text-foreground">{r.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {r.id} - {new Date(r.date).toLocaleDateString()}
+                    </div>
                   </div>
-                </div>
-                <StatusBadge status={r.status} />
-              </Link>
-            ))}
+                  <StatusBadge status={r.status} />
+                </Link>
+              );
+            })}
           </Card>
         )}
       </div>
