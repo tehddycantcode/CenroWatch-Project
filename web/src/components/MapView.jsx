@@ -6,6 +6,11 @@ import { humanize } from '@/lib/reports';
 const KEY = import.meta.env.VITE_MAPTILER_API_KEY;
 const STYLE = `https://api.maptiler.com/maps/streets-v2/style.json?key=${KEY}`;
 const CABUYAO = [121.1256, 14.2726]; // [lng, lat]
+// Keep the map focused on Cabuyao City: maxBounds blocks panning outside the LGU
+// (with a small margin) and minZoom stops zooming out to the wider region.
+// Format: [[SW lng, SW lat], [NE lng, NE lat]].
+const CABUYAO_BOUNDS = [[121.06, 14.19], [121.20, 14.33]];
+const MIN_ZOOM = 11;
 
 function pinColor(m) {
   if (m.kind === 'wildlife') return m.endangered ? '#7c3aed' : '#16a34a';
@@ -40,7 +45,14 @@ export default function MapView({
   // Init once.
   useEffect(() => {
     if (!KEY || !containerRef.current) return;
-    const map = new maplibregl.Map({ container: containerRef.current, style: STYLE, center, zoom });
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: STYLE,
+      center,
+      zoom,
+      maxBounds: CABUYAO_BOUNDS,
+      minZoom: MIN_ZOOM,
+    });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     if (picker) {
       map.on('click', (e) => {

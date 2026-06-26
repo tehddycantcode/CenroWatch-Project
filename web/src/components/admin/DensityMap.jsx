@@ -14,6 +14,10 @@ import { humanize } from '@/lib/reports';
 const KEY = import.meta.env.VITE_MAPTILER_API_KEY;
 const STYLE = `https://api.maptiler.com/maps/streets-v2/style.json?key=${KEY}`;
 const CABUYAO = [121.1235, 14.271]; // [lng, lat]
+// Lock the view to Cabuyao City (small margin) so the GIS map stays on the LGU.
+// Format: [[SW lng, SW lat], [NE lng, NE lat]].
+const CABUYAO_BOUNDS = [[121.06, 14.19], [121.20, 14.33]];
+const MIN_ZOOM = 11;
 
 // Choropleth color ramp, binned for the small counts typical of this dataset.
 const FILL_COLOR = [
@@ -45,7 +49,14 @@ export default function DensityMap({ boundaries = [], markers = [], className = 
 
   useEffect(() => {
     if (!KEY || !containerRef.current) return undefined;
-    const map = new maplibregl.Map({ container: containerRef.current, style: STYLE, center: CABUYAO, zoom: 12.2 });
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: STYLE,
+      center: CABUYAO,
+      zoom: 12.2,
+      maxBounds: CABUYAO_BOUNDS,
+      minZoom: MIN_ZOOM,
+    });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     mapRef.current = map;
 
