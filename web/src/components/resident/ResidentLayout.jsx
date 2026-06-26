@@ -1,6 +1,7 @@
 import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import { BrandMark } from '@/components/ui/brand-mark';
 import NotificationBell from '@/components/resident/NotificationBell';
 
 const navItems = [
@@ -23,11 +24,8 @@ export default function ResidentLayout() {
     <div className="min-h-screen bg-muted/20">
       <header className="sticky top-0 z-10 border-b bg-background">
         <div className="container flex h-16 items-center justify-between gap-4">
-          <Link to="/resident/dashboard" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-              CW
-            </span>
-            <span className="text-lg font-bold tracking-tight">CENROWATCH</span>
+          <Link to="/resident/dashboard">
+            <BrandMark withWordmark />
           </Link>
 
           <nav className="hidden items-center gap-1 sm:flex">

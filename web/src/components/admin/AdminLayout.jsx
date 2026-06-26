@@ -2,6 +2,7 @@ import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { ROLE_LABELS } from '@/lib/roles';
 import { cn } from '@/lib/utils';
+import { BrandMark } from '@/components/ui/brand-mark';
 
 const navItems = [
   { to: '/admin/dashboard', label: 'Dashboard', end: true },
@@ -28,12 +29,10 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-muted/20">
       <header className="sticky top-0 z-10 border-b bg-background">
         <div className="container flex h-16 items-center justify-between gap-4">
-          <Link to="/admin/dashboard" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-forest text-sm font-bold text-white">
-              CW
-            </span>
+          <Link to="/admin/dashboard" className="flex items-center gap-2.5">
+            <BrandMark />
             <span className="text-lg font-bold tracking-tight">
-              CENROWATCH <span className="text-muted-foreground">· Admin</span>
+              CENROWATCH <span className="text-muted-foreground">- Admin</span>
             </span>
           </Link>
 
