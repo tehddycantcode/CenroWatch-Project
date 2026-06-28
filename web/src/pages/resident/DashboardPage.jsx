@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Clock, CircleCheck, Bird, Trash2, Sprout } from 'lucide-react';
+import { FileText, Clock, CircleCheck, Bird, Trash2, Sprout, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { complaintApi, wildlifeApi, requestApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Card, cardHover } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { IconChip } from '@/components/ui/icon-chip';
+import { ProgressRing } from '@/components/ui/progress-ring';
 import { Spinner } from '@/components/ui/icons';
 
 const DONE = ['Resolved', 'Completed', 'Released'];
@@ -17,6 +18,13 @@ const KIND = {
   complaint: { icon: Trash2, tone: 'amber' },
   wildlife: { icon: Bird, tone: 'violet' },
   request: { icon: Sprout, tone: 'primary' },
+};
+
+// Soft per-kind background tint for the action cards.
+const TINT = {
+  complaint: 'from-amber-50',
+  wildlife: 'from-violet-50',
+  request: 'from-emerald-50',
 };
 
 const actions = [
@@ -34,7 +42,7 @@ function normalize(complaints, wildlife, requests) {
 
 function Stat({ icon, tone, label, value }) {
   return (
-    <Card className="p-5">
+    <Card className="border-t-2 border-t-brand-accent p-5">
       <IconChip icon={icon} tone={tone} size="sm" />
       <div className="mt-3 text-3xl font-bold text-primary">{value}</div>
       <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
@@ -69,13 +77,33 @@ export default function DashboardPage() {
   const total = items.length;
   const resolved = items.filter((i) => DONE.includes(i.status)).length;
   const active = total - resolved;
+  const resolvedPct = total ? Math.round((resolved / total) * 100) : 0;
   const recent = items.slice(0, 6);
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-3xl">Good day, {user?.first_name}</h1>
-        <p className="mt-1 text-muted-foreground">Cabuyao Environmental Monitor</p>
+      <div className="relative overflow-hidden rounded-2xl bg-eco-gradient p-6 text-white shadow-soft-md sm:p-8">
+        <div className="pointer-events-none absolute inset-0 bg-leaf-motif opacity-40" aria-hidden="true" />
+        <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="font-display text-3xl">Good day, {user?.first_name}</h1>
+            <p className="mt-1 text-white/80">Cabuyao Environmental Monitor</p>
+            <Link
+              to="/resident/report-complaint"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-forest shadow-soft transition-all hover:shadow-soft-md"
+            >
+              File a report
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+          <div className="flex items-center gap-3 rounded-xl bg-white/95 px-4 py-3 text-brand-forest shadow-soft">
+            <ProgressRing value={resolvedPct} size={64} label={`${resolvedPct}%`} />
+            <div className="text-sm">
+              <div className="font-semibold">Resolved</div>
+              <div className="text-muted-foreground">{resolved} of {total} reports</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -91,9 +119,16 @@ export default function DashboardPage() {
           {actions.map((a) => {
             const k = KIND[a.kind];
             return (
-              <Link key={a.to} to={a.to} className={cn('rounded-2xl border bg-card p-5', cardHover)}>
+              <Link
+                key={a.to}
+                to={a.to}
+                className={cn('group rounded-2xl border bg-gradient-to-br to-white p-5', TINT[a.kind], cardHover)}
+              >
                 <IconChip icon={k.icon} tone={k.tone} size="lg" />
-                <div className="mt-3 font-semibold text-foreground">{a.title}</div>
+                <div className="mt-3 flex items-center gap-1 font-semibold text-foreground">
+                  {a.title}
+                  <ArrowRight className="h-4 w-4 text-primary transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                </div>
                 <div className="mt-1 text-sm text-muted-foreground">{a.desc}</div>
               </Link>
             );
