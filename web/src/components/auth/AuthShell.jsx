@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Check } from 'lucide-react';
-import { BrandMark } from '@/components/ui/brand-mark';
+import { CenroLogo } from '@/components/ui/cenro-logo';
 
-// Shared two-column auth layout. Left: CENROWATCH brand panel (forest gradient).
-// Right: the form. On small screens the brand panel collapses to a compact header.
+// Shared two-column auth layout. Left: CENROWATCH brand panel (forest gradient
+// with a faint leaf motif). Right: the form. On small screens the brand panel
+// collapses to a compact header.
 const points = [
   'Report environmental concerns with photos and a map pin',
   'Turn over rescued wildlife - endangered species get priority',
@@ -14,12 +15,13 @@ export default function AuthShell({ title, subtitle, children, footer }) {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-2">
       {/* Brand panel (desktop) */}
-      <div className="relative hidden flex-col justify-between bg-eco-gradient p-12 text-white lg:flex">
-        <Link to="/" className="w-fit">
-          <BrandMark withWordmark invert />
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-eco-gradient p-12 text-white lg:flex">
+        <div className="pointer-events-none absolute inset-0 bg-leaf-motif opacity-40" aria-hidden="true" />
+        <Link to="/" className="relative w-fit">
+          <CenroLogo withWordmark withSubtitle invert />
         </Link>
 
-        <div className="max-w-md">
+        <div className="relative max-w-md">
           <h1 className="font-display text-4xl leading-tight">
             Guard Cabuyao&apos;s environment, together.
           </h1>
@@ -35,17 +37,18 @@ export default function AuthShell({ title, subtitle, children, footer }) {
           </ul>
         </div>
 
-        <p className="text-xs text-white/60">
-          CENRO Cabuyao - Pamantasan ng Cabuyao - BSIT Capstone
+        <p className="relative text-xs text-white/60">
+          Official environmental system of CENRO Cabuyao - Pamantasan ng Cabuyao BSIT Capstone
         </p>
       </div>
 
       {/* Form side */}
-      <div className="flex min-h-screen items-center justify-center bg-background px-6 py-12">
+      <div className="relative flex min-h-screen items-center justify-center bg-background px-6 py-12">
+        <div className="accent-bar-top absolute inset-x-0 top-0" />
         <div className="w-full max-w-md">
           {/* Compact brand header (mobile) */}
           <Link to="/" className="mb-8 flex w-fit lg:hidden">
-            <BrandMark withWordmark />
+            <CenroLogo withWordmark />
           </Link>
 
           <div className="mb-6">
