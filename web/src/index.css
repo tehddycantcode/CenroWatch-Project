@@ -77,4 +77,18 @@
   .bg-eco-gradient {
     background: linear-gradient(135deg, #0f3d1f 0%, #14532d 52%, #166534 100%);
   }
+  /* Thin official accent bar for the top of public pages. */
+  .accent-bar-top {
+    height: 4px;
+    background: linear-gradient(90deg, #0f3d1f 0%, #22a050 50%, #2dc568 100%);
+  }
+  /* Faint repeating leaf motif (very low opacity) for hero/auth panels. */
+  .bg-leaf-motif {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%2322a050' stroke-opacity='0.10' stroke-width='2'%3E%3Cpath d='M30 18 C46 24 50 44 30 58 C10 44 14 24 30 18 Z'/%3E%3Cpath d='M30 18 L30 58'/%3E%3Cpath d='M90 62 C106 68 110 88 90 102 C70 88 74 68 90 62 Z'/%3E%3Cpath d='M90 62 L90 102'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+  /* Soft tinted section background for page rhythm. */
+  .bg-eco-band {
+    background: linear-gradient(180deg, #f8faf9 0%, #ffffff 100%);
+  }
 }
