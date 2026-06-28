@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { wildlifeApi } from '@/lib/api';
 import { ANIMAL_CONDITIONS } from '@/lib/reports';
 import { SPECIES } from '@/lib/species';
+import { Bird } from 'lucide-react';
 import ReportFormShell from '@/components/resident/ReportFormShell';
 import BarangaySelect from '@/components/resident/BarangaySelect';
 import PhotoField from '@/components/resident/PhotoField';
@@ -103,6 +104,8 @@ export default function WildlifeFormPage() {
     <ReportFormShell
       title="Wildlife Turnover"
       subtitle="Report a sighting or turn over rescued wildlife"
+      icon={Bird}
+      tone="violet"
       onSubmit={onSubmit}
       submitting={submitting}
       error={error}

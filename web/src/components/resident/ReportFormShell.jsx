@@ -1,13 +1,17 @@
 import { Link } from 'react-router-dom';
+import { ArrowLeft, CircleCheck } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
+import { IconChip } from '@/components/ui/icon-chip';
 
 function SuccessCard({ trackingId }) {
   return (
     <div className="mx-auto max-w-xl">
       <Card className="space-y-4 p-8 text-center">
-        <div className="text-4xl">✅</div>
+        <div className="flex justify-center">
+          <IconChip icon={CircleCheck} tone="forest" size="lg" />
+        </div>
         <h2 className="font-display text-2xl">Report submitted</h2>
         <p className="text-muted-foreground">Your tracking number is</p>
         <div className="text-2xl font-bold tracking-wide text-primary">{trackingId}</div>
@@ -27,6 +31,8 @@ function SuccessCard({ trackingId }) {
 export default function ReportFormShell({
   title,
   subtitle,
+  icon,
+  tone = 'primary',
   onSubmit,
   submitting,
   error,
@@ -38,16 +44,22 @@ export default function ReportFormShell({
 
   return (
     <div className="mx-auto max-w-xl">
-      <div className="mb-6">
-        <Link to="/resident/dashboard" className="text-sm font-medium text-primary hover:underline">
-          ← Dashboard
-        </Link>
-        <h1 className="mt-2 font-display text-3xl">{title}</h1>
-        {subtitle && <p className="mt-1 text-muted-foreground">{subtitle}</p>}
-      </div>
+      <Link to="/resident/dashboard" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Dashboard
+      </Link>
 
-      <Card className="p-6">
-        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      <Card className="mt-4 overflow-hidden">
+        {/* Header strip */}
+        <div className="flex items-center gap-4 border-b bg-eco-band p-6">
+          {icon && <IconChip icon={icon} tone={tone} size="lg" />}
+          <div>
+            <h1 className="font-display text-2xl">{title}</h1>
+            {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
+          </div>
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-4 p-6" noValidate>
           {error && <Alert>{error}</Alert>}
           {children}
           <Button type="submit" className="w-full" loading={submitting}>

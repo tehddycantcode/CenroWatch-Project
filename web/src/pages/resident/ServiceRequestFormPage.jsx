@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { requestApi } from '@/lib/api';
 import { REQUEST_TYPES } from '@/lib/reports';
+import { Sprout } from 'lucide-react';
 import ReportFormShell from '@/components/resident/ReportFormShell';
 import BarangaySelect from '@/components/resident/BarangaySelect';
 import PhotoField from '@/components/resident/PhotoField';
@@ -68,6 +69,8 @@ export default function ServiceRequestFormPage() {
     <ReportFormShell
       title="Request a Service"
       subtitle="Seedlings, hauling, creek cleaning, and more"
+      icon={Sprout}
+      tone="primary"
       onSubmit={onSubmit}
       submitting={submitting}
       error={error}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { complaintApi } from '@/lib/api';
 import { COMPLAINT_TYPES } from '@/lib/reports';
 import ReportFormShell from '@/components/resident/ReportFormShell';
@@ -65,6 +66,8 @@ export default function ComplaintFormPage() {
     <ReportFormShell
       title="Report a Complaint"
       subtitle="Help protect Cabuyao's environment"
+      icon={Trash2}
+      tone="amber"
       onSubmit={onSubmit}
       submitting={submitting}
       error={error}

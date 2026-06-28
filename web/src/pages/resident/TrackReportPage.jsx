@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { MapPin, ArrowLeft } from 'lucide-react';
 import { complaintApi, wildlifeApi, requestApi, fileUrl } from '@/lib/api';
 import { trackingKind, KIND, humanize } from '@/lib/reports';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
+import { StatusTimeline } from '@/components/resident/StatusTimeline';
 import { Spinner } from '@/components/ui/icons';
 
 const fmt = (d) => (d ? new Date(d).toLocaleString() : '—');
@@ -88,8 +90,9 @@ export default function TrackReportPage() {
       <div className="mx-auto max-w-xl">
         <Card className="p-8 text-center">
           <p className="text-destructive">{error}</p>
-          <Link to="/resident/my-reports" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
-            ← Back to My Reports
+          <Link to="/resident/my-reports" className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Back to My Reports
           </Link>
         </Card>
       </div>
@@ -107,10 +110,22 @@ export default function TrackReportPage() {
   const isPdf = view.media && /\.pdf$/i.test(view.media);
   const hasGeo = view.latitude != null && view.longitude != null;
 
+  // Timestamps for the status timeline (only set when the source date exists).
+  const times = {};
+  if (view.submitted_at) times.Submitted = fmt(view.submitted_at);
+  if (view.scheduled_date) times.Scheduled = fmt(view.scheduled_date);
+  if (view.resolved_at) {
+    const f = fmt(view.resolved_at);
+    times.Resolved = f;
+    times.Completed = f;
+    times.Released = f;
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <Link to="/resident/my-reports" className="text-sm font-medium text-primary hover:underline">
-        ← My Reports
+      <Link to="/resident/my-reports" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        My Reports
       </Link>
 
       <Card className="p-6">
@@ -139,8 +154,9 @@ export default function TrackReportPage() {
         </div>
 
         {hasGeo && (
-          <div className="mt-4 text-sm text-muted-foreground">
-            📍 {view.latitude}, {view.longitude}
+          <div className="mt-4 flex items-center gap-1.5 text-sm text-muted-foreground">
+            <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
+            {view.latitude}, {view.longitude}
           </div>
         )}
 
@@ -163,6 +179,13 @@ export default function TrackReportPage() {
             )}
           </div>
         )}
+      </Card>
+
+      <Card className="p-6">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">Progress</div>
+        <div className="mt-4">
+          <StatusTimeline kind={kind} status={view.status} times={times} />
+        </div>
       </Card>
     </div>
   );
