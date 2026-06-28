@@ -5,4 +5,4 @@
 // and put it below. The phone and PC must be on the SAME Wi-Fi network.
 //
 // Example: 'http://192.168.1.10:5000/api/v1'
-export const API_URL = 'http://192.168.1.10:5000/api/v1';
+export const API_URL = 'http://192.168.18.11:5000/api/v1';
