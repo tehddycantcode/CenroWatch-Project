@@ -1,14 +1,12 @@
 import { Link } from 'react-router-dom';
+import { CenroLogo } from '@/components/ui/cenro-logo';
 
 export default function PublicHeader() {
   return (
     <header className="border-b bg-background">
       <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-            CW
-          </span>
-          <span className="text-lg font-bold tracking-tight">CENROWATCH</span>
+        <Link to="/" aria-label="CENROWATCH home">
+          <CenroLogo withWordmark />
         </Link>
         <nav className="flex items-center gap-5 text-sm font-medium text-muted-foreground">
           <Link to="/map" className="hover:text-foreground">Live Map</Link>
