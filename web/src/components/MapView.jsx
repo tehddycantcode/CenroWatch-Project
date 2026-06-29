@@ -59,18 +59,8 @@ export default function MapView({
         onPickRef.current?.(Number(e.lngLat.lat.toFixed(6)), Number(e.lngLat.lng.toFixed(6)));
       });
     }
-
-    // Fix the "white box": if the container is sized or revealed after the map
-    // initializes (e.g. inside a form that lays out a tick later), the WebGL
-    // canvas can come up at 0x0 and never repaint. Force a resize on load and
-    // whenever the container's size changes.
-    map.on('load', () => map.resize());
-    const ro = new ResizeObserver(() => map.resize());
-    ro.observe(containerRef.current);
-
     mapRef.current = map;
     return () => {
-      ro.disconnect();
       map.remove();
       mapRef.current = null;
     };
@@ -106,8 +96,16 @@ export default function MapView({
     if (!map || !picker) return;
     const has = value?.latitude != null && value?.longitude != null;
     if (has) {
-      if (!pickMarker.current) pickMarker.current = new maplibregl.Marker({ color: '#22a050' }).addTo(map);
-      pickMarker.current.setLngLat([value.longitude, value.latitude]);
+      if (!pickMarker.current) {
+        // Set the position BEFORE addTo: MapLibre positions the marker as soon
+        // as it is added, and adding it without a lngLat throws
+        // "Cannot read properties of undefined (reading 'lng')" and unmounts the app.
+        pickMarker.current = new maplibregl.Marker({ color: '#22a050' })
+          .setLngLat([value.longitude, value.latitude])
+          .addTo(map);
+      } else {
+        pickMarker.current.setLngLat([value.longitude, value.latitude]);
+      }
     } else if (pickMarker.current) {
       pickMarker.current.remove();
       pickMarker.current = null;
