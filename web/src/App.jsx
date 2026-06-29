@@ -34,9 +34,11 @@ import AdminArchivePage from '@/pages/admin/AdminArchivePage';
 import AdminAuditLogsPage from '@/pages/admin/AdminAuditLogsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 import NotFound from '@/components/NotFound';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <Routes>
       <Route path="/" element={<LandingPage />} />
 
@@ -115,5 +117,6 @@ export default function App() {
 
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </ErrorBoundary>
   );
 }
