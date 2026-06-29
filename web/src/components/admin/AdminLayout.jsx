@@ -2,7 +2,7 @@ import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { ROLE_LABELS } from '@/lib/roles';
 import { cn } from '@/lib/utils';
-import { BrandMark } from '@/components/ui/brand-mark';
+import { CenroLogo } from '@/components/ui/cenro-logo';
 
 const navItems = [
   { to: '/admin/dashboard', label: 'Dashboard', end: true },
@@ -27,10 +27,11 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-muted/20">
+      <div className="accent-bar-top" />
       <header className="sticky top-0 z-10 border-b bg-background">
         <div className="container flex h-16 items-center justify-between gap-4">
           <Link to="/admin/dashboard" className="flex items-center gap-2.5">
-            <BrandMark />
+            <CenroLogo />
             <span className="whitespace-nowrap text-lg font-bold tracking-tight">
               CENROWATCH <span className="text-muted-foreground">- Admin</span>
             </span>

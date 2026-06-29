@@ -1,20 +1,46 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Trash2, Bird, Sprout, Clock, AlertTriangle, FileText, ShieldAlert, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
 import { KIND_META, fmtDate } from '@/lib/staff';
+import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
+import { IconChip } from '@/components/ui/icon-chip';
 import { Spinner } from '@/components/ui/icons';
+
+// Icon + tone per report kind.
+const ICONS = {
+  complaint: { icon: Trash2, tone: 'amber' },
+  wildlife: { icon: Bird, tone: 'violet' },
+  request: { icon: Sprout, tone: 'primary' },
+};
+
+function Stat({ icon, tone, label, value, danger }) {
+  return (
+    <Card className="border-t-2 border-t-brand-accent p-5">
+      <IconChip icon={icon} tone={tone} size="sm" />
+      <div className={cn('mt-3 text-3xl font-bold', danger ? 'text-red-600' : 'text-primary')}>{value}</div>
+      <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+    </Card>
+  );
+}
 
 function ResourceCard({ kind, data }) {
   const meta = KIND_META[kind];
+  const ic = ICONS[kind];
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">{meta.plural}</h3>
-        <Link to={meta.base} className="text-sm font-medium text-primary hover:underline">Open queue →</Link>
+        <div className="flex items-center gap-3">
+          <IconChip icon={ic.icon} tone={ic.tone} size="md" />
+          <h3 className="font-semibold">{meta.plural}</h3>
+        </div>
+        <Link to={meta.base} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+          Open <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
       </div>
       <div className="mt-4 grid grid-cols-3 gap-3 text-center">
         <div>
@@ -48,32 +74,33 @@ export default function StaffDashboardPage() {
     return <div className="flex justify-center py-16"><Spinner className="h-7 w-7 text-primary" /></div>;
   }
 
+  const allReports = overview.complaints.total + overview.wildlife.total + overview.requests.total;
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-3xl">Good day, {user?.first_name} 👋</h1>
-        <p className="mt-1 text-muted-foreground">CENRO Cabuyao · operations dashboard</p>
+      {/* Welcome banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-eco-gradient p-6 text-white shadow-soft-md sm:p-8">
+        <div className="pointer-events-none absolute inset-0 bg-leaf-motif opacity-40" aria-hidden="true" />
+        <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="font-display text-3xl">Good day, {user?.first_name}</h1>
+            <p className="mt-1 text-white/80">CENRO Cabuyao - operations dashboard</p>
+          </div>
+          <Link
+            to="/staff/complaints"
+            className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-forest shadow-soft transition-all hover:shadow-soft-md"
+          >
+            Open complaints queue
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Card className="p-5">
-          <div className="text-3xl font-bold text-primary">{overview.totals.open}</div>
-          <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Open items</div>
-        </Card>
-        <Card className="p-5">
-          <div className={`text-3xl font-bold ${overview.totals.breached ? 'text-red-600' : 'text-foreground'}`}>
-            {overview.totals.breached}
-          </div>
-          <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">SLA past due</div>
-        </Card>
-        <Card className="p-5">
-          <div className="text-3xl font-bold text-foreground">{overview.complaints.total + overview.wildlife.total + overview.requests.total}</div>
-          <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">All reports</div>
-        </Card>
-        <Card className="p-5">
-          <div className="text-3xl font-bold text-foreground">{overview.wildlife.by_status?.Priority_Review || 0}</div>
-          <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Priority wildlife</div>
-        </Card>
+        <Stat icon={Clock} tone="amber" label="Open items" value={overview.totals.open} />
+        <Stat icon={AlertTriangle} tone="amber" label="SLA past due" value={overview.totals.breached} danger={overview.totals.breached > 0} />
+        <Stat icon={FileText} tone="primary" label="All reports" value={allReports} />
+        <Stat icon={ShieldAlert} tone="violet" label="Priority wildlife" value={overview.wildlife.by_status?.Priority_Review || 0} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -88,25 +115,29 @@ export default function StaffDashboardPage() {
           <Card className="p-8 text-center text-sm text-muted-foreground">No reports yet.</Card>
         ) : (
           <Card className="divide-y">
-            {overview.recent.map((r) => (
-              <Link
-                key={r.id}
-                to={`${KIND_META[r.kind].base}/${r.id}`}
-                className="flex items-center justify-between gap-4 p-4 hover:bg-accent/30"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {KIND_META[r.kind].label}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{r.id}</span>
+            {overview.recent.map((r) => {
+              const ic = ICONS[r.kind] || ICONS.complaint;
+              return (
+                <Link
+                  key={r.id}
+                  to={`${KIND_META[r.kind].base}/${r.id}`}
+                  className="flex items-center gap-4 p-4 transition-colors hover:bg-accent/30"
+                >
+                  <IconChip icon={ic.icon} tone={ic.tone} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {KIND_META[r.kind].label}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{r.id}</span>
+                    </div>
+                    <div className="truncate font-medium text-foreground">{humanize(r.title)}</div>
+                    <div className="text-xs text-muted-foreground">{r.barangay || 'Cabuyao'} - {fmtDate(r.date)}</div>
                   </div>
-                  <div className="truncate font-medium text-foreground">{humanize(r.title)}</div>
-                  <div className="text-xs text-muted-foreground">{r.barangay || 'Cabuyao'} · {fmtDate(r.date)}</div>
-                </div>
-                <StatusBadge status={r.status} />
-              </Link>
-            ))}
+                  <StatusBadge status={r.status} />
+                </Link>
+              );
+            })}
           </Card>
         )}
       </div>
