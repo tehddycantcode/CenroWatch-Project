@@ -1,21 +1,21 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { colors, radius } from '../theme';
+import { View, Image, StyleSheet } from 'react-native';
+import { radius } from '../theme';
 
-// CW logo mark. `onDark` => white tile with green letters (for the green hero).
-export function LogoMark({ size = 56, onDark = false }) {
+// Official CENRO Cabuyao seal in a rounded white tile. (`onDark` is accepted for
+// backward compatibility but no longer needed - the white tile reads well on the
+// green hero and on light backgrounds alike.)
+export function LogoMark({ size = 56 }) {
   return (
-    <View
-      style={[
-        styles.tile,
-        { width: size, height: size, borderRadius: radius.lg, backgroundColor: onDark ? colors.white : colors.primary },
-      ]}
-    >
-      <Text style={[styles.text, { color: onDark ? colors.primary : colors.white, fontSize: size * 0.36 }]}>CW</Text>
+    <View style={[styles.tile, { width: size, height: size, borderRadius: radius.lg }]}>
+      <Image
+        source={require('../../assets/cenro-logo.png')}
+        style={{ width: size * 0.86, height: size * 0.86 }}
+        resizeMode="contain"
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  tile: { alignItems: 'center', justifyContent: 'center' },
-  text: { fontWeight: '800' },
+  tile: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', overflow: 'hidden' },
 });
