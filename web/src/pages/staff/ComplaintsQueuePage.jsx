@@ -1,6 +1,6 @@
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { COMPLAINT_STATUSES, fmtDay } from '@/lib/staff';
+import { COMPLAINT_STATUSES, fmtDate, fmtRelative } from '@/lib/staff';
 import StaffQueue from '@/components/staff/StaffQueue';
 import { StatusBadge } from '@/components/ui/badge';
 
@@ -25,7 +25,14 @@ const columns = [
         `${r.user?.first_name || ''} ${r.user?.last_name || ''}`.trim() || '—'
       ),
   },
-  { header: 'Submitted', render: (r) => <span className="text-muted-foreground">{fmtDay(r.submitted_at)}</span> },
+  {
+    header: 'Submitted',
+    render: (r) => (
+      <span className="whitespace-nowrap text-muted-foreground" title={fmtDate(r.submitted_at)}>
+        {fmtRelative(r.submitted_at)}
+      </span>
+    ),
+  },
   {
     header: 'Status',
     render: (r) => (
@@ -41,6 +48,8 @@ export default function ComplaintsQueuePage() {
   return (
     <StaffQueue
       title="Complaints"
+      subtitle="Triage and resolve resident environmental complaints"
+      kind="complaint"
       resource={staffApi.complaints}
       statuses={COMPLAINT_STATUSES}
       columns={columns}

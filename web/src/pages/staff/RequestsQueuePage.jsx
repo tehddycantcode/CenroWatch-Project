@@ -1,6 +1,6 @@
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { REQUEST_STATUSES, fmtDay } from '@/lib/staff';
+import { REQUEST_STATUSES, fmtDate, fmtRelative } from '@/lib/staff';
 import StaffQueue from '@/components/staff/StaffQueue';
 import { StatusBadge } from '@/components/ui/badge';
 
@@ -10,7 +10,14 @@ const columns = [
   { header: 'Qty', render: (r) => r.requested_quantity ?? '—' },
   { header: 'Barangay', render: (r) => r.barangay?.name || '—' },
   { header: 'Reporter', render: (r) => `${r.user?.first_name || ''} ${r.user?.last_name || ''}`.trim() || '—' },
-  { header: 'Submitted', render: (r) => <span className="text-muted-foreground">{fmtDay(r.submitted_at)}</span> },
+  {
+    header: 'Submitted',
+    render: (r) => (
+      <span className="whitespace-nowrap text-muted-foreground" title={fmtDate(r.submitted_at)}>
+        {fmtRelative(r.submitted_at)}
+      </span>
+    ),
+  },
   {
     header: 'Status',
     render: (r) => (
@@ -26,6 +33,8 @@ export default function RequestsQueuePage() {
   return (
     <StaffQueue
       title="Service Requests"
+      subtitle="Review, approve, and schedule resident service requests"
+      kind="request"
       resource={staffApi.requests}
       statuses={REQUEST_STATUSES}
       columns={columns}

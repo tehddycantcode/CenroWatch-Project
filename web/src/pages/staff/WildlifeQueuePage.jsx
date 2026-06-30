@@ -1,6 +1,6 @@
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { WILDLIFE_STATUSES, fmtDay } from '@/lib/staff';
+import { WILDLIFE_STATUSES, fmtDate, fmtRelative } from '@/lib/staff';
 import StaffQueue from '@/components/staff/StaffQueue';
 import { StatusBadge } from '@/components/ui/badge';
 
@@ -18,7 +18,14 @@ const columns = [
   { header: 'Condition', render: (r) => humanize(r.animal_condition) },
   { header: 'Barangay', render: (r) => r.barangay?.name || '—' },
   { header: 'Reporter', render: (r) => `${r.resident?.first_name || ''} ${r.resident?.last_name || ''}`.trim() || '—' },
-  { header: 'Submitted', render: (r) => <span className="text-muted-foreground">{fmtDay(r.submitted_at)}</span> },
+  {
+    header: 'Submitted',
+    render: (r) => (
+      <span className="whitespace-nowrap text-muted-foreground" title={fmtDate(r.submitted_at)}>
+        {fmtRelative(r.submitted_at)}
+      </span>
+    ),
+  },
   {
     header: 'Status',
     render: (r) => (
@@ -34,6 +41,8 @@ export default function WildlifeQueuePage() {
   return (
     <StaffQueue
       title="Wildlife Turnovers"
+      subtitle="Process turnovers — endangered species get priority"
+      kind="wildlife"
       resource={staffApi.wildlife}
       statuses={WILDLIFE_STATUSES}
       columns={columns}
