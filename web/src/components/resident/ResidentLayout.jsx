@@ -8,7 +8,7 @@ const navItems = [
   { to: '/resident/dashboard', label: 'Dashboard' },
   { to: '/resident/my-reports', label: 'My Reports' },
   { to: '/resident/profile', label: 'Profile' },
-  { to: '/map', label: 'Live Map' },
+  { to: '/map', label: 'Heat Map' },
 ];
 
 export default function ResidentLayout() {

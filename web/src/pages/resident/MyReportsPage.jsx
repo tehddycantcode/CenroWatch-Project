@@ -23,7 +23,7 @@ export default function MyReportsPage() {
     Promise.all([complaintApi.listMine(), wildlifeApi.listMine(), requestApi.listMine()])
       .then(([c, w, r]) => {
         const merged = [
-          ...c.data.complaints.map((x) => ({ id: x.tracking_id, kind: 'complaint', title: humanize(x.complaint_type), status: x.status, date: x.submitted_at })),
+          ...c.data.complaints.map((x) => ({ id: x.tracking_id, kind: 'complaint', title: humanize(x.complaint_type), status: x.status, date: x.submitted_at, observed: x.observed_at })),
           ...w.data.turnovers.map((x) => ({ id: x.reference_id, kind: 'wildlife', title: x.species_name, status: x.status, date: x.submitted_at })),
           ...r.data.requests.map((x) => ({ id: x.tracking_id, kind: 'request', title: humanize(x.request_type), status: x.status, date: x.submitted_at })),
         ].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -71,8 +71,13 @@ export default function MyReportsPage() {
               <div className="min-w-0">
                 <div className="truncate font-medium text-foreground">{r.title}</div>
                 <div className="text-xs text-muted-foreground">
-                  {r.id} · {new Date(r.date).toLocaleString()}
+                  {r.id} · Filed {new Date(r.date).toLocaleString()}
                 </div>
+                {r.observed && (
+                  <div className="text-xs text-muted-foreground">
+                    Observed {new Date(r.observed).toLocaleDateString()}
+                  </div>
+                )}
               </div>
               <StatusBadge status={r.status} />
             </Link>

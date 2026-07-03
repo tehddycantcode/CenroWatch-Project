@@ -115,7 +115,7 @@ export default function LandingPage() {
             <CenroLogo withWordmark />
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground sm:flex">
-            <Link to="/map" className="transition-colors hover:text-foreground">Live Map</Link>
+            <Link to="/map" className="transition-colors hover:text-foreground">Heat Map</Link>
             <Link to="/feed" className="transition-colors hover:text-foreground">Reports</Link>
             <Link to="/wildlife" className="transition-colors hover:text-foreground">Wildlife</Link>
             <Link to="/login" className="transition-colors hover:text-foreground">Login</Link>
@@ -153,7 +153,7 @@ export default function LandingPage() {
                   Report Anonymously
                 </Link>
                 <Link to="/map" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
-                  View Live Map
+                  View Heat Map
                 </Link>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
@@ -234,7 +234,7 @@ export default function LandingPage() {
             <div>
               <div className="text-sm font-semibold text-foreground">Quick links</div>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li><Link to="/map" className="transition-colors hover:text-foreground">Live Map</Link></li>
+                <li><Link to="/map" className="transition-colors hover:text-foreground">Heat Map</Link></li>
                 <li><Link to="/feed" className="transition-colors hover:text-foreground">Reports</Link></li>
                 <li><Link to="/wildlife" className="transition-colors hover:text-foreground">Wildlife</Link></li>
                 <li><Link to="/track" className="transition-colors hover:text-foreground">Track a Report</Link></li>

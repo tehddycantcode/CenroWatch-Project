@@ -9,7 +9,7 @@ export default function PublicHeader() {
           <CenroLogo withWordmark />
         </Link>
         <nav className="flex items-center gap-5 text-sm font-medium text-muted-foreground">
-          <Link to="/map" className="hover:text-foreground">Live Map</Link>
+          <Link to="/map" className="hover:text-foreground">Heat Map</Link>
           <Link to="/feed" className="hover:text-foreground">Reports</Link>
           <Link to="/wildlife" className="hover:text-foreground">Wildlife</Link>
           <Link to="/track" className="hover:text-foreground">Track</Link>

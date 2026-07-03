@@ -11,11 +11,19 @@ import BarangayPicker from '../../components/BarangayPicker';
 import PhotoPicker from '../../components/PhotoPicker';
 import LocationField from '../../components/LocationField';
 
+// Local YYYY-MM-DD without relying on Intl (Hermes has limited Intl support).
+const todayStr = () => {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+};
+
 export default function ComplaintFormScreen() {
   const { token } = useAuth();
   const barangays = useBarangays();
 
-  const [form, setForm] = useState({ complaint_type: '', description: '', barangay_id: '', address_details: '' });
+  const [form, setForm] = useState({ complaint_type: '', description: '', barangay_id: '', address_details: '', observed_at: todayStr() });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
   const [photo, setPhoto] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -30,6 +38,7 @@ export default function ComplaintFormScreen() {
     if (!form.complaint_type) e.complaint_type = 'Select a complaint type.';
     if (!form.barangay_id) e.barangay_id = 'Please select a barangay.';
     if (form.description.trim().length < 10) e.description = 'Describe the concern (at least 10 characters).';
+    if (!photo) e.photo = 'A photo is required. Please attach at least one.';
     return e;
   }
 
@@ -44,11 +53,12 @@ export default function ComplaintFormScreen() {
     fd.append('description', form.description.trim());
     fd.append('barangay_id', String(form.barangay_id));
     if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
+    if (form.observed_at) fd.append('observed_at', form.observed_at);
     if (location.latitude != null) {
       fd.append('latitude', String(location.latitude));
       fd.append('longitude', String(location.longitude));
     }
-    if (photo) fd.append('photo', photo);
+    fd.append('photo', photo); // required
 
     setSubmitting(true);
     try {
@@ -115,12 +125,29 @@ export default function ComplaintFormScreen() {
         />
       </Field>
 
+      <Field label="Date issue was observed" hint="When you saw it (YYYY-MM-DD). Defaults to today." error={fieldErrors.observed_at}>
+        <TextInput
+          style={styles.input}
+          placeholder="YYYY-MM-DD"
+          placeholderTextColor={colors.placeholder}
+          value={form.observed_at}
+          onChangeText={set('observed_at')}
+          autoCapitalize="none"
+          keyboardType="numbers-and-punctuation"
+        />
+      </Field>
+
       <Field label="Location" hint="Optional — pin where it happened">
         <LocationField value={location} onChange={setLocation} />
       </Field>
 
-      <Field label="Photo" hint="Optional — photo evidence helps validation">
-        <PhotoPicker onChange={setPhoto} />
+      <Field label="Photo (required)" hint="Attach at least one photo as evidence." error={fieldErrors.photo}>
+        <PhotoPicker
+          onChange={(f) => {
+            setPhoto(f);
+            if (f) setFieldErrors((p) => ({ ...p, photo: undefined }));
+          }}
+        />
       </Field>
     </ReportFormShell>
   );

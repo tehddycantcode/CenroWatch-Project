@@ -41,7 +41,7 @@ export default function MyReportsScreen() {
         api.requests.mine(token),
       ]);
       const merged = [
-        ...c.data.complaints.map((x) => ({ id: x.tracking_id, kind: 'complaint', title: humanize(x.complaint_type), status: x.status, date: x.submitted_at })),
+        ...c.data.complaints.map((x) => ({ id: x.tracking_id, kind: 'complaint', title: humanize(x.complaint_type), status: x.status, date: x.submitted_at, observed: x.observed_at })),
         ...w.data.turnovers.map((x) => ({ id: x.reference_id, kind: 'wildlife', title: x.species_name, status: x.status, date: x.submitted_at })),
         ...r.data.requests.map((x) => ({ id: x.tracking_id, kind: 'request', title: humanize(x.request_type), status: x.status, date: x.submitted_at })),
       ].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -105,8 +105,11 @@ export default function MyReportsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>{r.title}</Text>
                   <Text style={styles.rowMeta}>
-                    {r.id} · {new Date(r.date).toLocaleString()}
+                    {r.id} · Filed {new Date(r.date).toLocaleString()}
                   </Text>
+                  {r.observed ? (
+                    <Text style={styles.rowMeta}>Observed {new Date(r.observed).toLocaleDateString()}</Text>
+                  ) : null}
                 </View>
                 <StatusBadge status={r.status} />
               </Pressable>

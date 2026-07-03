@@ -1,9 +1,13 @@
 const asyncHandler = require('../utils/asyncHandler');
 const complaintService = require('../services/complaint.service');
 const storage = require('../services/storage');
+const HttpError = require('../utils/httpError');
 
 const create = asyncHandler(async (req, res) => {
-  const photoPath = req.file ? await storage.save('complaints', req.file) : null;
+  // A photo is REQUIRED when a resident files a complaint (evidence). Enforced
+  // here so it can't be bypassed even if the client validation is skipped.
+  if (!req.file) throw new HttpError(400, 'A photo is required to file a complaint.');
+  const photoPath = await storage.save('complaints', req.file);
   const complaint = await complaintService.createComplaint(req.user.user_id, req.body, photoPath, {
     ipAddress: req.ip,
   });

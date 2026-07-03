@@ -3,13 +3,6 @@ import { gisApi } from '@/lib/api';
 import MapView from '@/components/MapView';
 import PublicHeader from '@/components/public/PublicHeader';
 
-const legend = [
-  { color: '#dc2626', label: 'Complaint' },
-  { color: '#d97706', label: 'Priority complaint' },
-  { color: '#16a34a', label: 'Wildlife' },
-  { color: '#7c3aed', label: 'Endangered (location approximate)' },
-];
-
 export default function PublicMapPage() {
   const [markers, setMarkers] = useState([]);
   const [error, setError] = useState('');
@@ -21,26 +14,31 @@ export default function PublicMapPage() {
       .catch((e) => setError(e.message));
   }, []);
 
+  const complaintCount = markers.filter(
+    (m) => m.kind === 'complaint' && m.latitude != null && m.longitude != null
+  ).length;
+
   return (
     <div className="flex h-screen flex-col">
       <PublicHeader />
       <div className="relative flex-1">
-        <MapView markers={markers} className="absolute inset-0" />
+        <MapView markers={markers} heatmap className="absolute inset-0" />
 
+        {/* Density scale legend */}
         <div className="absolute bottom-4 left-4 rounded-lg border bg-background/95 p-3 text-xs shadow-md">
-          <div className="mb-1.5 font-semibold">Legend</div>
-          <ul className="space-y-1">
-            {legend.map((l) => (
-              <li key={l.label} className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: l.color }} />
-                {l.label}
-              </li>
-            ))}
-          </ul>
+          <div className="mb-1.5 font-semibold">Complaint density</div>
+          <div
+            className="h-2.5 w-40 rounded-full"
+            style={{ background: 'linear-gradient(to right, #8fe8ae, #2dc568, #f2c94c, #f2994a, #dc2626)' }}
+          />
+          <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
+            <span>Low</span>
+            <span>High</span>
+          </div>
         </div>
 
         <div className="absolute right-4 top-4 rounded-md border bg-background/95 px-3 py-1.5 text-xs font-medium shadow">
-          {markers.length} report{markers.length === 1 ? '' : 's'} on the map
+          {complaintCount} complaint{complaintCount === 1 ? '' : 's'} mapped
         </div>
 
         {error && (

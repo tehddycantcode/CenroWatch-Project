@@ -44,6 +44,7 @@ const DETAIL_SELECT = {
   staff_notes: true,
   resolution_notes: true,
   submitted_at: true,
+  observed_at: true,
   updated_at: true,
   resolved_at: true,
   sla_deadline: true,

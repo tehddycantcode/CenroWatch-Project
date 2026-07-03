@@ -9,9 +9,13 @@ import LocationField from '@/components/resident/LocationField';
 import { FormField } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+
+// Local YYYY-MM-DD (en-CA renders ISO date), used as today's default + max.
+const todayStr = () => new Date().toLocaleDateString('en-CA');
 
 export default function ComplaintFormPage() {
-  const [form, setForm] = useState({ barangay_id: '', complaint_type: '', description: '' });
+  const [form, setForm] = useState({ barangay_id: '', complaint_type: '', description: '', observed_at: todayStr() });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
   const [photo, setPhoto] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -26,6 +30,7 @@ export default function ComplaintFormPage() {
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
     if (!form.complaint_type) errs.complaint_type = 'Please choose a complaint type.';
     if (form.description.trim().length < 10) errs.description = 'Describe the issue (at least 10 characters).';
+    if (!photo) errs.photo = 'A photo is required. Please attach at least one.';
     return errs;
   }
 
@@ -40,11 +45,12 @@ export default function ComplaintFormPage() {
     fd.append('barangay_id', form.barangay_id);
     fd.append('complaint_type', form.complaint_type);
     fd.append('description', form.description.trim());
+    if (form.observed_at) fd.append('observed_at', form.observed_at);
     if (location.latitude != null) {
       fd.append('latitude', location.latitude);
       fd.append('longitude', location.longitude);
     }
-    if (photo) fd.append('photo', photo);
+    fd.append('photo', photo); // required
 
     setSubmitting(true);
     try {
@@ -97,12 +103,31 @@ export default function ComplaintFormPage() {
         />
       </FormField>
 
+      <FormField
+        id="observed_at"
+        label="Date issue was observed"
+        hint="When did you actually see the problem? Defaults to today."
+      >
+        <Input
+          id="observed_at"
+          type="date"
+          max={todayStr()}
+          value={form.observed_at}
+          onChange={set('observed_at')}
+        />
+      </FormField>
+
       <FormField label="Location" hint="Optional — pin where it happened">
         <LocationField value={location} onChange={setLocation} />
       </FormField>
 
-      <FormField label="Photo" hint="Optional — adds evidence to your report">
-        <PhotoField onChange={setPhoto} />
+      <FormField label="Photo (required)" hint="Attach at least one photo as evidence." error={fieldErrors.photo}>
+        <PhotoField
+          onChange={(f) => {
+            setPhoto(f);
+            if (f) setFieldErrors((p) => ({ ...p, photo: undefined }));
+          }}
+        />
       </FormField>
     </ReportFormShell>
   );

@@ -184,7 +184,8 @@ model Complaint {
   priority         Boolean         @default(false)
   staff_notes      String?         @db.Text
   resolution_notes String?         @db.Text
-  submitted_at     DateTime        @default(now())
+  submitted_at     DateTime        @default(now()) // filing date/time (auto)
+  observed_at      DateTime? // optional: when the resident says they saw the issue
   updated_at       DateTime        @updatedAt
   resolved_at      DateTime?
 

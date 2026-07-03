@@ -17,6 +17,46 @@ function pinColor(m) {
   return m.priority ? '#d97706' : '#dc2626';
 }
 
+// GeoJSON of complaint points for the density heatmap (priority weighted higher).
+function complaintFeatureCollection(markers) {
+  return {
+    type: 'FeatureCollection',
+    features: markers
+      .filter((m) => m.kind === 'complaint' && m.latitude != null && m.longitude != null)
+      .map((m) => ({
+        type: 'Feature',
+        properties: { weight: m.priority ? 2 : 1 },
+        geometry: { type: 'Point', coordinates: [m.longitude, m.latitude] },
+      })),
+  };
+}
+
+// Add the heatmap source + layer. Green (low) -> red (hot) keeps the nature theme
+// at low density while making complaint hotspots obvious.
+function addHeatLayer(map, data) {
+  map.addSource('complaints-heat', { type: 'geojson', data });
+  map.addLayer({
+    id: 'complaints-heat-layer',
+    type: 'heatmap',
+    source: 'complaints-heat',
+    paint: {
+      'heatmap-weight': ['coalesce', ['get', 'weight'], 1],
+      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 11, 1, 16, 3],
+      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 11, 18, 16, 45],
+      'heatmap-opacity': 0.85,
+      'heatmap-color': [
+        'interpolate', ['linear'], ['heatmap-density'],
+        0, 'rgba(0,0,0,0)',
+        0.2, '#8fe8ae',
+        0.4, '#2dc568',
+        0.6, '#f2c94c',
+        0.8, '#f2994a',
+        1, '#dc2626',
+      ],
+    },
+  });
+}
+
 function escapeHtml(s = '') {
   return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
@@ -24,10 +64,12 @@ function escapeHtml(s = '') {
 /**
  * Reusable MapLibre map.
  * - Display mode: pass `markers` to render colored pins with popups.
+ * - Heatmap mode: pass `heatmap` to render complaint density instead of pins.
  * - Picker mode: pass `picker`, `value` ({latitude, longitude}) and `onPick(lat,lng)`.
  */
 export default function MapView({
   markers = [],
+  heatmap = false,
   picker = false,
   value = null,
   onPick,
@@ -39,6 +81,8 @@ export default function MapView({
   const mapRef = useRef(null);
   const markerObjs = useRef([]);
   const pickMarker = useRef(null);
+  const heatReady = useRef(false);
+  const heatData = useRef({ type: 'FeatureCollection', features: [] });
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
 
@@ -59,6 +103,13 @@ export default function MapView({
         onPickRef.current?.(Number(e.lngLat.lat.toFixed(6)), Number(e.lngLat.lng.toFixed(6)));
       });
     }
+    if (heatmap) {
+      // The heatmap layer needs the style loaded before it can be added.
+      map.on('load', () => {
+        addHeatLayer(map, heatData.current);
+        heatReady.current = true;
+      });
+    }
     mapRef.current = map;
     return () => {
       map.remove();
@@ -67,10 +118,19 @@ export default function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Feed the heatmap source whenever markers change.
+  useEffect(() => {
+    if (!heatmap) return;
+    const fc = complaintFeatureCollection(markers);
+    heatData.current = fc;
+    const src = mapRef.current?.getSource('complaints-heat');
+    if (src) src.setData(fc);
+  }, [markers, heatmap]);
+
   // Display markers.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || picker) return;
+    if (!map || picker || heatmap) return;
     markerObjs.current.forEach((m) => m.remove());
     markerObjs.current = [];
     markers.forEach((mk) => {

@@ -42,6 +42,14 @@ const createComplaintRules = [
     .optional({ values: 'falsy' })
     .trim()
     .isLength({ max: 255 }).withMessage('Address is too long.'),
+  // Optional resident-provided "date issue was observed". Sent as an ISO date
+  // string; must not be in the future. Filing date is stamped separately.
+  body('observed_at')
+    .optional({ values: 'falsy' })
+    .isISO8601().withMessage('Enter a valid observed date.')
+    .bail()
+    .custom((v) => new Date(v) <= new Date()).withMessage('The observed date cannot be in the future.')
+    .toDate(),
 ];
 
 // Anonymous submissions reuse the same fields but must explicitly acknowledge

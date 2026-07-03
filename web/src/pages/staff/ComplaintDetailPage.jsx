@@ -52,7 +52,8 @@ export default function ComplaintDetailPage() {
                 ['Barangay', c.barangay?.name],
                 ['Priority', c.priority ? 'Yes' : 'No'],
                 ['Assigned to', c.assigned_staff ? `${c.assigned_staff.first_name} ${c.assigned_staff.last_name}` : 'Unassigned'],
-                ['Submitted', fmtDate(c.submitted_at)],
+                ['Filed', fmtDate(c.submitted_at)],
+                ['Date observed', c.observed_at ? fmtDate(c.observed_at) : '—'],
                 ['SLA deadline', fmtDate(c.sla_deadline)],
                 ['Resolved', fmtDate(c.resolved_at)],
               ]} />
