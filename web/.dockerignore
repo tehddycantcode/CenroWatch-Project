@@ -1,0 +1,11 @@
+# Never copy these into the image.
+node_modules
+npm-debug.log*
+dist
+*.log
+Dockerfile
+.dockerignore
+
+# NOTE: web/.env is intentionally NOT ignored. VITE_* values are public client
+# config (shipped in the browser bundle), so baking them in keeps the image
+# self-contained. Real secrets never live in web/.env.

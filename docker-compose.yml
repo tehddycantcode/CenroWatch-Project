@@ -1,0 +1,66 @@
+# CENROWATCH — full local stack (MySQL + API + web) in one command.
+#
+#   1. cp backend/.env.example backend/.env   # then fill in the real secrets
+#   2. cp web/.env.example     web/.env        # then add your MapTiler key
+#   3. docker compose up --build
+#
+# Open http://localhost:5173 (web). API is http://localhost:5000.
+# MySQL is exposed on host port 3307 (so it won't clash with a local MySQL on 3306).
+#
+# Note: the mobile app is NOT containerized — Expo runs on your phone and still
+# needs mobile/src/config.js pointed at this PC's LAN IP.
+
+services:
+  db:
+    image: mysql:8
+    container_name: cenrowatch-db
+    restart: unless-stopped
+    # Match the Windows dev MySQL where the migrations were authored: table names
+    # are case-INSENSITIVE there. Linux MySQL defaults to case-sensitive, which
+    # breaks migrations that reference a table as both `complaint` and `Complaint`.
+    # (Only takes effect on a fresh data dir — hence the named volume.)
+    command: ["--lower-case-table-names=1"]
+    environment:
+      MYSQL_ROOT_PASSWORD: cenrowatch          # local dev DB only (in-container)
+      MYSQL_DATABASE: cenrowatch_db
+    ports:
+      - "3307:3306"                            # host 3307 -> container 3306
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pcenrowatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    container_name: cenrowatch-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy             # wait until MySQL accepts connections
+    env_file:
+      - ./backend/.env                         # JWT_SECRET, EMAIL_*, GCS_*, etc.
+    environment:
+      # These OVERRIDE .env so the API talks to the `db` service, not localhost.
+      DATABASE_URL: "mysql://root:cenrowatch@db:3306/cenrowatch_db"
+      PORT: "5000"
+      CLIENT_URL: "http://localhost:5173"
+    ports:
+      - "5000:5000"
+    volumes:
+      - uploads:/app/uploads                   # persist local uploads across restarts
+
+  web:
+    build: ./web
+    container_name: cenrowatch-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  db-data:
+  uploads:

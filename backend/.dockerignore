@@ -1,0 +1,16 @@
+# Never copy these into the image.
+node_modules
+npm-debug.log*
+
+# Secrets stay OUT of the image — the backend gets them at runtime via env_file.
+.env
+.env.*
+!.env.example
+gcs-key.json
+
+# Local artifacts.
+uploads
+dist
+*.log
+Dockerfile
+.dockerignore

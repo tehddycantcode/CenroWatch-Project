@@ -9,7 +9,74 @@ How to get the project running on a **new PC/laptop** after cloning from GitHub.
 
 Repo: https://github.com/tehddycantcode/CenroWatch-Project
 
+There are **two ways** to run it:
+
+- **Option A — Docker (recommended, easiest):** one command brings up MySQL + API
+  + web, with migrations and seeding done automatically. See just below.
+- **Option B — Manual setup:** install Node + MySQL yourself and run each app.
+  Sections 1–7 further down.
+
 ---
+
+## Option A — Docker Compose (recommended)
+
+The fastest way to run everything after cloning. It starts MySQL, the API, and the
+web app together — **no manual MySQL install, no manual migrate/seed**.
+
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (running)
+- Git
+
+### Run it
+
+```powershell
+git clone https://github.com/tehddycantcode/CenroWatch-Project.git
+cd CenroWatch-Project
+
+# 1. Create env files from templates, then fill in the real values
+copy backend\.env.example backend\.env    # JWT_SECRET, EMAIL_USER/PASS, GCS_*, ...
+copy web\.env.example     web\.env         # VITE_MAPTILER_API_KEY
+
+# 2. Start everything (first run builds the images — a few minutes)
+docker compose up --build
+```
+
+Then open:
+
+| App | URL |
+|-----|-----|
+| Web | http://localhost:5173 |
+| API | http://localhost:5000/api/v1 (health: http://localhost:5000/api/health) |
+| MySQL | `localhost:3307` (user `root`, password `cenrowatch`, db `cenrowatch_db`) |
+
+The API container **applies migrations and seeds the 18 barangays + SLA settings
+automatically on startup** (the seed is idempotent, so restarts are safe).
+
+**You do NOT edit `DATABASE_URL`.** Compose points the API at the `db` service and
+sets the DB password itself — the machine-specific database step disappears. You
+only fill in the *secret* values (Gmail app password, JWT secret, MapTiler key).
+
+### Handy commands
+
+```powershell
+docker compose up -d --build     # run in the background
+docker compose logs -f backend   # follow API logs
+docker compose down              # stop (keeps the database volume)
+docker compose down -v           # stop AND wipe the DB volume (fresh DB next up)
+docker compose up --build web    # rebuild just web after web code changes
+```
+
+Source is baked into the images, so after changing backend/web code, re-run with
+`--build` to pick it up.
+
+### Mobile is not containerized
+Expo runs on your **phone** via Expo Go, so Docker doesn't run it. Point the app at
+this PC's LAN IP in [mobile/src/config.js](mobile/src/config.js) (`ipconfig` →
+IPv4), then `cd mobile ; npm install ; npx expo start`. Same Wi-Fi as the PC.
+
+---
+
+## Option B — Manual setup (without Docker)
 
 ## 1. Prerequisites (install these first)
 
