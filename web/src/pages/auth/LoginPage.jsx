@@ -5,6 +5,7 @@ import { roleHome } from '@/lib/roles';
 import AuthShell from '@/components/auth/AuthShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { FormField } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
 
@@ -66,9 +67,8 @@ export default function LoginPage() {
         </FormField>
 
         <FormField id="password" label="Password">
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="current-password"
             placeholder="••••••••"
             value={form.password}

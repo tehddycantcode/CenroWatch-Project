@@ -5,6 +5,7 @@ import { api } from '../../api/client';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
 import BarangayPicker from '../../components/BarangayPicker';
+import SecureTextInput from '../../components/SecureTextInput';
 
 function Btn({ label, onPress, loading, disabled }) {
   return (
@@ -115,13 +116,13 @@ function PasswordSection() {
     <View style={styles.card}>
       <Text style={styles.cardTitle}>Change password</Text>
       <Field label="Current password">
-        <TextInput style={styles.input} value={form.current_password} onChangeText={set('current_password')} secureTextEntry placeholderTextColor={colors.placeholder} />
+        <SecureTextInput style={styles.input} value={form.current_password} onChangeText={set('current_password')} placeholderTextColor={colors.placeholder} />
       </Field>
       <Field label="New password" hint="≥ 8 chars, a letter and a number">
-        <TextInput style={styles.input} value={form.new_password} onChangeText={set('new_password')} secureTextEntry placeholderTextColor={colors.placeholder} />
+        <SecureTextInput style={styles.input} value={form.new_password} onChangeText={set('new_password')} placeholderTextColor={colors.placeholder} />
       </Field>
       <Field label="Confirm new password">
-        <TextInput style={styles.input} value={form.confirm} onChangeText={set('confirm')} secureTextEntry placeholderTextColor={colors.placeholder} />
+        <SecureTextInput style={styles.input} value={form.confirm} onChangeText={set('confirm')} placeholderTextColor={colors.placeholder} />
       </Field>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}

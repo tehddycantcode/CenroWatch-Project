@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/lib/api';
 import AuthShell from '@/components/auth/AuthShell';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { FormField } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
 
@@ -61,9 +61,8 @@ export default function ResetPasswordPage() {
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           {error && <Alert>{error}</Alert>}
           <FormField id="password" label="New password" hint="≥ 8 chars, a letter and a number">
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="new-password"
               placeholder="••••••••"
               value={form.password}
@@ -72,9 +71,8 @@ export default function ResetPasswordPage() {
             />
           </FormField>
           <FormField id="confirm" label="Confirm new password">
-            <Input
+            <PasswordInput
               id="confirm"
-              type="password"
               autoComplete="new-password"
               placeholder="••••••••"
               value={form.confirm}

@@ -5,6 +5,7 @@ import BarangaySelect from '@/components/resident/BarangaySelect';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { FormField } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
 
@@ -108,14 +109,14 @@ function PasswordForm() {
       <form onSubmit={onSubmit} className="mt-4 grid gap-4 sm:grid-cols-2">
         {error && <div className="sm:col-span-2"><Alert>{error}</Alert></div>}
         <FormField id="current_password" label="Current password">
-          <Input id="current_password" type="password" autoComplete="current-password" value={form.current_password} onChange={set('current_password')} required />
+          <PasswordInput id="current_password" autoComplete="current-password" value={form.current_password} onChange={set('current_password')} required />
         </FormField>
         <div className="hidden sm:block" />
         <FormField id="new_password" label="New password" hint="≥ 8 chars, a letter and a number">
-          <Input id="new_password" type="password" autoComplete="new-password" value={form.new_password} onChange={set('new_password')} required />
+          <PasswordInput id="new_password" autoComplete="new-password" value={form.new_password} onChange={set('new_password')} required />
         </FormField>
         <FormField id="confirm" label="Confirm new password">
-          <Input id="confirm" type="password" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} required />
+          <PasswordInput id="confirm" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} required />
         </FormField>
         <div className="sm:col-span-2 flex items-center gap-3">
           <Button type="submit" loading={saving}>Update password</Button>

@@ -6,6 +6,7 @@ import { barangayApi } from '@/lib/api';
 import AuthShell from '@/components/auth/AuthShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Select } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormField } from '@/components/ui/field';
@@ -138,12 +139,12 @@ export default function RegisterPage() {
         </FormField>
 
         <FormField id="password" label="Password" error={fieldErrors.password} hint="At least 8 characters, with a letter and a number">
-          <Input id="password" type="password" autoComplete="new-password" placeholder="••••••••"
+          <PasswordInput id="password" autoComplete="new-password" placeholder="••••••••"
             value={form.password} onChange={update('password')} />
         </FormField>
 
         <FormField id="confirm_password" label="Confirm password" error={fieldErrors.confirm_password}>
-          <Input id="confirm_password" type="password" autoComplete="new-password" placeholder="Re-enter password"
+          <PasswordInput id="confirm_password" autoComplete="new-password" placeholder="Re-enter password"
             value={form.confirm_password} onChange={update('confirm_password')} />
         </FormField>
 

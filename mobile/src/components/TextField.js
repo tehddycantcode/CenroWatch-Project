@@ -1,15 +1,17 @@
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { colors, radius } from '../theme';
+import SecureTextInput from './SecureTextInput';
 
-export default function TextField({ label, error, hint, containerStyle, ...props }) {
+export default function TextField({ label, error, hint, containerStyle, secureTextEntry, ...props }) {
+  const inputStyle = [styles.input, error && { borderColor: colors.danger }];
   return (
     <View style={[styles.wrap, containerStyle]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <TextInput
-        placeholderTextColor={colors.placeholder}
-        style={[styles.input, error && { borderColor: colors.danger }]}
-        {...props}
-      />
+      {secureTextEntry ? (
+        <SecureTextInput placeholderTextColor={colors.placeholder} style={inputStyle} {...props} />
+      ) : (
+        <TextInput placeholderTextColor={colors.placeholder} style={inputStyle} {...props} />
+      )}
       {error ? (
         <Text style={styles.error}>{error}</Text>
       ) : hint ? (
