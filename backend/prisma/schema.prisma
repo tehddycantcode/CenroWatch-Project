@@ -118,6 +118,7 @@ model User {
   barangay            Barangay?              @relation(fields: [barangay_id], references: [barangay_id])
   complaints          Complaint[]            @relation("UserComplaints")
   assigned_complaints Complaint[]            @relation("AssignedStaff")
+  logged_complaints   Complaint[]            @relation("LoggedByStaff")
   wildlife_turnovers  WildlifeTurnover[]     @relation("UserWildlife")
   processed_wildlife  WildlifeTurnover[]     @relation("ProcessedByStaff")
   env_requests        EnvironmentalRequest[] @relation("UserRequests")
@@ -172,6 +173,12 @@ model Complaint {
   tracking_id      String          @unique @db.VarChar(20) // e.g. CMP-2026-00001
   user_id          Int? // null = anonymous / whistleblower report (no identity captured)
   is_anonymous     Boolean         @default(false)
+  // Walk-in intake: a report a resident files in person, logged by staff. The
+  // walk-in resident usually has no account, so their name/contact is captured
+  // here (null for an anonymous walk-in). logged_by = the staff who recorded it.
+  reporter_name    String?         @db.VarChar(120)
+  reporter_contact String?         @db.VarChar(120)
+  logged_by        Int?
   barangay_id      Int
   assigned_to      Int? // CENRO Staff user_id
   complaint_type   ComplaintType
@@ -204,6 +211,7 @@ model Complaint {
   user           User?                    @relation("UserComplaints", fields: [user_id], references: [user_id])
   barangay       Barangay                 @relation(fields: [barangay_id], references: [barangay_id])
   assigned_staff User?                    @relation("AssignedStaff", fields: [assigned_to], references: [user_id])
+  logged_by_staff User?                   @relation("LoggedByStaff", fields: [logged_by], references: [user_id])
   status_history ComplaintStatusHistory[]
 
   @@index([tracking_id])

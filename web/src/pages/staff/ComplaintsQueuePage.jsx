@@ -11,6 +11,7 @@ const columns = [
       <span className="font-mono text-xs">
         {r.tracking_id}
         {r.priority && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">PRIORITY</span>}
+        {r.received_via && <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-800">WALK-IN</span>}
       </span>
     ),
   },
@@ -22,7 +23,7 @@ const columns = [
       r.is_anonymous ? (
         <span className="italic text-muted-foreground">Anonymous</span>
       ) : (
-        `${r.user?.first_name || ''} ${r.user?.last_name || ''}`.trim() || '—'
+        `${r.user?.first_name || ''} ${r.user?.last_name || ''}`.trim() || r.reporter_name || '—'
       ),
   },
   {

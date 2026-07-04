@@ -74,7 +74,36 @@ export default function ComplaintDetailPage() {
             )}
 
             <div className="mt-6 space-y-6">
-              {c.is_anonymous ? (
+              {c.logged_by ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-amber-800">Walk-in report</div>
+                    <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                      {humanize(c.received_via || 'Walk_In')}
+                    </span>
+                  </div>
+                  <div className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                    <div>
+                      <span className="text-muted-foreground">Reporter: </span>
+                      <span className="font-medium text-foreground">
+                        {c.is_anonymous ? 'Anonymous walk-in' : c.reporter_name || 'Not recorded'}
+                      </span>
+                    </div>
+                    {!c.is_anonymous && c.reporter_contact && (
+                      <div>
+                        <span className="text-muted-foreground">Contact: </span>
+                        <span className="text-foreground">{c.reporter_contact}</span>
+                      </div>
+                    )}
+                    {c.logged_by_staff && (
+                      <div>
+                        <span className="text-muted-foreground">Logged by: </span>
+                        <span className="text-foreground">{c.logged_by_staff.first_name} {c.logged_by_staff.last_name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : c.is_anonymous ? (
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <div className="text-xs uppercase tracking-wide text-muted-foreground">Reporter</div>
                   <div className="mt-1 font-medium text-foreground">Anonymous (whistleblower)</div>

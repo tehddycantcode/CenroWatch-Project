@@ -22,6 +22,7 @@ import StaffLayout from '@/components/staff/StaffLayout';
 import StaffDashboardPage from '@/pages/staff/StaffDashboardPage';
 import ComplaintsQueuePage from '@/pages/staff/ComplaintsQueuePage';
 import ComplaintDetailPage from '@/pages/staff/ComplaintDetailPage';
+import LogWalkInPage from '@/pages/staff/LogWalkInPage';
 import WildlifeQueuePage from '@/pages/staff/WildlifeQueuePage';
 import WildlifeDetailPage from '@/pages/staff/WildlifeDetailPage';
 import RequestsQueuePage from '@/pages/staff/RequestsQueuePage';
@@ -86,6 +87,7 @@ export default function App() {
         }
       >
         <Route path="/staff/dashboard" element={<StaffDashboardPage />} />
+        <Route path="/staff/log-walkin" element={<LogWalkInPage />} />
         <Route path="/staff/complaints" element={<ComplaintsQueuePage />} />
         <Route path="/staff/complaints/:id" element={<ComplaintDetailPage />} />
         <Route path="/staff/wildlife" element={<WildlifeQueuePage />} />

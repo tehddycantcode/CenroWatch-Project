@@ -9,6 +9,7 @@ const navItems = [
   { to: '/staff/complaints', label: 'Complaints' },
   { to: '/staff/wildlife', label: 'Wildlife' },
   { to: '/staff/requests', label: 'Requests' },
+  { to: '/staff/log-walkin', label: 'Log Walk-in' },
 ];
 
 export default function StaffLayout() {

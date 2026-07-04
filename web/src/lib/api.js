@@ -161,7 +161,12 @@ function staffResource(name) {
 
 export const staffApi = {
   overview: () => apiFetch('/staff/overview'),
-  complaints: staffResource('complaints'),
+  complaints: {
+    ...staffResource('complaints'),
+    // Log a walk-in complaint on behalf of a resident. `form` is a FormData
+    // (optional `photo` field alongside the text fields).
+    createWalkIn: (form) => apiFetch('/staff/complaints', { method: 'POST', body: form }),
+  },
   wildlife: {
     ...staffResource('wildlife'),
     // Chain-of-custody photos — form is a FormData with one or more `photos` fields.

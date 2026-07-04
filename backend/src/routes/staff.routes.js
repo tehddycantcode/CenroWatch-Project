@@ -13,6 +13,8 @@ const v = require('../validators/staff.validators');
 
 // Chain-of-custody photos are images only; up to 10 per upload batch.
 const custodyUpload = diskUpload('custody');
+// Optional single photo when a staff logs a walk-in complaint.
+const complaintUpload = diskUpload('complaints');
 
 const overview = require('../controllers/staff.overview.controller');
 const complaints = require('../controllers/staff.complaint.controller');
@@ -26,6 +28,8 @@ router.get('/overview', overview.getOverview);
 
 // Complaints
 router.get('/complaints', v.listQueryRules, validate, complaints.list);
+// Walk-in intake: multer first so multipart text fields populate req.body.
+router.post('/complaints', complaintUpload.single('photo'), v.createWalkInComplaintRules, validate, complaints.createWalkIn);
 router.get('/complaints/:id', complaints.getOne);
 router.patch('/complaints/:id/status', v.complaintStatusRules, validate, complaints.updateStatus);
 router.patch('/complaints/:id', v.complaintUpdateRules, validate, complaints.update);

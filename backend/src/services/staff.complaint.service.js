@@ -7,7 +7,8 @@
 const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
-const { computeExceededSla } = require('../utils/sla');
+const { computeExceededSla, getSlaMinutes, addMinutes } = require('../utils/sla');
+const { createSequential } = require('../utils/createSequential');
 const { notifyReportStatus } = require('../utils/notify');
 const { notifyStatusChange } = require('./notification.service');
 
@@ -20,6 +21,8 @@ const QUEUE_SELECT = {
   status: true,
   priority: true,
   is_anonymous: true,
+  received_via: true,
+  reporter_name: true,
   submitted_at: true,
   sla_deadline: true,
   exceeded_sla: true,
@@ -41,6 +44,10 @@ const DETAIL_SELECT = {
   status: true,
   priority: true,
   is_anonymous: true,
+  received_via: true,
+  reporter_name: true,
+  reporter_contact: true,
+  logged_by: true,
   staff_notes: true,
   resolution_notes: true,
   submitted_at: true,
@@ -53,6 +60,7 @@ const DETAIL_SELECT = {
   barangay: { select: { barangay_id: true, name: true } },
   user: { select: { user_id: true, first_name: true, last_name: true, email: true, contact_number: true } },
   assigned_staff: { select: { user_id: true, first_name: true, last_name: true } },
+  logged_by_staff: { select: { user_id: true, first_name: true, last_name: true } },
   status_history: {
     orderBy: { changed_at: 'asc' },
     select: { id: true, old_status: true, new_status: true, note: true, changed_at: true, changed_by: true },
@@ -103,6 +111,63 @@ async function getComplaint(idOrTracking) {
   const complaint = await prisma.complaint.findFirst({ where: whereFor(idOrTracking), select: DETAIL_SELECT });
   if (!complaint) throw new HttpError(404, 'Complaint not found.');
   return complaint;
+}
+
+// Staff logs a walk-in complaint on behalf of a resident at the office. The
+// walk-in resident has no account (user_id stays null); their name/contact are
+// captured on the report (unless anonymous). logged_by records the staff who
+// took it down, received_via defaults to Walk_In, and the SLA clock starts now.
+async function createWalkInComplaint(staffId, input, photoPath, ctx = {}) {
+  const barangay = await prisma.barangay.findUnique({ where: { barangay_id: input.barangay_id } });
+  if (!barangay) throw new HttpError(422, 'Selected barangay does not exist.');
+
+  const isAnonymous = input.is_anonymous === true;
+  const submitted_at = new Date();
+  const year = submitted_at.getFullYear();
+  const slaMinutes = await getSlaMinutes('complaint_sla_minutes', 3365);
+  const sla_deadline = addMinutes(submitted_at, slaMinutes);
+
+  const created = await createSequential({
+    model: 'complaint',
+    type: 'complaint',
+    idField: 'tracking_id',
+    year,
+    data: {
+      user_id: null,
+      is_anonymous: isAnonymous,
+      reporter_name: isAnonymous ? null : input.reporter_name || null,
+      reporter_contact: isAnonymous ? null : input.reporter_contact || null,
+      logged_by: staffId,
+      received_via: input.received_via || 'Walk_In',
+      barangay_id: input.barangay_id,
+      complaint_type: input.complaint_type,
+      description: input.description,
+      photo_path: photoPath || null,
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
+      address_details: input.address_details || null,
+      submitted_at,
+      observed_at: input.observed_at ?? null,
+      sla_deadline,
+    },
+    select: { complaint_id: true },
+  });
+
+  await writeAuditLog({
+    performedBy: staffId,
+    action: 'COMPLAINT_CREATE_WALKIN',
+    targetTable: 'Complaint',
+    targetId: created.complaint_id,
+    data: {
+      complaint_type: input.complaint_type,
+      barangay_id: input.barangay_id,
+      received_via: input.received_via || 'Walk_In',
+      anonymous: isAnonymous,
+    },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return getComplaint(created.complaint_id);
 }
 
 async function updateComplaintStatus(staffId, idOrTracking, input, ctx = {}) {
@@ -211,4 +276,4 @@ async function updateComplaint(staffId, idOrTracking, input, ctx = {}) {
   return getComplaint(existing.complaint_id);
 }
 
-module.exports = { listComplaints, getComplaint, updateComplaintStatus, updateComplaint };
+module.exports = { listComplaints, getComplaint, createWalkInComplaint, updateComplaintStatus, updateComplaint };
