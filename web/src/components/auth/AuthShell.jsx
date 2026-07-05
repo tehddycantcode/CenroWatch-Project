@@ -38,7 +38,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
         </div>
 
         <p className="relative text-xs text-white/60">
-          Official environmental system of CENRO Cabuyao - Pamantasan ng Cabuyao BSIT Capstone
+          Environmental monitoring system for CENRO Cabuyao - Pamantasan ng Cabuyao BSIT Capstone
         </p>
       </div>
 

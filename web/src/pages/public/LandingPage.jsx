@@ -141,7 +141,7 @@ export default function LandingPage() {
                 Guard <span className="text-primary">Cabuyao&apos;s</span> Environment Together
               </h1>
               <p className="mt-3 text-sm font-medium text-primary">
-                Official environmental system of CENRO Cabuyao
+                Environmental monitoring system for CENRO Cabuyao
               </p>
               <p className="mt-4 text-lg text-muted-foreground">
                 Report environmental concerns, track wildlife sightings, and help CENRO protect

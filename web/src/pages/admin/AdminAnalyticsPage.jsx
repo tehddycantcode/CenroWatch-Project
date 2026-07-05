@@ -84,7 +84,7 @@ export default function AdminAnalyticsPage() {
         </div>
       </Card>
       <p className="-mt-2 text-xs text-muted-foreground">
-        Barangay boundaries are approximate (Thiessen polygons around each centroid) pending official LGU shapefiles.
+        Barangay boundaries are approximate (Thiessen polygons around each centroid) pending LGU-issued shapefiles.
       </p>
 
       <Card className="overflow-hidden">
