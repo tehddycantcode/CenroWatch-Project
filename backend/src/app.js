@@ -15,6 +15,18 @@ const { UPLOAD_ROOT } = require('./middlewares/upload');
 
 const app = express();
 
+// ── Trust proxy (correct client IP for rate limiting) ──────
+// In production the app sits behind a reverse proxy / load balancer (nginx,
+// Cloud Run, etc.). Without this, req.ip is the proxy's IP, so every client
+// shares one rate-limit bucket. Set TRUST_PROXY to the number of proxy hops
+// (e.g. 1). Off by default for direct/local runs. NEVER hard-code `true`:
+// that trusts a client-supplied X-Forwarded-For and lets attackers spoof their
+// IP to bypass the per-IP limits below.
+if (process.env.TRUST_PROXY) {
+  const tp = process.env.TRUST_PROXY;
+  app.set('trust proxy', /^\d+$/.test(tp) ? Number(tp) : tp);
+}
+
 // ── Security headers ───────────────────────────────────────
 // crossOriginResourcePolicy 'cross-origin' lets the web/mobile clients embed
 // images served from /uploads (a different origin than the frontends).
@@ -53,14 +65,30 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ── Rate limiting on auth routes (10 req / 15 min / IP) ─────
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
+// ── Rate limiting (DDoS / abuse mitigation) ────────────────
+// Two layers, both keyed per client IP:
+//   1. A generous GLOBAL cap across the whole API — the first line of defence
+//      against request floods hammering the database.
+//   2. A strict cap on /auth (login, register, password reset) to blunt
+//      credential stuffing / brute force. Auth requests hit both limiters.
+// Limits are tunable via env so production can adjust without a code change.
+const apiLimiter = rateLimit({
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  limit: Number(process.env.RATE_LIMIT_MAX) || 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' },
 });
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: Number(process.env.AUTH_RATE_LIMIT_MAX) || 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later.' },
+});
+
+app.use('/api/v1', apiLimiter);
 app.use('/api/v1/auth', authLimiter);
 
 // ── Uploaded files: served locally only under the local driver. Under the GCS
