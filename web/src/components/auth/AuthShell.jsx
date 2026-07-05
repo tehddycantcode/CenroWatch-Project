@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { CenroLogo } from '@/components/ui/cenro-logo';
+import { BackButton } from '@/components/ui/back-button';
 
 // Shared two-column auth layout. Left: CENROWATCH brand panel (forest gradient
 // with a faint leaf motif). Right: the form. On small screens the brand panel
@@ -17,9 +18,12 @@ export default function AuthShell({ title, subtitle, children, footer }) {
       {/* Brand panel (desktop) */}
       <div className="relative hidden flex-col justify-between overflow-hidden bg-eco-gradient p-12 text-white lg:flex">
         <div className="pointer-events-none absolute inset-0 bg-leaf-motif opacity-40" aria-hidden="true" />
-        <Link to="/" className="relative w-fit">
-          <CenroLogo withWordmark withSubtitle invert />
-        </Link>
+        <div className="relative flex items-center gap-1">
+          <BackButton fallback="/" invert />
+          <Link to="/" className="w-fit">
+            <CenroLogo withWordmark withSubtitle invert />
+          </Link>
+        </div>
 
         <div className="relative max-w-md">
           <h1 className="font-display text-4xl leading-tight">
@@ -47,9 +51,12 @@ export default function AuthShell({ title, subtitle, children, footer }) {
         <div className="accent-bar-top absolute inset-x-0 top-0" />
         <div className="w-full max-w-md">
           {/* Compact brand header (mobile) */}
-          <Link to="/" className="mb-8 flex w-fit lg:hidden">
-            <CenroLogo withWordmark />
-          </Link>
+          <div className="mb-8 flex items-center gap-1 lg:hidden">
+            <BackButton fallback="/" />
+            <Link to="/" className="flex w-fit">
+              <CenroLogo withWordmark />
+            </Link>
+          </div>
 
           <div className="mb-6">
             <h2 className="font-display text-3xl text-foreground">{title}</h2>

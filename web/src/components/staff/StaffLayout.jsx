@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { ROLE_LABELS } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 import { CenroLogo } from '@/components/ui/cenro-logo';
+import { BackButton } from '@/components/ui/back-button';
 
 const navItems = [
   { to: '/staff/dashboard', label: 'Dashboard', end: true },
@@ -26,12 +27,15 @@ export default function StaffLayout() {
       <div className="accent-bar-top" />
       <header className="sticky top-0 z-10 border-b bg-background">
         <div className="container flex h-16 items-center justify-between gap-4">
-          <Link to="/staff/dashboard" className="flex items-center gap-2.5">
-            <CenroLogo />
-            <span className="whitespace-nowrap text-lg font-bold tracking-tight">
-              CENROWATCH <span className="text-muted-foreground">- Staff</span>
-            </span>
-          </Link>
+          <div className="flex items-center gap-1">
+            <BackButton fallback="/staff/dashboard" />
+            <Link to="/staff/dashboard" className="flex items-center gap-2.5">
+              <CenroLogo />
+              <span className="whitespace-nowrap text-lg font-bold tracking-tight">
+                CENROWATCH <span className="text-muted-foreground">- Staff</span>
+              </span>
+            </Link>
+          </div>
 
           <nav className="hidden items-center gap-1 sm:flex">
             {navItems.map((item) => (

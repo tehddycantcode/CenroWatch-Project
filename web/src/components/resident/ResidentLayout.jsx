@@ -2,6 +2,7 @@ import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { CenroLogo } from '@/components/ui/cenro-logo';
+import { BackButton } from '@/components/ui/back-button';
 import NotificationBell from '@/components/resident/NotificationBell';
 
 const navItems = [
@@ -24,9 +25,12 @@ export default function ResidentLayout() {
     <div className="min-h-screen bg-muted/20">
       <header className="sticky top-0 z-10 border-b bg-background">
         <div className="container flex h-16 items-center justify-between gap-4">
-          <Link to="/resident/dashboard">
-            <CenroLogo withWordmark />
-          </Link>
+          <div className="flex items-center gap-1">
+            <BackButton fallback="/resident/dashboard" />
+            <Link to="/resident/dashboard">
+              <CenroLogo withWordmark />
+            </Link>
+          </div>
 
           <nav className="hidden items-center gap-1 sm:flex">
             {navItems.map((item) => (
