@@ -59,9 +59,18 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    /* Crisper text rendering (esp. on macOS). */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   h1, h2, h3 {
     @apply tracking-tight;
+    /* Balance headings so no single word wraps alone on the last line. */
+    text-wrap: balance;
+  }
+  p {
+    /* Avoid orphans / short last lines in body copy. */
+    text-wrap: pretty;
   }
 }
 
@@ -90,5 +99,11 @@
   /* Soft tinted section background for page rhythm. */
   .bg-eco-band {
     background: linear-gradient(180deg, #f8faf9 0%, #ffffff 100%);
+  }
+  /* Subtle hairline on content images for consistent depth. Pure black at low
+     opacity (never a tinted neutral, which reads as dirt on the edge) and it
+     follows the image's border-radius. */
+  .img-outline {
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
   }
 }

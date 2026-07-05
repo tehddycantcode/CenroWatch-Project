@@ -105,7 +105,11 @@ export default function DashboardScreen() {
         <Text style={styles.sectionTitle}>What would you like to do?</Text>
         <View style={{ gap: 12 }}>
           {ACTIONS.map((a) => (
-            <Pressable key={a.screen} style={styles.action} onPress={() => navigate(a.screen)}>
+            <Pressable
+              key={a.screen}
+              style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+              onPress={() => navigate(a.screen)}
+            >
               <Text style={styles.actionEmoji}>{a.emoji}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.actionTitle}>{a.title}</Text>
@@ -139,7 +143,7 @@ export default function DashboardScreen() {
             {recent.map((r, i) => (
               <Pressable
                 key={r.id}
-                style={[styles.listRow, i > 0 && styles.listDivider]}
+                style={({ pressed }) => [styles.listRow, i > 0 && styles.listDivider, pressed && styles.pressed]}
                 onPress={() => navigate('track', { id: r.id })}
               >
                 <View style={{ flex: 1 }}>
@@ -198,7 +202,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: 16,
   },
-  statValue: { fontSize: 26, fontWeight: '800', color: colors.primary },
+  statValue: { fontSize: 26, fontWeight: '800', color: colors.primary, fontVariant: ['tabular-nums'] },
+  pressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
   statLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.muted, marginTop: 2 },
 
   sectionTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginTop: 26, marginBottom: 12 },

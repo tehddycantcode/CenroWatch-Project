@@ -22,7 +22,7 @@ function Stat({ icon, tone, label, value, danger }) {
   return (
     <Card className="border-t-2 border-t-brand-accent p-5">
       <IconChip icon={icon} tone={tone} size="sm" />
-      <div className={cn('mt-3 text-3xl font-bold', danger ? 'text-red-600' : 'text-primary')}>{value}</div>
+      <div className={cn('mt-3 text-3xl font-bold tabular-nums', danger ? 'text-red-600' : 'text-primary')}>{value}</div>
       <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
     </Card>
   );

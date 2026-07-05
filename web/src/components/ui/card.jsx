@@ -6,8 +6,9 @@ const Card = React.forwardRef(({ className, ...props }, ref) => (
 ));
 Card.displayName = 'Card';
 
-// Apply to clickable cards/links (via cn(...)) for a subtle hover lift.
-export const cardHover = 'transition-all hover:shadow-soft-md hover:-translate-y-0.5';
+// Apply to clickable cards/links (via cn(...)) for a subtle hover lift + press.
+export const cardHover =
+  'transition-[box-shadow,transform] hover:shadow-soft-md hover:-translate-y-0.5 active:scale-[0.99] active:translate-y-0';
 
 const CardHeader = React.forwardRef(({ className, ...props }, ref) => (
   <div ref={ref} className={cn('flex flex-col space-y-1.5 p-6', className)} {...props} />

@@ -204,7 +204,7 @@ function SummaryChip({ label, value, tone, danger }) {
     <div className="min-w-[68px] rounded-xl border bg-muted/40 px-3 py-2 text-center">
       <div
         className={cn(
-          'text-xl font-bold leading-none',
+          'text-xl font-bold leading-none tabular-nums',
           danger ? 'text-red-600' : tone === 'primary' ? 'text-primary' : 'text-foreground'
         )}
       >

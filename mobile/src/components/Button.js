@@ -12,7 +12,7 @@ export default function Button({ title, onPress, loading = false, disabled = fal
         styles.base,
         isPrimary ? styles.primary : styles.outline,
         off && { opacity: 0.6 },
-        pressed && !off && { opacity: 0.88 },
+        pressed && !off && { opacity: 0.9, transform: [{ scale: 0.96 }] },
       ]}
     >
       {loading && (

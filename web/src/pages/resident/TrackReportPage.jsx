@@ -176,7 +176,7 @@ export default function TrackReportPage() {
                 View document (PDF)
               </a>
             ) : (
-              <img src={mediaUrl} alt="attachment" className="max-h-80 rounded-lg border" />
+              <img src={mediaUrl} alt="attachment" className="max-h-80 rounded-lg img-outline" />
             )}
           </div>
         )}

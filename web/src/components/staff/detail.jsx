@@ -39,7 +39,7 @@ export function Attachment({ path }) {
           View document (PDF)
         </a>
       ) : (
-        <img src={url} alt="attachment" className="max-h-80 rounded-lg border" />
+        <img src={url} alt="attachment" className="max-h-80 rounded-lg img-outline" />
       )}
     </div>
   );

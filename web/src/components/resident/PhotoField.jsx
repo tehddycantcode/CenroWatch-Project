@@ -34,7 +34,7 @@ export default function PhotoField({ onChange, accept = 'image/*', label = 'Tap 
         className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-input bg-muted/30 px-4 py-6 text-sm text-muted-foreground hover:border-primary hover:text-foreground"
       >
         {preview ? (
-          <img src={preview} alt="preview" className="h-28 w-auto rounded-md object-cover" />
+          <img src={preview} alt="preview" className="h-28 w-auto rounded-md object-cover img-outline" />
         ) : (
           <span>{name || label}</span>
         )}
