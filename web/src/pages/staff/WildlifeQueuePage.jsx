@@ -1,6 +1,6 @@
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { WILDLIFE_STATUSES, fmtDate, fmtRelative } from '@/lib/staff';
+import { WILDLIFE_STATUSES, fmtDate, fmtRelative, useSectionBase } from '@/lib/staff';
 import StaffQueue from '@/components/staff/StaffQueue';
 import { StatusBadge } from '@/components/ui/badge';
 
@@ -38,6 +38,7 @@ const columns = [
 ];
 
 export default function WildlifeQueuePage() {
+  const base = useSectionBase();
   return (
     <StaffQueue
       title="Wildlife Turnovers"
@@ -47,7 +48,7 @@ export default function WildlifeQueuePage() {
       statuses={WILDLIFE_STATUSES}
       columns={columns}
       rowKey={(r) => r.turnover_id}
-      rowLink={(r) => `/staff/wildlife/${r.reference_id}`}
+      rowLink={(r) => `${base}/wildlife/${r.reference_id}`}
     />
   );
 }

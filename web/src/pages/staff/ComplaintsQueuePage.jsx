@@ -1,6 +1,6 @@
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { COMPLAINT_STATUSES, fmtDate, fmtRelative } from '@/lib/staff';
+import { COMPLAINT_STATUSES, fmtDate, fmtRelative, useSectionBase } from '@/lib/staff';
 import StaffQueue from '@/components/staff/StaffQueue';
 import { StatusBadge } from '@/components/ui/badge';
 
@@ -46,6 +46,7 @@ const columns = [
 ];
 
 export default function ComplaintsQueuePage() {
+  const base = useSectionBase();
   return (
     <StaffQueue
       title="Complaints"
@@ -55,7 +56,7 @@ export default function ComplaintsQueuePage() {
       statuses={COMPLAINT_STATUSES}
       columns={columns}
       rowKey={(r) => r.complaint_id}
-      rowLink={(r) => `/staff/complaints/${r.tracking_id}`}
+      rowLink={(r) => `${base}/complaints/${r.tracking_id}`}
     />
   );
 }

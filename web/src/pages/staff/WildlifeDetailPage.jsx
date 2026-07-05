@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { WILDLIFE_STATUSES, fmtDate } from '@/lib/staff';
+import { WILDLIFE_STATUSES, fmtDate, useSectionBase } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
@@ -13,6 +13,7 @@ import CustodyPhotos from '@/components/staff/CustodyPhotos';
 
 export default function WildlifeDetailPage() {
   const { id } = useParams();
+  const base = useSectionBase();
   const [w, setW] = useState(null);
   const [error, setError] = useState('');
 
@@ -29,7 +30,7 @@ export default function WildlifeDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to="/staff/wildlife" className="text-sm font-medium text-primary hover:underline">← Wildlife</Link>
+      <Link to={`${base}/wildlife`} className="text-sm font-medium text-primary hover:underline">← Wildlife</Link>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

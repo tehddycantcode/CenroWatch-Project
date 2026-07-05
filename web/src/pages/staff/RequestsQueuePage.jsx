@@ -1,6 +1,6 @@
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { REQUEST_STATUSES, fmtDate, fmtRelative } from '@/lib/staff';
+import { REQUEST_STATUSES, fmtDate, fmtRelative, useSectionBase } from '@/lib/staff';
 import StaffQueue from '@/components/staff/StaffQueue';
 import { StatusBadge } from '@/components/ui/badge';
 
@@ -30,6 +30,7 @@ const columns = [
 ];
 
 export default function RequestsQueuePage() {
+  const base = useSectionBase();
   return (
     <StaffQueue
       title="Service Requests"
@@ -39,7 +40,7 @@ export default function RequestsQueuePage() {
       statuses={REQUEST_STATUSES}
       columns={columns}
       rowKey={(r) => r.request_id}
-      rowLink={(r) => `/staff/requests/${r.tracking_id}`}
+      rowLink={(r) => `${base}/requests/${r.tracking_id}`}
     />
   );
 }

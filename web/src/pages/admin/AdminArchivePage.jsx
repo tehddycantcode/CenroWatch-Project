@@ -19,7 +19,7 @@ const SECTIONS = [
     terminal: ['Resolved', 'Rejected'],
     id: (r) => r.tracking_id,
     label: (r) => humanize(r.complaint_type),
-    link: (r) => `/staff/complaints/${r.tracking_id}`,
+    link: (r) => `/admin/complaints/${r.tracking_id}`,
   },
   {
     key: 'wildlife',
@@ -28,7 +28,7 @@ const SECTIONS = [
     terminal: ['Released', 'Transferred', 'Deceased'],
     id: (r) => r.reference_id,
     label: (r) => r.species_name,
-    link: (r) => `/staff/wildlife/${r.reference_id}`,
+    link: (r) => `/admin/wildlife/${r.reference_id}`,
   },
   {
     key: 'requests',
@@ -37,7 +37,7 @@ const SECTIONS = [
     terminal: ['Completed', 'Rejected'],
     id: (r) => r.tracking_id,
     label: (r) => humanize(r.request_type),
-    link: (r) => `/staff/requests/${r.tracking_id}`,
+    link: (r) => `/admin/requests/${r.tracking_id}`,
   },
 ];
 

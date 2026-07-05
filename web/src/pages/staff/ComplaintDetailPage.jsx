@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { COMPLAINT_STATUSES, fmtDate } from '@/lib/staff';
+import { COMPLAINT_STATUSES, fmtDate, useSectionBase } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { Rows, ReporterCard, Attachment } from '@/components/staff/detail';
 
 export default function ComplaintDetailPage() {
   const { id } = useParams();
+  const base = useSectionBase();
   const [c, setC] = useState(null);
   const [error, setError] = useState('');
 
@@ -29,7 +30,7 @@ export default function ComplaintDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to="/staff/complaints" className="text-sm font-medium text-primary hover:underline">← Complaints</Link>
+      <Link to={`${base}/complaints`} className="text-sm font-medium text-primary hover:underline">← Complaints</Link>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Details */}

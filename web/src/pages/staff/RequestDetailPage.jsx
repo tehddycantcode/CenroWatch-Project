@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { REQUEST_STATUSES, fmtDate, fmtDay } from '@/lib/staff';
+import { REQUEST_STATUSES, fmtDate, fmtDay, useSectionBase } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
@@ -12,6 +12,7 @@ import { Rows, ReporterCard, Attachment } from '@/components/staff/detail';
 
 export default function RequestDetailPage() {
   const { id } = useParams();
+  const base = useSectionBase();
   const [q, setQ] = useState(null);
   const [error, setError] = useState('');
 
@@ -26,7 +27,7 @@ export default function RequestDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to="/staff/requests" className="text-sm font-medium text-primary hover:underline">← Requests</Link>
+      <Link to={`${base}/requests`} className="text-sm font-medium text-primary hover:underline">← Requests</Link>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

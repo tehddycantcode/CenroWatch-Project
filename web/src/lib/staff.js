@@ -2,6 +2,18 @@
 // queue filters and the status-update dropdowns. Keep in sync with the Prisma
 // enums and backend/src/validators/staff.validators.js.
 
+import { useLocation } from 'react-router-dom';
+
+// The current app section prefix — '/admin' or '/staff'. The complaint / wildlife
+// / request queue and detail pages are shared: Staff reaches them under /staff and
+// Admin under /admin. Links must stay within the current section, otherwise an
+// Admin row-click navigates to a /staff route and the whole app flips into the
+// Staff layout (and vice-versa). Use this to build in-section links.
+export function useSectionBase() {
+  const { pathname } = useLocation();
+  return pathname.startsWith('/admin') ? '/admin' : '/staff';
+}
+
 export const COMPLAINT_STATUSES = ['Pending', 'Under_Review', 'In_Progress', 'Resolved', 'Rejected'];
 export const WILDLIFE_STATUSES = ['Pending_Review', 'Priority_Review', 'Under_Care', 'Released', 'Transferred', 'Deceased'];
 export const REQUEST_STATUSES = ['Pending', 'Approved', 'Scheduled', 'Completed', 'Rejected'];

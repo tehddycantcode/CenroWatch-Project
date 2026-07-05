@@ -109,8 +109,11 @@ export default function App() {
         <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
         <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
         <Route path="/admin/complaints" element={<ComplaintsQueuePage />} />
+        <Route path="/admin/complaints/:id" element={<ComplaintDetailPage />} />
         <Route path="/admin/wildlife" element={<WildlifeQueuePage />} />
+        <Route path="/admin/wildlife/:id" element={<WildlifeDetailPage />} />
         <Route path="/admin/requests" element={<RequestsQueuePage />} />
+        <Route path="/admin/requests/:id" element={<RequestDetailPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/archive" element={<AdminArchivePage />} />
         <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
