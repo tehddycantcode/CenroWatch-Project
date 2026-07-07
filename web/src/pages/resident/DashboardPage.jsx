@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Card, cardHover } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { IconChip } from '@/components/ui/icon-chip';
+import { StatusLegend } from '@/components/ui/status-legend';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { Spinner } from '@/components/ui/icons';
 
@@ -149,6 +150,7 @@ export default function DashboardPage() {
           </Card>
         ) : (
           <Card className="divide-y">
+            <StatusLegend />
             {recent.map((r) => {
               const k = KIND[r.kind] || KIND.complaint;
               return (

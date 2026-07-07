@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { IconChip } from '@/components/ui/icon-chip';
+import { StatusLegend } from '@/components/ui/status-legend';
 import { Spinner } from '@/components/ui/icons';
 
 // Icon + tone per report kind.
@@ -115,6 +116,7 @@ export default function StaffDashboardPage() {
           <Card className="p-8 text-center text-sm text-muted-foreground">No reports yet.</Card>
         ) : (
           <Card className="divide-y">
+            <StatusLegend />
             {overview.recent.map((r) => {
               const ic = ICONS[r.kind] || ICONS.complaint;
               return (

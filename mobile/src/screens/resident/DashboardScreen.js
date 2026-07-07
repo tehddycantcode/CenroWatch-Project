@@ -140,6 +140,7 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <View style={styles.list}>
+            <StatusLegend />
             {recent.map((r, i) => (
               <Pressable
                 key={r.id}
@@ -167,6 +168,28 @@ function Stat({ label, value }) {
     <View style={styles.stat}>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+// Legend for the recent list: dot colors mirror the StatusBadge tone families
+// (lib/reports statusTone): amber = just submitted, blue = in progress,
+// green = finished.
+const LEGEND = [
+  { color: '#fbbf24', label: 'Submitted · awaiting action' },
+  { color: '#3b82f6', label: 'In progress' },
+  { color: '#22c55e', label: 'Finished' },
+];
+
+function StatusLegend() {
+  return (
+    <View style={styles.legend}>
+      {LEGEND.map((item) => (
+        <View key={item.label} style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+          <Text style={styles.legendText}>{item.label}</Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -227,6 +250,21 @@ const styles = StyleSheet.create({
   seeAll: { fontSize: 13, fontWeight: '700', color: colors.primary },
 
   list: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, overflow: 'hidden' },
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: 14,
+    rowGap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 11, color: colors.muted },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
   listDivider: { borderTopWidth: 1, borderTopColor: colors.border },
   rowTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
