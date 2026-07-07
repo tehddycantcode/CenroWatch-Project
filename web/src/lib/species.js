@@ -8,7 +8,7 @@ export const CONSERVATION_TONE = {
   'Near Threatened': { bg: 'bg-orange-100', fg: 'text-orange-800' },
   Native: { bg: 'bg-emerald-100', fg: 'text-emerald-800' },
   Common: { bg: 'bg-slate-100', fg: 'text-slate-700' },
-  'Caution — Venomous': { bg: 'bg-red-100', fg: 'text-red-800' },
+  'Caution: Venomous': { bg: 'bg-red-100', fg: 'text-red-800' },
 };
 
 export const SPECIES = [
@@ -28,7 +28,7 @@ export const SPECIES = [
     status: 'Endemic',
     blurb:
       "The country's largest owl, found only in the Philippines. It hunts at night near rivers and forest edges.",
-    note: 'If found grounded or injured, keep your distance and arrange a turnover — talons are powerful.',
+    note: 'If found grounded or injured, keep your distance and arrange a turnover. Talons are powerful.',
   },
   {
     name: 'Large Flying Fox',
@@ -70,7 +70,7 @@ export const SPECIES = [
     name: 'Philippine Cobra',
     scientific: 'Naja philippinensis',
     group: 'Reptile',
-    status: 'Caution — Venomous',
+    status: 'Caution: Venomous',
     blurb:
       'A highly venomous spitting cobra endemic to the northern Philippines. Found in fields and near water.',
     note: 'Do NOT approach. Move people away, keep it in sight from a safe distance, and report immediately.',
@@ -108,7 +108,7 @@ export const SPECIES = [
 export const FIELD_GUIDANCE = [
   {
     title: 'Keep a safe distance',
-    text: 'Do not corner, chase, or handle the animal — especially snakes, raptors, and bats. Keep children and pets away.',
+    text: 'Do not corner, chase, or handle the animal, especially snakes, raptors, and bats. Keep children and pets away.',
   },
   {
     title: 'Do not keep or sell it',

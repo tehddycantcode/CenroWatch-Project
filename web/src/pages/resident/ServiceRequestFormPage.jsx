@@ -95,7 +95,7 @@ export default function ServiceRequestFormPage() {
       </FormField>
 
       <div className="grid grid-cols-2 gap-3">
-        <FormField id="requested_quantity" label="Quantity" hint="Optional — e.g. seedlings">
+        <FormField id="requested_quantity" label="Quantity" hint="Optional: e.g. seedlings">
           <Input id="requested_quantity" type="number" min="1" placeholder="e.g. 50" value={form.requested_quantity} onChange={set('requested_quantity')} />
         </FormField>
         <FormField id="preferred_schedule" label="Preferred date" hint="Optional">
@@ -103,7 +103,7 @@ export default function ServiceRequestFormPage() {
         </FormField>
       </div>
 
-      <FormField label="Supporting document" hint="Optional — image or PDF (e.g. a letter)">
+      <FormField label="Supporting document" hint="Optional: image or PDF (e.g. a letter)">
         <PhotoField onChange={setDoc} accept="image/*,application/pdf" label="Tap to attach a file" />
       </FormField>
     </ReportFormShell>

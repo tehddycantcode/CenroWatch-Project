@@ -17,9 +17,9 @@ const densityLegend = [
   { color: '#eef2f6', label: '0' },
   { color: '#fee391', label: '1' },
   { color: '#fec44f', label: '2' },
-  { color: '#fe9929', label: '3–4' },
-  { color: '#ec7014', label: '5–7' },
-  { color: '#cc4c02', label: '8–11' },
+  { color: '#fe9929', label: '3-4' },
+  { color: '#ec7014', label: '5-7' },
+  { color: '#cc4c02', label: '8-11' },
   { color: '#8c2d04', label: '12+' },
 ];
 
@@ -47,7 +47,7 @@ export default function AdminAnalyticsPage() {
       <div>
         <h1 className="font-display text-3xl">Geographic Analytics</h1>
         <p className="mt-1 text-muted-foreground">
-          Two-tier density view — barangay choropleth with clustered report markers across Cabuyao&apos;s 18 barangays
+          Two-tier density view: barangay choropleth with clustered report markers across Cabuyao&apos;s 18 barangays
         </p>
       </div>
 

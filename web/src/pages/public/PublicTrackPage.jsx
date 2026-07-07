@@ -105,7 +105,7 @@ export default function PublicTrackPage() {
           </Card>
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            For your privacy, public tracking shows status only — no personal details are displayed.
+            For your privacy, public tracking shows status only. No personal details are displayed.
           </p>
         </div>
       </div>

@@ -117,7 +117,7 @@ export default function ComplaintFormPage() {
         />
       </FormField>
 
-      <FormField label="Location" hint="Optional — pin where it happened">
+      <FormField label="Location" hint="Optional: pin where it happened">
         <LocationField value={location} onChange={setLocation} />
       </FormField>
 

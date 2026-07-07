@@ -127,7 +127,7 @@ export default function WildlifeFormScreen() {
         </Field>
       ) : null}
 
-      <Field label="Category" hint="Optional — e.g. Reptile, Bird, Mammal">
+      <Field label="Category" hint="Optional: e.g. Reptile, Bird, Mammal">
         <TextInput
           style={styles.input}
           placeholder="Reptile / Bird / Mammal…"
@@ -172,11 +172,11 @@ export default function WildlifeFormScreen() {
         </Checkbox>
       </View>
 
-      <Field label="Location" hint="Optional — pin where it was found">
+      <Field label="Location" hint="Optional: pin where it was found">
         <LocationField value={location} onChange={setLocation} />
       </Field>
 
-      <Field label="Photo" hint="Optional — helps identify the species">
+      <Field label="Photo" hint="Optional: helps identify the species">
         <PhotoPicker onChange={setPhoto} />
       </Field>
     </ReportFormShell>

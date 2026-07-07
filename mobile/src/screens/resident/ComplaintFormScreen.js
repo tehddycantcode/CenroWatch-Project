@@ -115,7 +115,7 @@ export default function ComplaintFormScreen() {
         />
       </Field>
 
-      <Field label="Address details" hint="Optional — landmark or street">
+      <Field label="Address details" hint="Optional: landmark or street">
         <TextInput
           style={styles.input}
           placeholder="e.g. near the creek behind the market"
@@ -137,7 +137,7 @@ export default function ComplaintFormScreen() {
         />
       </Field>
 
-      <Field label="Location" hint="Optional — pin where it happened">
+      <Field label="Location" hint="Optional: pin where it happened">
         <LocationField value={location} onChange={setLocation} />
       </Field>
 

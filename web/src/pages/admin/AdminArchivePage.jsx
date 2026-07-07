@@ -110,7 +110,7 @@ export default function AdminArchivePage() {
       <div>
         <h1 className="font-display text-3xl">Archive</h1>
         <p className="mt-1 text-muted-foreground">
-          {total} closed record{total === 1 ? '' : 's'} — resolved, completed, released, transferred, or rejected
+          {total} closed record{total === 1 ? '' : 's'}: resolved, completed, released, transferred, or rejected
         </p>
       </div>
       {SECTIONS.map((s) => (

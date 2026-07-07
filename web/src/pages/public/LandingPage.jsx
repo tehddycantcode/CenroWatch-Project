@@ -135,7 +135,7 @@ export default function LandingPage() {
             <div className="animate-fade-up text-center lg:text-left">
               <span className="inline-flex items-center gap-1.5 rounded-full border bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground shadow-soft">
                 <MapPin className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                Live - Cabuyao City Environmental System
+                Live · Cabuyao City Environmental System
               </span>
               <h1 className="mt-6 font-display text-4xl tracking-tight sm:text-5xl">
                 Guard <span className="text-primary">Cabuyao&apos;s</span> Environment Together
@@ -145,7 +145,7 @@ export default function LandingPage() {
               </p>
               <p className="mt-4 text-lg text-muted-foreground">
                 Report environmental concerns, track wildlife sightings, and help CENRO protect
-                all 18 barangays of Cabuyao City - from your phone or computer.
+                all 18 barangays of Cabuyao City, from your phone or computer.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
                 <Link to="/register" className={buttonVariants({ size: 'lg' })}>File a Report</Link>
@@ -190,7 +190,7 @@ export default function LandingPage() {
         <div className="container py-16">
           <h2 className="text-center font-display text-3xl">How it works</h2>
           <p className="mx-auto mt-2 max-w-xl text-center text-muted-foreground">
-            From the first report to a resolved case - three simple steps.
+            From the first report to a resolved case in three simple steps.
           </p>
           <div className="mx-auto mt-10 grid max-w-4xl gap-8 sm:grid-cols-3">
             <Step n={1} icon={ClipboardList} tone="primary" title="Report"
@@ -247,12 +247,12 @@ export default function LandingPage() {
                   <MapPin className="h-4 w-4 text-primary" aria-hidden="true" /> CENRO Cabuyao, Laguna
                 </li>
                 <li>18 barangays covered</li>
-                <li>Pamantasan ng Cabuyao - BSIT Capstone</li>
+                <li>Pamantasan ng Cabuyao · BSIT Capstone</li>
               </ul>
             </div>
           </div>
           <div className="mt-10 flex flex-col items-center justify-between gap-2 border-t pt-6 text-sm text-muted-foreground sm:flex-row">
-            <span>{new Date().getFullYear()} CENROWATCH - CENRO Cabuyao</span>
+            <span>{new Date().getFullYear()} CENROWATCH · CENRO Cabuyao</span>
             <span className="flex items-center gap-1.5">
               Built for a greener Cabuyao
               <Sprout className="h-4 w-4 text-primary" aria-hidden="true" />

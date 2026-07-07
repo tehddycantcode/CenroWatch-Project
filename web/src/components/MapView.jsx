@@ -175,7 +175,7 @@ export default function MapView({
   if (!KEY) {
     return (
       <div className={`flex items-center justify-center rounded-lg border bg-muted text-sm text-muted-foreground ${className}`}>
-        Map unavailable — set VITE_MAPTILER_API_KEY in web/.env
+        Map unavailable. Set VITE_MAPTILER_API_KEY in web/.env
       </div>
     );
   }

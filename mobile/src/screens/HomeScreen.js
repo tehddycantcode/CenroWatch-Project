@@ -31,8 +31,8 @@ export default function HomeScreen() {
         </View>
 
         <Text style={styles.note}>
-          You&apos;re signed in. Your {roleLabel.toLowerCase()} tools — reporting, wildlife turnover,
-          and tracking across all 18 barangays — arrive in the next sprint.
+          You&apos;re signed in. Your {roleLabel.toLowerCase()} tools (reporting, wildlife turnover,
+          and tracking across all 18 barangays) arrive in the next sprint.
         </Text>
       </View>
 

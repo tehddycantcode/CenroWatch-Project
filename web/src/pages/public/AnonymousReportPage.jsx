@@ -19,7 +19,7 @@ function SuccessCard({ trackingId }) {
       <div className="text-4xl">🕵️</div>
       <h2 className="font-display text-2xl">Anonymous report submitted</h2>
       <p className="text-muted-foreground">
-        We did not record your identity. Save this reference number — it is the only way to follow up
+        We did not record your identity. Save this reference number. It is the only way to follow up
         on your report.
       </p>
       <div className="text-2xl font-bold tracking-wide text-primary">{trackingId}</div>
@@ -138,11 +138,11 @@ export default function AnonymousReportPage() {
                   />
                 </FormField>
 
-                <FormField label="Location" hint="Optional — pin where it happened">
+                <FormField label="Location" hint="Optional: pin where it happened">
                   <LocationField value={location} onChange={setLocation} />
                 </FormField>
 
-                <FormField label="Photo" hint="Optional — adds evidence. Avoid photos that could identify you.">
+                <FormField label="Photo" hint="Optional: adds evidence. Avoid photos that could identify you.">
                   <PhotoField onChange={setPhoto} />
                 </FormField>
 

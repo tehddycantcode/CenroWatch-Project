@@ -32,7 +32,7 @@ export default function StaffLayout() {
             <Link to="/staff/dashboard" className="flex items-center gap-2.5">
               <CenroLogo />
               <span className="whitespace-nowrap text-lg font-bold tracking-tight">
-                CENROWATCH <span className="text-muted-foreground">- Staff</span>
+                CENROWATCH <span className="text-muted-foreground">· Staff</span>
               </span>
             </Link>
           </div>

@@ -133,7 +133,7 @@ export default function WildlifeFormPage() {
         </FormField>
       )}
 
-      <FormField id="species_category" label="Category" hint="Optional — e.g. Reptile, Bird, Mammal">
+      <FormField id="species_category" label="Category" hint="Optional: e.g. Reptile, Bird, Mammal">
         <Input id="species_category" placeholder="Reptile / Bird / Mammal…" value={form.species_category} onChange={set('species_category')} />
       </FormField>
 
@@ -159,11 +159,11 @@ export default function WildlifeFormPage() {
         <span>I believe this is an endangered or protected species (flags it for priority review).</span>
       </label>
 
-      <FormField label="Location" hint="Optional — pin where it was found">
+      <FormField label="Location" hint="Optional: pin where it was found">
         <LocationField value={location} onChange={setLocation} />
       </FormField>
 
-      <FormField label="Photo" hint="Optional — helps identify the species">
+      <FormField label="Photo" hint="Optional: helps identify the species">
         <PhotoField onChange={setPhoto} />
       </FormField>
     </ReportFormShell>

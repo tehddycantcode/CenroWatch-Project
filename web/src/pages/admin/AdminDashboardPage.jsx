@@ -75,7 +75,7 @@ export default function AdminDashboardPage() {
         <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h1 className="font-display text-3xl">Analytics Dashboard</h1>
-            <p className="mt-1 text-white/80">CENRO Cabuyao - system-wide overview</p>
+            <p className="mt-1 text-white/80">CENRO Cabuyao system-wide overview</p>
           </div>
           <div className="flex flex-col items-start gap-1 sm:items-end">
             <button
@@ -99,7 +99,7 @@ export default function AdminDashboardPage() {
       </div>
 
       <Card className="p-6">
-        <h2 className="mb-4 text-lg font-semibold">Reports - last 6 months</h2>
+        <h2 className="mb-4 text-lg font-semibold">Reports over the last 6 months</h2>
         <TrendChart data={a.trend} />
       </Card>
 

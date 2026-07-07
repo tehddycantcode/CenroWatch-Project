@@ -84,7 +84,7 @@ export default function StaffDashboardPage() {
         <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h1 className="font-display text-3xl">Good day, {user?.first_name}</h1>
-            <p className="mt-1 text-white/80">CENRO Cabuyao - operations dashboard</p>
+            <p className="mt-1 text-white/80">CENRO Cabuyao operations dashboard</p>
           </div>
           <Link
             to="/staff/complaints"
@@ -132,7 +132,7 @@ export default function StaffDashboardPage() {
                       <span className="text-xs text-muted-foreground">{r.id}</span>
                     </div>
                     <div className="truncate font-medium text-foreground">{humanize(r.title)}</div>
-                    <div className="text-xs text-muted-foreground">{r.barangay || 'Cabuyao'} - {fmtDate(r.date)}</div>
+                    <div className="text-xs text-muted-foreground">{r.barangay || 'Cabuyao'} · {fmtDate(r.date)}</div>
                   </div>
                   <StatusBadge status={r.status} />
                 </Link>

@@ -8,7 +8,7 @@ import { BackButton } from '@/components/ui/back-button';
 // collapses to a compact header.
 const points = [
   'Report environmental concerns with photos and a map pin',
-  'Turn over rescued wildlife - endangered species get priority',
+  'Turn over rescued wildlife; endangered species get priority',
   'Track every report across all 18 barangays of Cabuyao',
 ];
 
@@ -42,7 +42,7 @@ export default function AuthShell({ title, subtitle, children, footer }) {
         </div>
 
         <p className="relative text-xs text-white/60">
-          Environmental monitoring system for CENRO Cabuyao - Pamantasan ng Cabuyao BSIT Capstone
+          Environmental monitoring system for CENRO Cabuyao · Pamantasan ng Cabuyao BSIT Capstone
         </p>
       </div>
 

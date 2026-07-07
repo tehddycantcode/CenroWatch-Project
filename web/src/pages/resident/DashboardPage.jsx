@@ -157,7 +157,7 @@ export default function DashboardPage() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium text-foreground">{r.title}</div>
                     <div className="text-xs text-muted-foreground">
-                      {r.id} - {new Date(r.date).toLocaleDateString()}
+                      {r.id} · {new Date(r.date).toLocaleDateString()}
                     </div>
                   </div>
                   <StatusBadge status={r.status} />

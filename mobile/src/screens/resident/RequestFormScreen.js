@@ -107,7 +107,7 @@ export default function RequestFormScreen() {
         />
       </Field>
 
-      <Field label="Quantity" hint="Optional — e.g. number of seedlings">
+      <Field label="Quantity" hint="Optional: e.g. number of seedlings">
         <TextInput
           style={styles.input}
           placeholder="e.g. 25"
@@ -118,7 +118,7 @@ export default function RequestFormScreen() {
         />
       </Field>
 
-      <Field label="Preferred date" hint="Optional — format YYYY-MM-DD" error={fieldErrors.preferred_schedule}>
+      <Field label="Preferred date" hint="Optional: format YYYY-MM-DD" error={fieldErrors.preferred_schedule}>
         <TextInput
           style={styles.input}
           placeholder="2026-06-25"

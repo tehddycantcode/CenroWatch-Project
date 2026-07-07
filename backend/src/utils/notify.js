@@ -26,7 +26,7 @@ function trackingUrl(trackingId) {
 function notifyReportStatus({ to, name, kind, trackingId, status, note }) {
   const label = KIND_LABEL[kind] || 'Report';
   const niceStatus = humanize(status);
-  const subject = `[CENROWATCH] ${label} ${trackingId} — ${niceStatus}`;
+  const subject = `[CENROWATCH] ${label} ${trackingId} · ${niceStatus}`;
   const url = trackingUrl(trackingId);
 
   const noteHtml = note
@@ -83,11 +83,11 @@ function notifyPasswordReset({ to, name, token }) {
       <p><a href="${url}" style="display:inline-block;background:#22a050;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">Reset my password</a></p>
       <p style="color:#66756e;font-size:13px">If the button doesn't work, copy this link into your browser:<br/>${escapeHtml(url)}</p>
       <p style="color:#66756e;font-size:12px;margin-top:24px">
-        If you did not request a password reset, you can safely ignore this email — your password will not change.
+        If you did not request a password reset, you can safely ignore this email. Your password will not change.
       </p>
     </div>`;
 
-  const text = `CENROWATCH — Password reset\n\nHi ${name || 'there'},\n\nWe received a request to reset your password. Open this link to choose a new one (expires in 1 hour, single use):\n${url}\n\nIf you did not request this, ignore this email — your password will not change.`;
+  const text = `CENROWATCH Password reset\n\nHi ${name || 'there'},\n\nWe received a request to reset your password. Open this link to choose a new one (expires in 1 hour, single use):\n${url}\n\nIf you did not request this, ignore this email. Your password will not change.`;
 
   return sendMail({ to, subject, html, text });
 }

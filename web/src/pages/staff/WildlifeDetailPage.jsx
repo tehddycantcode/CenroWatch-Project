@@ -84,7 +84,7 @@ export default function WildlifeDetailPage() {
           <Card className="p-6">
             <h2 className="text-lg font-semibold">Chain-of-custody documentation</h2>
             <p className="mb-4 mt-1 text-sm text-muted-foreground">
-              Photographic record of the animal&apos;s condition, handling, and transfer — kept for legal and
+              Photographic record of the animal&apos;s condition, handling, and transfer, kept for legal and
               conservation accountability.
             </p>
             <CustodyPhotos id={id} photos={w.chain_of_custody_photos || []} onChange={load} />
@@ -100,7 +100,7 @@ export default function WildlifeDetailPage() {
               statuses={WILDLIFE_STATUSES}
               current={w.status}
               extraFields={[
-                { name: 'transfer_destination', label: 'Transfer destination', type: 'text', visibleFor: ['Transferred'], hint: 'e.g. DENR–CALABARZON, Wildlife Rescue Center' },
+                { name: 'transfer_destination', label: 'Transfer destination', type: 'text', visibleFor: ['Transferred'], hint: 'e.g. DENR-CALABARZON, Wildlife Rescue Center' },
               ]}
               onSubmit={async (payload) => { await staffApi.wildlife.updateStatus(id, payload); load(); }}
             />

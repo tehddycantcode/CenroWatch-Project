@@ -193,7 +193,7 @@ export default function LogWalkInPage() {
                   onChange={set('reporter_name')}
                 />
               </FormField>
-              <FormField id="reporter_contact" label="Reporter contact" hint="Optional — phone or email">
+              <FormField id="reporter_contact" label="Reporter contact" hint="Optional: phone or email">
                 <Input
                   id="reporter_contact"
                   placeholder="e.g. 0917 000 0000"
@@ -214,11 +214,11 @@ export default function LogWalkInPage() {
             />
           </FormField>
 
-          <FormField label="Location" hint="Optional — pin where it happened">
+          <FormField label="Location" hint="Optional: pin where it happened">
             <LocationField value={location} onChange={setLocation} />
           </FormField>
 
-          <FormField label="Photo" hint="Optional — attach evidence if the resident provided one">
+          <FormField label="Photo" hint="Optional: attach evidence if the resident provided one">
             <PhotoField onChange={setPhoto} />
           </FormField>
 

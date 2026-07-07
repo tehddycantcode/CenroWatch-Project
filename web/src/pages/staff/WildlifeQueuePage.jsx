@@ -42,7 +42,7 @@ export default function WildlifeQueuePage() {
   return (
     <StaffQueue
       title="Wildlife Turnovers"
-      subtitle="Process turnovers — endangered species get priority"
+      subtitle="Process turnovers; endangered species get priority"
       kind="wildlife"
       resource={staffApi.wildlife}
       statuses={WILDLIFE_STATUSES}
