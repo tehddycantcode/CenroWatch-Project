@@ -172,13 +172,14 @@ function Stat({ label, value }) {
   );
 }
 
-// Legend for the recent list: dot colors mirror the StatusBadge tone families
-// (lib/reports statusTone): amber = just submitted, blue = in progress,
-// green = finished.
+// Legend for the recent list: one entry per StatusBadge tone family
+// (lib/reports statusTone), so every status a badge can show is covered.
 const LEGEND = [
   { color: '#fbbf24', label: 'Submitted · awaiting action' },
   { color: '#3b82f6', label: 'In progress' },
-  { color: '#22c55e', label: 'Finished' },
+  { color: '#a855f7', label: 'Priority / transferred' },
+  { color: '#22c55e', label: 'Finished / approved' },
+  { color: '#ef4444', label: 'Rejected / deceased' },
 ];
 
 function StatusLegend() {
@@ -254,6 +255,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     columnGap: 14,
     rowGap: 4,
     paddingHorizontal: 16,
