@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { IconChip } from '@/components/ui/icon-chip';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { Spinner } from '@/components/ui/icons';
-import { BarChart, TrendChart } from '@/components/admin/charts';
+import { BarChart, TrendChart, CHART_COLORS } from '@/components/admin/charts';
 
 function Stat({ icon, tone, label, value, sub }) {
   return (
@@ -112,11 +112,11 @@ export default function AdminDashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="p-6">
           <h2 className="mb-4 text-lg font-semibold">Complaints by type</h2>
-          <BarChart data={a.by_type.complaints.map((t) => ({ label: t.key, value: t.count }))} color="bg-red-500" />
+          <BarChart data={a.by_type.complaints.map((t) => ({ label: t.key, value: t.count }))} color={CHART_COLORS.complaints} />
         </Card>
         <Card className="p-6">
           <h2 className="mb-4 text-lg font-semibold">Requests by type</h2>
-          <BarChart data={a.by_type.requests.map((t) => ({ label: t.key, value: t.count }))} color="bg-blue-500" />
+          <BarChart data={a.by_type.requests.map((t) => ({ label: t.key, value: t.count }))} color={CHART_COLORS.requests} />
         </Card>
       </div>
 
@@ -124,14 +124,14 @@ export default function AdminDashboardPage() {
         <h2 className="mb-4 text-lg font-semibold">Wildlife by species</h2>
         <BarChart
           data={a.by_type.wildlife.slice(0, 8).map((s) => ({ label: s.key, value: s.count }))}
-          color="bg-emerald-500"
+          color={CHART_COLORS.wildlife}
           format={(s) => s}
         />
       </Card>
 
       <Card className="p-6">
         <h2 className="mb-4 text-lg font-semibold">Top barangays by reports</h2>
-        <BarChart data={topBarangays} color="bg-primary" format={(s) => s} />
+        <BarChart data={topBarangays} color={CHART_COLORS.requests} format={(s) => s} />
       </Card>
     </div>
   );
