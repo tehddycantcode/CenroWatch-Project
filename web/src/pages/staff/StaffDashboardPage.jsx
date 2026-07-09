@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/ui/badge';
 import { IconChip } from '@/components/ui/icon-chip';
 import { StatusLegend } from '@/components/ui/status-legend';
 import { Spinner } from '@/components/ui/icons';
+import ReportsMap from '@/components/staff/ReportsMap';
 
 // Icon + tone per report kind.
 const ICONS = {
@@ -109,6 +110,8 @@ export default function StaffDashboardPage() {
         <ResourceCard kind="wildlife" data={overview.wildlife} />
         <ResourceCard kind="request" data={overview.requests} />
       </div>
+
+      <ReportsMap />
 
       <div>
         <h2 className="mb-3 text-lg font-semibold">Recent activity</h2>

@@ -75,6 +75,7 @@ export default function MapView({
   onPick,
   center = CABUYAO,
   zoom = 12,
+  fitToMarkers = false,
   className = 'h-full w-full',
 }) {
   const containerRef = useRef(null);
@@ -142,13 +143,26 @@ export default function MapView({
            <span style="color:#64748b">${escapeHtml(mk.barangay || '')} · ${escapeHtml(humanize(mk.status))}</span>
          </div>`
       );
-      const marker = new maplibregl.Marker({ color: pinColor(mk) })
+      const marker = new maplibregl.Marker({ color: mk.color || pinColor(mk) })
         .setLngLat([mk.longitude, mk.latitude])
         .setPopup(popup)
         .addTo(map);
       markerObjs.current.push(marker);
     });
-  }, [markers, picker]);
+
+    // Frame the camera around the pins (e.g. the staff dashboard map) instead
+    // of relying on the default center/zoom to happen to show them.
+    if (fitToMarkers) {
+      const placed = markers.filter((m) => m.latitude != null && m.longitude != null);
+      if (placed.length === 1) {
+        map.easeTo({ center: [placed[0].longitude, placed[0].latitude], zoom: 14, duration: 400 });
+      } else if (placed.length > 1) {
+        const bounds = new maplibregl.LngLatBounds();
+        placed.forEach((m) => bounds.extend([m.longitude, m.latitude]));
+        map.fitBounds(bounds, { padding: 56, maxZoom: 15, duration: 400 });
+      }
+    }
+  }, [markers, picker, fitToMarkers]);
 
   // Picker marker.
   useEffect(() => {

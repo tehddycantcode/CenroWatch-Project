@@ -21,6 +21,10 @@ const QUEUE_SELECT = {
   is_endangered: true,
   is_priority_review: true,
   status: true,
+  // Pin coordinates for the staff dashboard map (staff-only endpoint; the
+  // public-endpoint obfuscation rule does not apply behind RBAC).
+  latitude: true,
+  longitude: true,
   submitted_at: true,
   sla_deadline: true,
   exceeded_sla: true,
