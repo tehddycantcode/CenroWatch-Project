@@ -99,8 +99,11 @@ export default function AdminDashboardPage() {
       </div>
 
       <Card className="p-6">
-        <h2 className="mb-4 text-lg font-semibold">Reports over the last 6 months</h2>
-        <TrendChart data={a.trend} />
+        <TrendChart
+          data={a.trend}
+          title="Reports over the last 6 months"
+          subtitle="Complaints, wildlife turnovers, and service requests per month"
+        />
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-3">
