@@ -9,7 +9,8 @@ import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
-import { Rows, ReporterCard, Attachment } from '@/components/staff/detail';
+import { Rows, ReporterCard, Attachment, LocationBlock } from '@/components/staff/detail';
+import { CHART_COLORS } from '@/components/admin/charts';
 
 export default function ComplaintDetailPage() {
   const { id } = useParams();
@@ -25,8 +26,6 @@ export default function ComplaintDetailPage() {
 
   if (error) return <p className="text-sm text-destructive">{error}</p>;
   if (!c) return <div className="flex justify-center py-16"><Spinner className="h-7 w-7 text-primary" /></div>;
-
-  const hasGeo = c.latitude != null && c.longitude != null;
 
   return (
     <div className="space-y-6">
@@ -64,8 +63,19 @@ export default function ComplaintDetailPage() {
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Description</div>
               <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{c.description}</p>
             </div>
-            {hasGeo && <div className="mt-4 text-sm text-muted-foreground">📍 {c.latitude}, {c.longitude}</div>}
-            {c.address_details && <div className="mt-1 text-sm text-muted-foreground">{c.address_details}</div>}
+            <LocationBlock
+              marker={{
+                id: c.tracking_id,
+                kind: 'complaint',
+                category: c.complaint_type,
+                status: c.status,
+                barangay: c.barangay?.name,
+                latitude: c.latitude,
+                longitude: c.longitude,
+                color: CHART_COLORS.complaints,
+              }}
+              address={c.address_details}
+            />
 
             {c.resolution_notes && (
               <div className="mt-6 rounded-lg bg-accent/50 p-4">

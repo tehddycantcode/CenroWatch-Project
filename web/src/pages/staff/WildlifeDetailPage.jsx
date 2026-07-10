@@ -8,7 +8,8 @@ import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
-import { Rows, ReporterCard, Attachment } from '@/components/staff/detail';
+import { Rows, ReporterCard, Attachment, LocationBlock } from '@/components/staff/detail';
+import { CHART_COLORS } from '@/components/admin/charts';
 import CustodyPhotos from '@/components/staff/CustodyPhotos';
 
 export default function WildlifeDetailPage() {
@@ -25,8 +26,6 @@ export default function WildlifeDetailPage() {
 
   if (error) return <p className="text-sm text-destructive">{error}</p>;
   if (!w) return <div className="flex justify-center py-16"><Spinner className="h-7 w-7 text-primary" /></div>;
-
-  const hasGeo = w.latitude != null && w.longitude != null;
 
   return (
     <div className="space-y-6">
@@ -66,7 +65,19 @@ export default function WildlifeDetailPage() {
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Description</div>
               <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{w.description}</p>
             </div>
-            {hasGeo && <div className="mt-4 text-sm text-muted-foreground">📍 {w.latitude}, {w.longitude}</div>}
+            <LocationBlock
+              marker={{
+                id: w.reference_id,
+                kind: 'wildlife',
+                category: w.species_name,
+                status: w.status,
+                barangay: w.barangay?.name,
+                latitude: w.latitude,
+                longitude: w.longitude,
+                color: CHART_COLORS.wildlife,
+              }}
+              address={w.address_details}
+            />
 
             {w.staff_notes && (
               <div className="mt-6 rounded-lg bg-accent/50 p-4">
