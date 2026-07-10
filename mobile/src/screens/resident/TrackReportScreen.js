@@ -30,7 +30,7 @@ function buildView(kind, d) {
         ['Type', humanize(d.complaint_type)],
         ['Barangay', d.barangay?.name],
         ['Priority', d.priority ? 'Yes' : 'No'],
-        ['Filed', fmt(d.submitted_at)],
+        ['Submitted', fmt(d.submitted_at)],
         ...(d.observed_at ? [['Date observed', fmt(d.observed_at)]] : []),
         ['SLA deadline', fmt(d.sla_deadline)],
         ['Resolved', fmt(d.resolved_at)],
@@ -132,7 +132,7 @@ export default function TrackReportScreen({ id }) {
                 </Text>
                 <Text style={styles.title}>{view.title}</Text>
               </View>
-              <StatusBadge status={view.status} />
+              <StatusBadge status={view.status} stage />
             </View>
 
             <View style={styles.rows}>

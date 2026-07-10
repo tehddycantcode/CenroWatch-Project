@@ -150,10 +150,10 @@ export default function DashboardScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>{r.title}</Text>
                   <Text style={styles.rowMeta}>
-                    {r.id} · {new Date(r.date).toLocaleDateString()}
+                    {r.id} · Submitted {new Date(r.date).toLocaleDateString()}
                   </Text>
                 </View>
-                <StatusBadge status={r.status} />
+                <StatusBadge status={r.status} stage />
               </Pressable>
             ))}
           </View>
@@ -172,14 +172,13 @@ function Stat({ label, value }) {
   );
 }
 
-// Legend for the recent list: one entry per StatusBadge tone family
-// (lib/reports statusTone), so every status a badge can show is covered.
+// Legend for the recent list: the three lifecycle stages (adviser model, see
+// statusStage in lib/reports). Rejected/Deceased badges stay red and carry
+// their own label, so they need no legend entry.
 const LEGEND = [
-  { color: '#fbbf24', label: 'Submitted · awaiting action' },
-  { color: '#3b82f6', label: 'In progress' },
-  { color: '#a855f7', label: 'Priority / transferred' },
-  { color: '#22c55e', label: 'Finished / approved' },
-  { color: '#ef4444', label: 'Rejected / deceased' },
+  { color: '#fbbf24', label: 'Submitted' },
+  { color: '#3b82f6', label: 'Under review' },
+  { color: '#22c55e', label: 'Finished' },
 ];
 
 function StatusLegend() {

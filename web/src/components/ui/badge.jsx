@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils';
-import { statusTone } from '@/lib/reports';
-import { humanize } from '@/lib/reports';
+import { statusTone, statusStage, humanize } from '@/lib/reports';
 
 const TONES = {
   green: 'bg-green-100 text-green-800',
@@ -26,10 +25,12 @@ export function Badge({ tone = 'gray', className, children }) {
 }
 
 // Convenience: a status pill that colors itself from the status value.
-export function StatusBadge({ status, className }) {
+// `stage` swaps the precise status label for the resident-facing three-stage
+// label (Submitted / Under review / Finished); color is the same either way.
+export function StatusBadge({ status, stage = false, className }) {
   return (
     <Badge tone={statusTone(status)} className={className}>
-      {humanize(status)}
+      {stage ? statusStage(status).label : humanize(status)}
     </Badge>
   );
 }

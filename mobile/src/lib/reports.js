@@ -50,26 +50,36 @@ export function humanize(value) {
   return value ? String(value).replace(/_/g, ' ') : '';
 }
 
-// Map a status to a badge color tone -> { bg, fg }.
-const GREEN = ['Resolved', 'Completed', 'Released', 'Approved'];
-const BLUE = ['Under_Review', 'In_Progress', 'Scheduled', 'Under_Care'];
-const PURPLE = ['Priority_Review', 'Transferred'];
-const RED = ['Rejected', 'Deceased'];
+// Three-stage lifecycle (adviser model: input -> process -> output). Mirrors
+// web/src/lib/reports.js - keep in sync. Every status belongs to one stage and
+// badge COLOR encodes the stage: Submitted (amber), Under review (blue),
+// Finished (green). Rejected/Deceased are terminal exceptions: red badge with
+// their own label. The DB enum is untouched - presentation only.
+const STAGE_REVIEW = ['Under_Review', 'In_Progress', 'Scheduled', 'Under_Care', 'Approved'];
+const STAGE_FINISHED = ['Resolved', 'Completed', 'Released', 'Transferred'];
+const STAGE_CLOSED = ['Rejected', 'Deceased'];
 
 const TONES = {
   green: { bg: '#dcfce7', fg: '#15803d' },
   blue: { bg: '#dbeafe', fg: '#1d4ed8' },
-  purple: { bg: '#ede9fe', fg: '#6d28d9' },
   red: { bg: '#fee2e2', fg: '#b91c1c' },
   amber: { bg: '#fef3c7', fg: '#b45309' },
 };
 
+export function statusStage(status) {
+  if (STAGE_REVIEW.includes(status)) return { key: 'review', label: 'Under review' };
+  if (STAGE_FINISHED.includes(status)) return { key: 'finished', label: 'Finished' };
+  if (STAGE_CLOSED.includes(status)) return { key: 'closed', label: humanize(status) };
+  // Pending / Pending_Review / Priority_Review and anything new
+  return { key: 'submitted', label: 'Submitted' };
+}
+
 export function statusTone(status) {
-  if (GREEN.includes(status)) return TONES.green;
-  if (BLUE.includes(status)) return TONES.blue;
-  if (PURPLE.includes(status)) return TONES.purple;
-  if (RED.includes(status)) return TONES.red;
-  return TONES.amber; // Pending / Pending_Review and anything new
+  const stage = statusStage(status).key;
+  if (stage === 'review') return TONES.blue;
+  if (stage === 'finished') return TONES.green;
+  if (stage === 'closed') return TONES.red;
+  return TONES.amber; // submitted and anything new
 }
 
 // The three report kinds, keyed by tracking-id prefix.

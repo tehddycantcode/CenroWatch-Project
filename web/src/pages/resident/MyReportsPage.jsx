@@ -71,7 +71,7 @@ export default function MyReportsPage() {
               <div className="min-w-0">
                 <div className="truncate font-medium text-foreground">{r.title}</div>
                 <div className="text-xs text-muted-foreground">
-                  {r.id} · Filed {new Date(r.date).toLocaleString()}
+                  {r.id} · Submitted {new Date(r.date).toLocaleString()}
                 </div>
                 {r.observed && (
                   <div className="text-xs text-muted-foreground">
@@ -79,7 +79,7 @@ export default function MyReportsPage() {
                   </div>
                 )}
               </div>
-              <StatusBadge status={r.status} />
+              <StatusBadge status={r.status} stage />
             </Link>
           ))}
         </Card>

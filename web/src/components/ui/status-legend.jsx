@@ -1,15 +1,14 @@
 import { cn } from '@/lib/utils';
 
-// Legend for the recent-activity lists: maps the status badge colors to what
-// they mean for a report's lifecycle. One entry per tone family in statusTone()
-// (lib/reports.js), so every status a badge can show is covered. Render as the
-// first row of a `divide-y` Card so the separator comes for free.
+// Legend for the recent-activity lists: the three lifecycle stages (adviser
+// model, see statusStage in lib/reports.js). Every badge color maps to one
+// stage; Rejected/Deceased badges stay red and carry their own label, so they
+// need no legend entry. Render as the first row of a `divide-y` Card so the
+// separator comes for free.
 const ITEMS = [
-  { dot: 'bg-amber-400', label: 'Submitted · awaiting action' },
-  { dot: 'bg-blue-500', label: 'In progress' },
-  { dot: 'bg-purple-500', label: 'Priority / transferred' },
-  { dot: 'bg-green-500', label: 'Finished / approved' },
-  { dot: 'bg-red-500', label: 'Rejected / deceased' },
+  { dot: 'bg-amber-400', label: 'Submitted' },
+  { dot: 'bg-blue-500', label: 'Under review' },
+  { dot: 'bg-green-500', label: 'Finished' },
 ];
 
 export function StatusLegend({ className }) {

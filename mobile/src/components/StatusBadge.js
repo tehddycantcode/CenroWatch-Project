@@ -1,14 +1,18 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { radius } from '../theme';
-import { statusTone, humanize } from '../lib/reports';
+import { statusTone, statusStage, humanize } from '../lib/reports';
 
 // Colored status pill — tone is derived from the status string (see lib/reports).
-export default function StatusBadge({ status }) {
+// `stage` swaps the precise status label for the resident-facing three-stage
+// label (Submitted / Under review / Finished); color is the same either way.
+export default function StatusBadge({ status, stage = false }) {
   if (!status) return null;
   const tone = statusTone(status);
   return (
     <View style={[styles.pill, { backgroundColor: tone.bg }]}>
-      <Text style={[styles.text, { color: tone.fg }]}>{humanize(status)}</Text>
+      <Text style={[styles.text, { color: tone.fg }]}>
+        {stage ? statusStage(status).label : humanize(status)}
+      </Text>
     </View>
   );
 }

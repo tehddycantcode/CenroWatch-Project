@@ -32,18 +32,33 @@ export function humanize(value) {
   return value ? String(value).replace(/_/g, ' ') : '';
 }
 
-// Map a status to a badge color category.
-const GREEN = ['Resolved', 'Completed', 'Released', 'Approved'];
-const BLUE = ['Under_Review', 'In_Progress', 'Scheduled', 'Under_Care'];
-const PURPLE = ['Priority_Review', 'Transferred'];
-const RED = ['Rejected', 'Deceased'];
+// Three-stage lifecycle (adviser model: input -> process -> output). Every
+// status belongs to one stage, and badge COLOR encodes the stage everywhere:
+//   Submitted (amber)  - filed, staff have not acknowledged it yet
+//   Under review (blue) - staff acknowledged / actively working
+//   Finished (green)    - closed with an outcome
+// Rejected/Deceased are terminal exceptions: they keep a red badge with their
+// own label (self-explanatory), and count as closed. Staff surfaces keep the
+// precise status label; resident surfaces show the stage label (StatusBadge
+// `stage` prop). The DB enum is untouched - this is presentation only.
+const STAGE_REVIEW = ['Under_Review', 'In_Progress', 'Scheduled', 'Under_Care', 'Approved'];
+const STAGE_FINISHED = ['Resolved', 'Completed', 'Released', 'Transferred'];
+const STAGE_CLOSED = ['Rejected', 'Deceased'];
+
+export function statusStage(status) {
+  if (STAGE_REVIEW.includes(status)) return { key: 'review', label: 'Under review' };
+  if (STAGE_FINISHED.includes(status)) return { key: 'finished', label: 'Finished' };
+  if (STAGE_CLOSED.includes(status)) return { key: 'closed', label: humanize(status) };
+  // Pending / Pending_Review / Priority_Review and anything new
+  return { key: 'submitted', label: 'Submitted' };
+}
 
 export function statusTone(status) {
-  if (GREEN.includes(status)) return 'green';
-  if (BLUE.includes(status)) return 'blue';
-  if (PURPLE.includes(status)) return 'purple';
-  if (RED.includes(status)) return 'red';
-  return 'amber'; // Pending / Pending_Review and anything new
+  const stage = statusStage(status).key;
+  if (stage === 'review') return 'blue';
+  if (stage === 'finished') return 'green';
+  if (stage === 'closed') return 'red';
+  return 'amber'; // submitted and anything new
 }
 
 // The three report kinds, keyed by tracking-id prefix.

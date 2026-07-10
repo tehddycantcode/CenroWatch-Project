@@ -105,13 +105,13 @@ export default function MyReportsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>{r.title}</Text>
                   <Text style={styles.rowMeta}>
-                    {r.id} · Filed {new Date(r.date).toLocaleString()}
+                    {r.id} · Submitted {new Date(r.date).toLocaleString()}
                   </Text>
                   {r.observed ? (
                     <Text style={styles.rowMeta}>Observed {new Date(r.observed).toLocaleDateString()}</Text>
                   ) : null}
                 </View>
-                <StatusBadge status={r.status} />
+                <StatusBadge status={r.status} stage />
               </Pressable>
             ))}
           </View>

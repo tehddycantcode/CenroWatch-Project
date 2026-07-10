@@ -20,7 +20,7 @@ function buildView(kind, d) {
         ['Type', humanize(d.complaint_type)],
         ['Barangay', d.barangay?.name],
         ['Priority', d.priority ? 'Yes' : 'No'],
-        ['Filed', fmt(d.submitted_at)],
+        ['Submitted', fmt(d.submitted_at)],
         ...(d.observed_at ? [['Date observed', fmt(d.observed_at)]] : []),
         ['SLA deadline', fmt(d.sla_deadline)],
         ['Resolved', fmt(d.resolved_at)],
@@ -137,7 +137,7 @@ export default function TrackReportPage() {
             </div>
             <h1 className="mt-1 font-display text-2xl">{view.title}</h1>
           </div>
-          <StatusBadge status={view.status} />
+          <StatusBadge status={view.status} stage />
         </div>
 
         <dl className="mt-6 grid grid-cols-2 gap-4">
