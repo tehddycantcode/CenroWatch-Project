@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { staffApi } from '@/lib/api';
+import { statusStage } from '@/lib/reports';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/icons';
@@ -10,6 +11,12 @@ import MapView from '@/components/MapView';
 // (RBAC-protected; the public-endpoint obfuscation rule does not apply here) so
 // responders can find the actual spot. Service requests carry no map pin by
 // design (barangay-scoped), so the map covers complaints + wildlife.
+//
+// This is an OPERATIONAL map: only open reports appear. Once a report reaches
+// a terminal stage (finished: resolved/completed/released/transferred, or
+// closed: rejected/deceased) its pin drops off automatically. The detail-page
+// mini-map still shows a closed report's spot for case review.
+const isOpen = (status) => !['finished', 'closed'].includes(statusStage(status).key);
 const KINDS = [
   { key: 'complaint', label: 'Complaints', color: CHART_COLORS.complaints },
   { key: 'wildlife', label: 'Wildlife', color: CHART_COLORS.wildlife },
@@ -48,7 +55,8 @@ export default function ReportsMap() {
       .catch((e) => setError(e.message));
   }, []);
 
-  const pinned = useMemo(() => (rows || []).filter((r) => r.latitude != null && r.longitude != null), [rows]);
+  const open = useMemo(() => (rows || []).filter((r) => isOpen(r.status)), [rows]);
+  const pinned = useMemo(() => open.filter((r) => r.latitude != null && r.longitude != null), [open]);
   const markers = useMemo(() => pinned.filter((r) => shown.has(r.kind)), [pinned, shown]);
   const countFor = (kind) => pinned.filter((r) => r.kind === kind).length;
 
@@ -102,7 +110,8 @@ export default function ReportsMap() {
         </div>
       ) : pinned.length === 0 ? (
         <div className="flex h-80 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-          No reports carry a map pin yet. Pins appear here as residents attach locations.
+          No open reports carry a map pin right now. Pins appear when residents attach a
+          location and drop off once a report is finished.
         </div>
       ) : (
         <MapView markers={markers} fitToMarkers className="h-80 w-full sm:h-96" />
@@ -111,8 +120,9 @@ export default function ReportsMap() {
       <div className="border-t px-5 py-2.5 text-xs text-muted-foreground sm:px-6">
         {rows !== null && !error && (
           <>
-            {pinned.length} of {rows.length} reports have a pin (location is optional when filing).
-            Service requests are barangay-level and are not mapped.
+            {pinned.length} of {open.length} open reports have a pin (location is optional when
+            filing). Pins drop off once a report is finished; service requests are
+            barangay-level and are not mapped.
           </>
         )}
       </div>
