@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowDown, ArrowUp, LineChart, Minus, Table2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowDown, ArrowUp, BarChart3, LineChart, Minus, Table2 } from 'lucide-react';
 import { humanize } from '@/lib/reports';
 import { cn } from '@/lib/utils';
 
@@ -16,39 +16,197 @@ export const CHART_COLORS = {
   requests: '#22a050', // brand primary
 };
 
+// Integer value axis for counts: pick a step from {1, 2, 5} x 10^k so the
+// scale has at most 4 intervals, then round the top up to a whole step.
+function niceTicks(max) {
+  let unit = 1;
+  outer: for (let mag = 1; ; mag *= 10) {
+    for (const s of [1, 2, 5]) {
+      unit = s * mag;
+      if (Math.ceil(max / unit) <= 4) break outer;
+    }
+  }
+  const top = Math.max(unit, Math.ceil(max / unit) * unit);
+  const ticks = [];
+  for (let t = 0; t <= top; t += unit) ticks.push(t);
+  return { top, ticks };
+}
+
+// Row geometry: label column (w-40) + gap-3 on the left; value (w-7) and
+// share (w-9) columns + two gap-3 on the right. The gridline overlay and the
+// axis row use these to align with the bar column exactly.
+const PLOT_LEFT = '10.75rem';
+const PLOT_RIGHT = '5.5rem';
+const ROW_H = 34; // text-sm line height (20px) + py-[7px] * 2
+
 // ── BarChart ────────────────────────────────────────────────
-// Horizontal bar list: value + share of total per row, bars sorted by
+// Horizontal bar figure with the same anatomy as TrendChart: title/subtitle,
+// stat header (total + leading item), integer value axis with recessive
+// gridlines, hover tooltip that isolates the hovered bar, chart/table view
+// switch, and footnotes for cut-off and zero rows. Bars are sorted by
 // magnitude, square at the baseline with a 4px rounded data-end.
-// data: [{ label, value }]. `format` optional label cleanup.
-export function BarChart({ data, color = CHART_COLORS.requests, format = humanize, empty = 'No data yet.' }) {
-  if (!data || data.length === 0) return <p className="text-sm text-muted-foreground">{empty}</p>;
-  const sorted = [...data].sort((a, b) => b.value - a.value);
-  const max = Math.max(...sorted.map((d) => d.value), 1);
+// data: [{ label, value }]. `format` optional label cleanup. `unit` names the
+// counted thing ("complaints"); `noun` names the rows ("types", plural).
+export function BarChart({
+  data,
+  color = CHART_COLORS.requests,
+  format = humanize,
+  title,
+  subtitle,
+  unit = 'reports',
+  noun = 'types',
+  maxRows = 8,
+  empty = 'No data yet.',
+}) {
+  const [hover, setHover] = useState(null); // hovered row index
+  const [view, setView] = useState('chart'); // 'chart' | 'table'
+  const [entered, setEntered] = useState(false); // bars grow in from 0 on mount
+  useEffect(() => { setEntered(true); }, []);
+
+  const sorted = [...(data || [])].sort((a, b) => b.value - a.value);
+  const nonzero = sorted.filter((d) => d.value > 0);
+  if (nonzero.length === 0) return <p className="text-sm text-muted-foreground">{empty}</p>;
+
+  const rows = nonzero.slice(0, maxRows);
+  const cut = nonzero.length - rows.length;
+  const zeros = sorted.length - nonzero.length;
   const total = sorted.reduce((n, d) => n + d.value, 0);
+  const share = (v) => (total ? Math.round((v / total) * 100) : 0);
+  const { top, ticks } = niceTicks(Math.max(...rows.map((d) => d.value)));
+  const leader = rows[0];
 
   return (
     <div>
-      {sorted.map((d) => {
-        const share = total ? Math.round((d.value / total) * 100) : 0;
-        return (
-          <div
-            key={d.label}
-            className="group -mx-2 flex items-center gap-3 rounded-md px-2 py-[7px] transition-colors hover:bg-accent/30"
-            title={`${format(d.label)}: ${d.value} (${share}% of total)`}
-          >
-            <div className="w-40 shrink-0 truncate text-sm text-foreground">{format(d.label)}</div>
-            {/* Bars share one hairline baseline; no track, air does the separating. */}
-            <div className="h-4 flex-1 border-l border-border py-[3px]">
-              <div
-                className="h-full rounded-r-[4px] opacity-90 group-hover:opacity-100 motion-safe:transition-[width] motion-safe:duration-500"
-                style={{ width: d.value > 0 ? `${Math.max((d.value / max) * 100, 2.5)}%` : 0, backgroundColor: color }}
-              />
+      {/* Figure header: title + stat cluster + view switch */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          {title && <h2 className="text-lg font-semibold">{title}</h2>}
+          {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Total {unit}</div>
+            <div className="text-2xl font-semibold tabular-nums text-foreground">{total}</div>
+            <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+              <span className="truncate">Top: {format(leader.label)} · {share(leader.value)}%</span>
             </div>
-            <div className="w-7 shrink-0 text-right text-sm font-medium tabular-nums text-foreground">{d.value}</div>
-            <div className="w-9 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">{share}%</div>
           </div>
-        );
-      })}
+          <div className="flex rounded-lg border p-0.5" role="group" aria-label="Chart or table view">
+            <ViewButton active={view === 'chart'} onClick={() => setView('chart')} label="Chart view">
+              <BarChart3 className="h-4 w-4" aria-hidden="true" />
+            </ViewButton>
+            <ViewButton active={view === 'table'} onClick={() => setView('table')} label="Table view">
+              <Table2 className="h-4 w-4" aria-hidden="true" />
+            </ViewButton>
+          </div>
+        </div>
+      </div>
+
+      {view === 'table' ? (
+        <table className="mt-4 w-full text-sm">
+          <thead className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="py-2 font-medium">{noun}</th>
+              <th className="py-2 text-right font-medium">Count</th>
+              <th className="py-2 text-right font-medium">Share</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {sorted.map((d) => (
+              <tr key={d.label}>
+                <td className="py-2 text-foreground">{format(d.label)}</td>
+                <td className="py-2 text-right tabular-nums text-foreground">{d.value}</td>
+                <td className="py-2 text-right tabular-nums text-muted-foreground">{share(d.value)}%</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot className="border-t">
+            <tr>
+              <td className="py-2 font-medium text-foreground">Total</td>
+              <td className="py-2 text-right font-medium tabular-nums text-foreground">{total}</td>
+              <td className="py-2 text-right tabular-nums text-muted-foreground">100%</td>
+            </tr>
+          </tfoot>
+        </table>
+      ) : (
+        <>
+          <div className="relative mt-4" onMouseLeave={() => setHover(null)}>
+            {/* Recessive grid behind the bars; x=0 baseline slightly stronger */}
+            <div className="pointer-events-none absolute inset-y-0" style={{ left: PLOT_LEFT, right: PLOT_RIGHT }} aria-hidden="true">
+              {ticks.map((t) => (
+                <div
+                  key={t}
+                  className={cn('absolute inset-y-0 w-px', t === 0 ? 'bg-border' : 'bg-border/60')}
+                  style={{ left: `${(t / top) * 100}%` }}
+                />
+              ))}
+            </div>
+
+            {rows.map((d, i) => (
+              <div
+                key={d.label}
+                onMouseEnter={() => setHover(i)}
+                className={cn(
+                  '-mx-2 flex items-center gap-3 rounded-md px-2 py-[7px] transition-colors',
+                  hover === i && 'bg-accent/30'
+                )}
+              >
+                <div className="w-40 shrink-0 truncate text-sm text-foreground">{format(d.label)}</div>
+                <div className="h-4 flex-1 py-[3px]">
+                  <div
+                    className="h-full rounded-r-[4px] motion-safe:transition-[width,opacity] motion-safe:[transition-duration:500ms,150ms]"
+                    style={{
+                      width: entered ? `${Math.max((d.value / top) * 100, 2.5)}%` : 0,
+                      backgroundColor: color,
+                      opacity: hover == null ? 0.9 : hover === i ? 1 : 0.35,
+                      // Width grows in staggered on mount; hover dims stay instant.
+                      transitionDelay: `${i * 40}ms, 0ms`,
+                    }}
+                  />
+                </div>
+                <div className="w-7 shrink-0 text-right text-sm font-medium tabular-nums text-foreground">{d.value}</div>
+                <div className="w-9 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">{share(d.value)}%</div>
+              </div>
+            ))}
+
+            {/* Tooltip above the hovered row: full label rescues truncation */}
+            {hover != null && rows[hover] && (
+              <div
+                className="pointer-events-none absolute z-10 min-w-36 -translate-y-full rounded-lg border bg-popover px-3 py-2 shadow-soft"
+                style={{ top: hover * ROW_H - 4, left: PLOT_LEFT }}
+              >
+                <div className="text-xs font-medium text-foreground">{format(rows[hover].label)}</div>
+                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="font-medium tabular-nums text-foreground">{rows[hover].value}</span>
+                  <span className="tabular-nums">· {share(rows[hover].value)}% of total</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Value axis under the bar column */}
+          <div className="relative mt-1 h-4" style={{ marginLeft: PLOT_LEFT, marginRight: PLOT_RIGHT }} aria-hidden="true">
+            {ticks.map((t) => (
+              <span
+                key={t}
+                className="absolute -translate-x-1/2 text-[10px] tabular-nums text-muted-foreground"
+                style={{ left: `${(t / top) * 100}%` }}
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+
+          {(cut > 0 || zeros > 0) && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {cut > 0 && `Showing the top ${rows.length} of ${nonzero.length} ${noun}. `}
+              {zeros > 0 && `No reports yet from ${zeros} of ${sorted.length} ${noun}.`}
+            </p>
+          )}
+        </>
+      )}
     </div>
   );
 }

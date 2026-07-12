@@ -62,10 +62,8 @@ export default function AdminDashboardPage() {
   if (error) return <p className="text-sm text-destructive">{error}</p>;
   if (!a) return <div className="flex justify-center py-16"><Spinner className="h-7 w-7 text-primary" /></div>;
 
-  const topBarangays = [...a.by_barangay]
-    .sort((x, y) => y.total - x.total)
-    .slice(0, 8)
-    .map((b) => ({ label: b.name, value: b.total }));
+  // All 18 barangays; BarChart caps visible rows and footnotes the zeros.
+  const barangayRows = a.by_barangay.map((b) => ({ label: b.name, value: b.total }));
 
   return (
     <div className="space-y-8">
@@ -114,27 +112,49 @@ export default function AdminDashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="p-6">
-          <h2 className="mb-4 text-lg font-semibold">Complaints by type</h2>
-          <BarChart data={a.by_type.complaints.map((t) => ({ label: t.key, value: t.count }))} color={CHART_COLORS.complaints} />
+          <BarChart
+            title="Complaints by type"
+            subtitle="Complaint categories, all time"
+            unit="complaints"
+            noun="types"
+            data={a.by_type.complaints.map((t) => ({ label: t.key, value: t.count }))}
+            color={CHART_COLORS.complaints}
+          />
         </Card>
         <Card className="p-6">
-          <h2 className="mb-4 text-lg font-semibold">Requests by type</h2>
-          <BarChart data={a.by_type.requests.map((t) => ({ label: t.key, value: t.count }))} color={CHART_COLORS.requests} />
+          <BarChart
+            title="Requests by type"
+            subtitle="Service requests by kind"
+            unit="requests"
+            noun="types"
+            data={a.by_type.requests.map((t) => ({ label: t.key, value: t.count }))}
+            color={CHART_COLORS.requests}
+          />
         </Card>
       </div>
 
       <Card className="p-6">
-        <h2 className="mb-4 text-lg font-semibold">Wildlife by species</h2>
         <BarChart
-          data={a.by_type.wildlife.slice(0, 8).map((s) => ({ label: s.key, value: s.count }))}
+          title="Wildlife by species"
+          subtitle="Turnovers by reported species"
+          unit="turnovers"
+          noun="species"
+          data={a.by_type.wildlife.map((s) => ({ label: s.key, value: s.count }))}
           color={CHART_COLORS.wildlife}
           format={(s) => s}
         />
       </Card>
 
       <Card className="p-6">
-        <h2 className="mb-4 text-lg font-semibold">Top barangays by reports</h2>
-        <BarChart data={topBarangays} color={CHART_COLORS.requests} format={(s) => s} />
+        <BarChart
+          title="Top barangays by reports"
+          subtitle={`All report kinds combined across ${a.by_barangay.length} barangays`}
+          unit="reports"
+          noun="barangays"
+          data={barangayRows}
+          color={CHART_COLORS.requests}
+          format={(s) => s}
+        />
       </Card>
     </div>
   );
