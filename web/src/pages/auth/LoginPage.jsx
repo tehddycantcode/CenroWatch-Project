@@ -18,6 +18,10 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Set when AuthContext signed us out because the JWT expired (see
+  // SESSION_EXPIRED_EVENT). ProtectedRoute deep links share the same state.from.
+  const expired = Boolean(location.state?.expired);
+
   // Already signed in — go straight to the role home.
   if (isAuthenticated) return <Navigate to={roleHome(user.role)} replace />;
 
@@ -29,7 +33,11 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const u = await login(form);
-      const dest = location.state?.from?.pathname || roleHome(u.role);
+      const from = location.state?.from;
+      // Return to the exact page (including query string, e.g. queue filters).
+      // ProtectedRoute still role-guards it, so a different account bounces
+      // safely to its own home.
+      const dest = from ? `${from.pathname}${from.search || ''}` : roleHome(u.role);
       navigate(dest, { replace: true });
     } catch (err) {
       setError(err.message || 'Unable to sign in.');
@@ -52,7 +60,11 @@ export default function LoginPage() {
       }
     >
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
-        {error && <Alert>{error}</Alert>}
+        {error ? (
+          <Alert>{error}</Alert>
+        ) : expired ? (
+          <Alert variant="info">Your session has expired. Please sign in again.</Alert>
+        ) : null}
 
         <FormField id="email" label="Email">
           <Input

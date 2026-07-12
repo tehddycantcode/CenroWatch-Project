@@ -5,6 +5,10 @@
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 const TOKEN_KEY = 'cenrowatch_token';
 
+// Fired (on window) when an authenticated call comes back 401, i.e. the JWT
+// expired or was revoked. AuthContext listens and signs the user out once.
+export const SESSION_EXPIRED_EVENT = 'cenrowatch:session-expired';
+
 // Origin that serves uploaded files (e.g. http://localhost:5000) — BASE without /api/v1.
 export const FILE_BASE = BASE.replace(/\/api\/v1\/?$/, '');
 
@@ -51,6 +55,12 @@ export async function apiFetch(path, { method = 'GET', body, auth = true, header
   }
 
   if (!res.ok) {
+    // Expired/invalid session: tell the app so it can sign out once, then
+    // throw as usual so callers' own error handling still runs. Requests
+    // with auth:false (login, register, public GIS) can never trigger this.
+    if (res.status === 401 && auth && token) {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
     const err = new Error(data?.message || `Request failed (${res.status})`);
     err.status = res.status;
     err.errors = data?.errors; // express-validator field errors, when present
@@ -69,6 +79,9 @@ export async function downloadFile(path, filename) {
     throw new Error('Cannot reach the server. Is the backend running?');
   }
   if (!res.ok) {
+    if (res.status === 401 && token) {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
     let msg = `Download failed (${res.status})`;
     try {
       const j = await res.json();
