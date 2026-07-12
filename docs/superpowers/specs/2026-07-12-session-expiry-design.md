@@ -53,10 +53,12 @@ working.
 `AuthProvider` (already inside `BrowserRouter`, so `useNavigate` is available)
 adds a `useEffect` that subscribes to `cenrowatch:session-expired`:
 
-- If `user` is currently set (a real mid-session expiry): save
-  `location.pathname + location.search` to
-  `sessionStorage['cenrowatch_resume']`, clear the token and user, and
-  `navigate('/login', { state: { expired: true } })`.
+- If `user` is currently set (a real mid-session expiry): clear the token and
+  user, and `navigate('/login', { state: { expired: true, from: location } })`.
+  (Planning note: the original draft used a `sessionStorage['cenrowatch_resume']`
+  key, but `ProtectedRoute` and `LoginPage` already implement the return trip
+  via router state - `state.from` - so the expiry flow reuses that mechanism
+  instead of adding a second one.)
 - If `user` is null (stale token at boot, e.g. opening the app days later):
   clear the token silently. No banner - the user was not mid-task, and the
   boot-time `/auth/me` failure already lands them on login today.
@@ -69,16 +71,18 @@ adds a `useEffect` that subscribes to `cenrowatch:session-expired`:
 
 - When `location.state?.expired` is set, render an informational notice (not
   the red error style): "Your session has expired. Please sign in again."
-- After a successful login: if `sessionStorage['cenrowatch_resume']` exists,
-  navigate there and remove the key; otherwise use the current role-based
-  default. `ProtectedRoute` still role-guards the destination, so signing in
-  as a different account safely bounces to that account's own home.
+- After a successful login: if `location.state?.from` exists, navigate to
+  `from.pathname + from.search` (preserving query strings such as queue
+  filters); otherwise use the current role-based default. `ProtectedRoute`
+  still role-guards the destination, so signing in as a different account
+  safely bounces to that account's own home.
 
 ### 4. Web: deep links (web/src/components/ProtectedRoute.jsx)
 
-When an unauthenticated visitor hits a protected URL, save the attempted path
-to the same `cenrowatch_resume` key before redirecting to `/login`. One
-mechanism serves both "session expired mid-task" and "someone shared a link".
+Already implemented: `ProtectedRoute` redirects unauthenticated visitors to
+`/login` with `state={{ from: location }}` and `LoginPage` returns them there
+after sign-in. No code change needed; the expiry flow (sections 2-3) reuses
+this exact mechanism, and verification includes a deep-link regression check.
 
 ### 5. Mobile: detection and handler (mobile/src/api/client.js,
 mobile/src/context/AuthContext.js, login screen)
@@ -107,7 +111,7 @@ Exactly one user-facing string, both platforms:
 - `web/src/lib/api.js` - 401 check + event dispatch (apiFetch + download helper)
 - `web/src/context/AuthContext.jsx` - event listener, resume-path save, sign-out
 - `web/src/pages/auth/LoginPage.jsx` - expired notice + resume navigation
-- `web/src/components/ProtectedRoute.jsx` - save attempted path for deep links
+  (ProtectedRoute needs no change; its deep-link state.from already exists)
 - `mobile/src/api/client.js` - 401 check + handler registration
 - `mobile/src/context/AuthContext.js` - handler, sessionNotice state
 - `mobile/src/screens/LoginScreen.js` - notice banner
