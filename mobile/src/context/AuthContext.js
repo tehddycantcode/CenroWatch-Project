@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { api } from '../api/client';
+import { api, setSessionExpiredHandler } from '../api/client';
 
 const TOKEN_KEY = 'cenrowatch_token';
 const AuthContext = createContext(null);
@@ -9,6 +9,28 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true); // resolving the stored session
+  const [sessionNotice, setSessionNotice] = useState('');
+
+  // Ref so the session-expired handler (registered once) sees the fresh user.
+  const userRef = useRef(null);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  // Sign out when any authenticated call reports 401 (expired/invalid token).
+  // Happens at most once: after the first call the user is null, so parallel
+  // 401s only re-clear the stored token. A stale token at boot (no user
+  // loaded yet) clears silently with no notice.
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
+      if (!userRef.current) return;
+      setToken(null);
+      setUser(null);
+      setSessionNotice('Your session has expired. Please sign in again.');
+    });
+    return () => setSessionExpiredHandler(null);
+  }, []);
 
   // On mount: restore a saved token and validate it via /me.
   useEffect(() => {
@@ -38,6 +60,7 @@ export function AuthProvider({ children }) {
     await SecureStore.setItemAsync(TOKEN_KEY, tk);
     setToken(tk);
     setUser(usr);
+    setSessionNotice('');
   }, []);
 
   const login = useCallback(
@@ -67,7 +90,7 @@ export function AuthProvider({ children }) {
   // Refresh the cached user after a self-service profile edit.
   const updateUser = useCallback((next) => setUser(next), []);
 
-  const value = { user, token, loading, isAuthenticated: !!user, login, register, logout, updateUser };
+  const value = { user, token, loading, isAuthenticated: !!user, sessionNotice, login, register, logout, updateUser };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

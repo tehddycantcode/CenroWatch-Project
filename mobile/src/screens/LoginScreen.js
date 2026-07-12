@@ -17,7 +17,7 @@ import Button from '../components/Button';
 import ErrorBanner from '../components/ErrorBanner';
 
 export default function LoginScreen({ onNavigate }) {
-  const { login } = useAuth();
+  const { login, sessionNotice } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -54,6 +54,12 @@ export default function LoginScreen({ onNavigate }) {
 
             <View style={{ gap: 16, marginTop: 20 }}>
               <ErrorBanner message={error} />
+
+              {sessionNotice && !error ? (
+                <View style={styles.notice}>
+                  <Text style={styles.noticeText}>{sessionNotice}</Text>
+                </View>
+              ) : null}
 
               <TextField
                 label="Email"
@@ -107,4 +113,12 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 6 },
   footerText: { fontSize: 13, color: colors.muted },
   link: { fontSize: 13, color: colors.primary, fontWeight: '700' },
+  notice: {
+    backgroundColor: colors.tint,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    padding: 12,
+  },
+  noticeText: { color: colors.text, fontSize: 13, lineHeight: 18 },
 });

@@ -9,6 +9,23 @@ export function fileUrl(path) {
   return /^https?:\/\//.test(path) ? path : `${FILE_BASE}${path}`;
 }
 
+// The app registers a callback here so an expired session (401 on a call
+// that carried a token) can sign the user out globally. See AuthContext.
+let onSessionExpired = null;
+export function setSessionExpiredHandler(fn) {
+  onSessionExpired = fn;
+}
+
+// Shared non-2xx path for request/requestForm: notify on expired sessions,
+// then throw the normalized Error (.status, .errors) callers already expect.
+function throwApiError(res, data, token) {
+  if (res.status === 401 && token && onSessionExpired) onSessionExpired();
+  const err = new Error(data?.message || `Request failed (${res.status})`);
+  err.status = res.status;
+  err.errors = data?.errors;
+  throw err;
+}
+
 // Thin fetch wrapper for the CENROWATCH API. Attaches the JWT when given,
 // parses JSON, and throws a normalized Error (.status, .errors) on non-2xx.
 async function request(path, { method = 'GET', body, token } = {}) {
@@ -33,12 +50,7 @@ async function request(path, { method = 'GET', body, token } = {}) {
     /* no/invalid JSON */
   }
 
-  if (!res.ok) {
-    const err = new Error(data?.message || `Request failed (${res.status})`);
-    err.status = res.status;
-    err.errors = data?.errors;
-    throw err;
-  }
+  if (!res.ok) throwApiError(res, data, token);
   return data;
 }
 
@@ -62,12 +74,7 @@ async function requestForm(path, form, token) {
     /* no/invalid JSON */
   }
 
-  if (!res.ok) {
-    const err = new Error(data?.message || `Request failed (${res.status})`);
-    err.status = res.status;
-    err.errors = data?.errors;
-    throw err;
-  }
+  if (!res.ok) throwApiError(res, data, token);
   return data;
 }
 
