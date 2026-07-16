@@ -72,6 +72,13 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
 - **Proofread Edit strings for stray non-ASCII characters:** twice I injected garbage
   into code/strings (`.километрwithMessage`, `częuploads`). Copy `old_string` verbatim
   from a fresh Read, keep new code ASCII-only, and re-read after writing.
+- **Stopping a background `npm run dev` on Windows can orphan Vite:** killing the
+  background task stops the npm wrapper but the detached Vite child can survive and
+  keep holding port 5173. After stopping, verify the port is actually free (e.g.
+  `Get-NetTCPConnection -LocalPort 5173`) and `Stop-Process` the owning PID if not.
+- **No `Co-Authored-By` trailer on commits:** the user wants commits authored solely
+  under their GitHub name (re-confirmed 2026-07-16). This overrides the harness
+  default; also tell any commit-making subagent explicitly.
 
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
