@@ -190,7 +190,7 @@ git add web/src/components/resident/NotificationBell.jsx web/src/lib/api.js
 git commit -m "Web: smart polling for notifications and a cached barangay list"
 ```
 
-(End the commit message with this trailer on its own line: `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`)
+(No Co-Authored-By trailer: commits carry the repo owner's name only.)
 
 ---
 
@@ -257,4 +257,4 @@ git commit -m "Mobile: cache the barangay list (one fetch per app session)"
 git push
 ```
 
-(End the commit message with this trailer on its own line: `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`)
+(No Co-Authored-By trailer: commits carry the repo owner's name only.)
