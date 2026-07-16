@@ -78,13 +78,27 @@ async function requestForm(path, form, token) {
   return data;
 }
 
+// The barangay list is immutable seed data (18 rows): cache the in-flight
+// promise so the register screen and the report forms share one fetch per
+// app session. A failed fetch clears the cache before rethrowing, so a
+// rejection is never cached and the next mount retries cleanly.
+let barangaysPromise = null;
+
 export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
   me: (token) => request('/auth/me', { token }),
   updateProfile: (payload, token) => request('/auth/me', { method: 'PATCH', body: payload, token }),
   changePassword: (payload, token) => request('/auth/change-password', { method: 'POST', body: payload, token }),
-  barangays: () => request('/barangays'),
+  barangays: () => {
+    if (!barangaysPromise) {
+      barangaysPromise = request('/barangays').catch((err) => {
+        barangaysPromise = null;
+        throw err;
+      });
+    }
+    return barangaysPromise;
+  },
 
   // Resident report APIs — create() takes a FormData so an optional photo attaches.
   complaints: {
