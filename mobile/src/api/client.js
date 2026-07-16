@@ -82,6 +82,8 @@ async function requestForm(path, form, token) {
 // promise so the register screen and the report forms share one fetch per
 // app session. A failed fetch clears the cache before rethrowing, so a
 // rejection is never cached and the next mount retries cleanly.
+// Consumers get the SAME resolved object: treat the result as read-only
+// (never sort/splice res.data.barangays in place; copy first).
 let barangaysPromise = null;
 
 export const api = {

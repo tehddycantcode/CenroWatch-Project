@@ -116,6 +116,8 @@ export const authApi = {
 // promise so every consumer shares one fetch per session (this also dedups
 // concurrent callers). A failed fetch clears the cache before rethrowing,
 // so a rejection is never cached and the next mount retries cleanly.
+// Consumers get the SAME resolved object: treat the result as read-only
+// (never sort/splice res.data.barangays in place; copy first).
 let barangaysPromise = null;
 export const barangayApi = {
   list: () => {
