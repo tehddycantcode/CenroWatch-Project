@@ -31,11 +31,22 @@ export default function NotificationBell() {
     }
   }, []);
 
-  // Initial load + poll every 30s.
+  // Initial load + poll every 30s. Smart polling: ticks are skipped while
+  // the tab is hidden (no wasted requests), and returning to the tab
+  // refreshes immediately instead of waiting for the next tick.
   useEffect(() => {
     load();
-    const t = setInterval(load, 30000);
-    return () => clearInterval(t);
+    const t = setInterval(() => {
+      if (!document.hidden) load();
+    }, 30000);
+    function onVisibility() {
+      if (!document.hidden) load();
+    }
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [load]);
 
   // Close on outside click.

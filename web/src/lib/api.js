@@ -112,8 +112,21 @@ export const authApi = {
   resetPassword: (token, password) => apiFetch('/auth/reset-password', { method: 'POST', body: { token, password }, auth: false }),
 };
 
+// The barangay list is immutable seed data (18 rows): cache the in-flight
+// promise so every consumer shares one fetch per session (this also dedups
+// concurrent callers). A failed fetch clears the cache before rethrowing,
+// so a rejection is never cached and the next mount retries cleanly.
+let barangaysPromise = null;
 export const barangayApi = {
-  list: () => apiFetch('/barangays', { auth: false }),
+  list: () => {
+    if (!barangaysPromise) {
+      barangaysPromise = apiFetch('/barangays', { auth: false }).catch((err) => {
+        barangaysPromise = null;
+        throw err;
+      });
+    }
+    return barangaysPromise;
+  },
 };
 
 // Report APIs — create() takes a FormData (so an optional photo/document attaches).
