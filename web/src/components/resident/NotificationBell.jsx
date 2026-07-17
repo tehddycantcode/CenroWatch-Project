@@ -81,6 +81,7 @@ export default function NotificationBell() {
   return (
     <div className="relative" ref={wrapRef}>
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
         className="relative rounded-md border px-2.5 py-1.5 hover:bg-accent"
         aria-label="Notifications"
@@ -101,7 +102,7 @@ export default function NotificationBell() {
           <div className="flex items-center justify-between border-b px-3 py-2">
             <span className="text-sm font-semibold">Notifications</span>
             {unread > 0 && (
-              <button onClick={markAll} className="text-xs font-medium text-primary hover:underline">
+              <button type="button" onClick={markAll} className="text-xs font-medium text-primary hover:underline">
                 Mark all read
               </button>
             )}
@@ -112,6 +113,7 @@ export default function NotificationBell() {
             ) : (
               items.map((n) => (
                 <button
+                  type="button"
                   key={n.notification_id}
                   onClick={() => openNotification(n)}
                   className={`flex w-full flex-col items-start gap-0.5 border-b px-3 py-2.5 text-left last:border-b-0 hover:bg-accent/40 ${

@@ -50,6 +50,7 @@ export default function MyReportsPage() {
       <div className="flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button
+            type="button"
             key={t.key}
             onClick={() => setTab(t.key)}
             className={cn(

@@ -10,7 +10,7 @@ import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
 import { Rows, ReporterCard, Attachment, LocationBlock } from '@/components/staff/detail';
-import { CHART_COLORS } from '@/components/admin/charts';
+import { CHART_COLORS } from '@/components/admin/chart-colors';
 
 export default function ComplaintDetailPage() {
   const { id } = useParams();

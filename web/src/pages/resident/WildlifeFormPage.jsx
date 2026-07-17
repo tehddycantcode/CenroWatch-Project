@@ -33,7 +33,7 @@ export default function WildlifeFormPage() {
   const otherSpecies = speciesChoice === '__other__';
 
   // Common species are sorted alphabetically for the dropdown.
-  const speciesOptions = [...SPECIES].sort((a, b) => a.name.localeCompare(b.name));
+  const speciesOptions = SPECIES.toSorted((a, b) => a.name.localeCompare(b.name));
 
   const set = (k) => (e) =>
     setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));

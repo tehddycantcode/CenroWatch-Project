@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { colors, radius } from '../theme';
 import { LogoMark } from '../components/Brand';

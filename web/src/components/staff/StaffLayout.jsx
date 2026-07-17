@@ -61,6 +61,7 @@ export default function StaffLayout() {
               <div className="text-xs text-muted-foreground">{ROLE_LABELS[user?.role] || 'CENRO Staff'}</div>
             </div>
             <button
+              type="button"
               onClick={onLogout}
               className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
             >

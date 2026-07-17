@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { gisApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { CenroLogo } from '@/components/ui/cenro-logo';
 import { IconChip } from '@/components/ui/icon-chip';
 import { StatusBadge } from '@/components/ui/badge';

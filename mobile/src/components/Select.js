@@ -1,12 +1,34 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, Text, Modal, View, FlatList, StyleSheet } from 'react-native';
 import { colors, radius } from '../theme';
 
+// Stable default so a render without `options` keeps referential equality.
+const EMPTY_OPTIONS = [];
+
 // Generic single-select dropdown (Modal + FlatList) over a list of { value, label }.
 // Mirrors BarangayPicker's look so every field on a form feels the same.
-export default function Select({ label, options = [], value, onChange, placeholder = 'Select…', error }) {
+export default function Select({ label, options = EMPTY_OPTIONS, value, onChange, placeholder = 'Select…', error }) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => String(o.value) === String(value));
+
+  // Stable renderItem so FlatList rows don't re-render when unrelated
+  // parent state (e.g. the open flag) changes.
+  const renderItem = useCallback(({ item }) => {
+    const active = String(item.value) === String(value);
+    return (
+      <Pressable
+        style={[styles.option, active && styles.optionActive]}
+        onPress={() => {
+          onChange(item.value);
+          setOpen(false);
+        }}
+      >
+        <Text style={[styles.optionText, active && styles.optionTextActive]}>
+          {item.label}
+        </Text>
+      </Pressable>
+    );
+  }, [value, onChange]);
 
   return (
     <View style={{ gap: 7 }}>
@@ -27,22 +49,7 @@ export default function Select({ label, options = [], value, onChange, placehold
               data={options}
               keyExtractor={(o) => String(o.value)}
               style={{ maxHeight: 360 }}
-              renderItem={({ item }) => {
-                const active = String(item.value) === String(value);
-                return (
-                  <Pressable
-                    style={[styles.option, active && { backgroundColor: colors.tint }]}
-                    onPress={() => {
-                      onChange(item.value);
-                      setOpen(false);
-                    }}
-                  >
-                    <Text style={[styles.optionText, active && { color: colors.primary, fontWeight: '700' }]}>
-                      {item.label}
-                    </Text>
-                  </Pressable>
-                );
-              }}
+              renderItem={renderItem}
             />
           </Pressable>
         </Pressable>
@@ -71,5 +78,7 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: colors.white, borderRadius: radius.lg, padding: 16, paddingBottom: 8 },
   sheetTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 8 },
   option: { paddingVertical: 13, paddingHorizontal: 12, borderRadius: radius.sm },
+  optionActive: { backgroundColor: colors.tint },
   optionText: { fontSize: 15, color: colors.text },
+  optionTextActive: { color: colors.primary, fontWeight: '700' },
 });

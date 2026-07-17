@@ -2,19 +2,10 @@ import { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, BarChart3, LineChart, Minus, Table2 } from 'lucide-react';
 import { humanize } from '@/lib/reports';
 import { cn } from '@/lib/utils';
+import { CHART_COLORS } from './chart-colors';
 
 // Dependency-light charts (CSS bars + inline SVG) so the admin dashboard stays
 // free of a charting library and the bundle small.
-//
-// Chart colors follow the app's kind-identity language (IconChip/KIND_UI):
-// complaints = amber, wildlife = violet, requests = brand green. Palette
-// validated for lightness, chroma, CVD separation, and contrast on the white
-// card surface (dataviz six-checks). Red stays reserved for status (SLA).
-export const CHART_COLORS = {
-  complaints: '#d97706', // amber-600
-  wildlife: '#7c3aed', // violet-600
-  requests: '#22a050', // brand primary
-};
 
 // Integer value axis for counts: pick a step from {1, 2, 5} x 10^k so the
 // scale has at most 4 intervals, then round the top up to a whole step.
@@ -63,7 +54,7 @@ export function BarChart({
   const [entered, setEntered] = useState(false); // bars grow in from 0 on mount
   useEffect(() => { setEntered(true); }, []);
 
-  const sorted = [...(data || [])].sort((a, b) => b.value - a.value);
+  const sorted = (data || []).toSorted((a, b) => b.value - a.value);
   const nonzero = sorted.filter((d) => d.value > 0);
   if (nonzero.length === 0) return <p className="text-sm text-muted-foreground">{empty}</p>;
 
@@ -250,6 +241,7 @@ const monthDate = (m) => {
   return new Date(yr, mo - 1, 1);
 };
 const shortMonth = (m) => monthDate(m).toLocaleString('en', { month: 'short' });
+const monthTotal = (d) => d.complaints + d.wildlife + d.requests;
 
 // ── TrendChart ──────────────────────────────────────────────
 // Multi-series area/line chart for the 6-month trend, with the full figure
@@ -275,7 +267,6 @@ export function TrendChart({ data, title, subtitle }) {
   const areaPath = (key) => `${monotonePath(pts(key))} L ${x(last)} ${baseline} L ${x(0)} ${baseline} Z`;
 
   const ticks = [...new Set([0, Math.round(max / 2), max])];
-  const monthTotal = (d) => d.complaints + d.wildlife + d.requests;
   const thisMonth = monthTotal(data[last]);
   const delta = data.length > 1 ? thisMonth - monthTotal(data[last - 1]) : 0;
   const DeltaIcon = delta > 0 ? ArrowUp : delta < 0 ? ArrowDown : Minus;

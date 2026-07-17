@@ -1,11 +1,33 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, Text, Modal, View, FlatList, StyleSheet } from 'react-native';
 import { colors, radius } from '../theme';
 
+// Stable default so a render without `items` keeps referential equality.
+const EMPTY_ITEMS = [];
+
 // Dropdown built from RN core (Modal + FlatList) — no extra picker dependency.
-export default function BarangayPicker({ items = [], value, onChange, label = 'Barangay', error }) {
+export default function BarangayPicker({ items = EMPTY_ITEMS, value, onChange, label = 'Barangay', error }) {
   const [open, setOpen] = useState(false);
   const selected = items.find((i) => String(i.barangay_id) === String(value));
+
+  // Stable renderItem so FlatList rows don't re-render when unrelated
+  // parent state (e.g. the open flag) changes.
+  const renderItem = useCallback(({ item }) => {
+    const active = String(item.barangay_id) === String(value);
+    return (
+      <Pressable
+        style={[styles.option, active && styles.optionActive]}
+        onPress={() => {
+          onChange(String(item.barangay_id));
+          setOpen(false);
+        }}
+      >
+        <Text style={[styles.optionText, active && styles.optionTextActive]}>
+          {item.name}
+        </Text>
+      </Pressable>
+    );
+  }, [value, onChange]);
 
   return (
     <View style={{ gap: 7 }}>
@@ -26,22 +48,7 @@ export default function BarangayPicker({ items = [], value, onChange, label = 'B
               data={items}
               keyExtractor={(i) => String(i.barangay_id)}
               style={{ maxHeight: 360 }}
-              renderItem={({ item }) => {
-                const active = String(item.barangay_id) === String(value);
-                return (
-                  <Pressable
-                    style={[styles.option, active && { backgroundColor: colors.tint }]}
-                    onPress={() => {
-                      onChange(String(item.barangay_id));
-                      setOpen(false);
-                    }}
-                  >
-                    <Text style={[styles.optionText, active && { color: colors.primary, fontWeight: '700' }]}>
-                      {item.name}
-                    </Text>
-                  </Pressable>
-                );
-              }}
+              renderItem={renderItem}
               ListEmptyComponent={<Text style={styles.empty}>No barangays loaded.</Text>}
             />
           </Pressable>
@@ -71,6 +78,8 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: colors.white, borderRadius: radius.lg, padding: 16, paddingBottom: 8 },
   sheetTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 8 },
   option: { paddingVertical: 13, paddingHorizontal: 12, borderRadius: radius.sm },
+  optionActive: { backgroundColor: colors.tint },
   optionText: { fontSize: 15, color: colors.text },
+  optionTextActive: { color: colors.primary, fontWeight: '700' },
   empty: { padding: 16, color: colors.muted, textAlign: 'center' },
 });

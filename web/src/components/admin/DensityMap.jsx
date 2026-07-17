@@ -40,12 +40,18 @@ function pinColor(m) {
   return m.priority ? '#d97706' : '#dc2626';
 }
 
-export default function DensityMap({ boundaries = [], markers = [], className = 'h-full w-full' }) {
+// Stable defaults so a render without props doesn't re-run the data-sync effect.
+const EMPTY_BOUNDARIES = [];
+const EMPTY_MARKERS = [];
+
+export default function DensityMap({ boundaries = EMPTY_BOUNDARIES, markers = EMPTY_MARKERS, className = 'h-full w-full' }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   // Latest data, read inside the one-time load handler.
   const dataRef = useRef({ boundaries, markers });
-  dataRef.current = { boundaries, markers };
+  useEffect(() => {
+    dataRef.current = { boundaries, markers };
+  }, [boundaries, markers]);
 
   useEffect(() => {
     if (!KEY || !containerRef.current) return undefined;
@@ -66,22 +72,21 @@ export default function DensityMap({ boundaries = [], markers = [], className = 
       // --- Tier 1: barangay choropleth ---
       const bgyFC = {
         type: 'FeatureCollection',
-        features: bgys
-          .filter((b) => b.geojson_boundary)
-          .map((b) => {
-            const g = b.geojson_boundary;
-            return {
-              type: 'Feature',
-              geometry: g.type === 'Feature' ? g.geometry : g,
-              properties: {
-                name: b.name,
-                total: b.total,
-                complaints: b.complaints,
-                wildlife: b.wildlife,
-                requests: b.requests,
-              },
-            };
-          }),
+        features: bgys.flatMap((b) => {
+          if (!b.geojson_boundary) return [];
+          const g = b.geojson_boundary;
+          return [{
+            type: 'Feature',
+            geometry: g.type === 'Feature' ? g.geometry : g,
+            properties: {
+              name: b.name,
+              total: b.total,
+              complaints: b.complaints,
+              wildlife: b.wildlife,
+              requests: b.requests,
+            },
+          }];
+        }),
       };
       map.addSource('barangays', { type: 'geojson', data: bgyFC });
       map.addLayer({
@@ -120,19 +125,21 @@ export default function DensityMap({ boundaries = [], markers = [], className = 
       // --- Tier 2: clustered report markers ---
       const pointsFC = {
         type: 'FeatureCollection',
-        features: mks
-          .filter((m) => m.latitude != null && m.longitude != null)
-          .map((m) => ({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [m.longitude, m.latitude] },
-            properties: {
-              id: m.id,
-              label: humanize(m.category || ''),
-              status: humanize(m.status || ''),
-              barangay: m.barangay || '',
-              color: pinColor(m),
-            },
-          })),
+        features: mks.flatMap((m) =>
+          m.latitude != null && m.longitude != null
+            ? [{
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [m.longitude, m.latitude] },
+                properties: {
+                  id: m.id,
+                  label: humanize(m.category || ''),
+                  status: humanize(m.status || ''),
+                  barangay: m.barangay || '',
+                  color: pinColor(m),
+                },
+              }]
+            : []
+        ),
       };
       map.addSource('reports', { type: 'geojson', data: pointsFC, cluster: true, clusterMaxZoom: 16, clusterRadius: 45 });
       map.addLayer({

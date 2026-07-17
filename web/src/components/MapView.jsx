@@ -21,13 +21,15 @@ function pinColor(m) {
 function complaintFeatureCollection(markers) {
   return {
     type: 'FeatureCollection',
-    features: markers
-      .filter((m) => m.kind === 'complaint' && m.latitude != null && m.longitude != null)
-      .map((m) => ({
-        type: 'Feature',
-        properties: { weight: m.priority ? 2 : 1 },
-        geometry: { type: 'Point', coordinates: [m.longitude, m.latitude] },
-      })),
+    features: markers.flatMap((m) =>
+      m.kind === 'complaint' && m.latitude != null && m.longitude != null
+        ? [{
+            type: 'Feature',
+            properties: { weight: m.priority ? 2 : 1 },
+            geometry: { type: 'Point', coordinates: [m.longitude, m.latitude] },
+          }]
+        : []
+    ),
   };
 }
 
@@ -61,6 +63,10 @@ function escapeHtml(s = '') {
   return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
+// Stable default so a render without `markers` doesn't re-trigger the effects
+// that list it in their dependency arrays.
+const EMPTY_MARKERS = [];
+
 /**
  * Reusable MapLibre map.
  * - Display mode: pass `markers` to render colored pins with popups.
@@ -68,7 +74,7 @@ function escapeHtml(s = '') {
  * - Picker mode: pass `picker`, `value` ({latitude, longitude}) and `onPick(lat,lng)`.
  */
 export default function MapView({
-  markers = [],
+  markers = EMPTY_MARKERS,
   heatmap = false,
   picker = false,
   value = null,
@@ -85,7 +91,9 @@ export default function MapView({
   const heatReady = useRef(false);
   const heatData = useRef({ type: 'FeatureCollection', features: [] });
   const onPickRef = useRef(onPick);
-  onPickRef.current = onPick;
+  useEffect(() => {
+    onPickRef.current = onPick;
+  }, [onPick]);
 
   // Init once.
   useEffect(() => {
@@ -162,7 +170,7 @@ export default function MapView({
         map.fitBounds(bounds, { padding: 56, maxZoom: 15, duration: 400 });
       }
     }
-  }, [markers, picker, fitToMarkers]);
+  }, [markers, picker, heatmap, fitToMarkers]);
 
   // Picker marker.
   useEffect(() => {

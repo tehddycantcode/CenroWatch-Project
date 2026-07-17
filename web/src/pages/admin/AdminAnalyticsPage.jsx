@@ -32,7 +32,7 @@ export default function AdminAnalyticsPage() {
     Promise.all([gisApi.map(), adminApi.analytics()])
       .then(([m, a]) => {
         setMarkers(m.data.markers);
-        setBarangays([...a.data.analytics.by_barangay].sort((x, y) => y.total - x.total));
+        setBarangays(a.data.analytics.by_barangay.toSorted((x, y) => y.total - x.total));
       })
       .catch((e) => setError(e.message));
   }, []);

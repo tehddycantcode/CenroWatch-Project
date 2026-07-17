@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import useBarangays from '../../lib/useBarangays';

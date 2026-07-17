@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   ScrollView,
   Pressable,
   ActivityIndicator,
   Linking,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native';
+import { Image } from 'expo-image';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { api, fileUrl } from '../../api/client';
 import { trackingKind, KIND, humanize } from '../../lib/reports';
@@ -170,7 +170,7 @@ export default function TrackReportScreen({ id }) {
                     <Text style={styles.link}>View document (PDF)</Text>
                   </Pressable>
                 ) : (
-                  <Image source={{ uri: mediaUrl }} style={styles.media} resizeMode="cover" />
+                  <Image source={{ uri: mediaUrl }} style={styles.media} contentFit="cover" />
                 )}
               </View>
             ) : null}

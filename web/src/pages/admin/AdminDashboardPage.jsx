@@ -5,7 +5,8 @@ import { Card } from '@/components/ui/card';
 import { IconChip } from '@/components/ui/icon-chip';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { Spinner } from '@/components/ui/icons';
-import { BarChart, TrendChart, CHART_COLORS } from '@/components/admin/charts';
+import { BarChart, TrendChart } from '@/components/admin/charts';
+import { CHART_COLORS } from '@/components/admin/chart-colors';
 
 function Stat({ icon, tone, label, value, sub }) {
   return (
@@ -77,6 +78,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="flex flex-col items-start gap-1 sm:items-end">
             <button
+              type="button"
               onClick={downloadReport}
               disabled={downloading}
               className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-forest shadow-soft transition-all hover:shadow-soft-md disabled:opacity-60"

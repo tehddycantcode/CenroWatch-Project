@@ -29,6 +29,7 @@ export default class ErrorBoundary extends Component {
           </p>
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={this.reset}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-soft hover:shadow-soft-md"
             >

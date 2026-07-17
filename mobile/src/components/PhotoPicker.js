@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, radius } from '../theme';
 
@@ -58,7 +59,7 @@ export default function PhotoPicker({ onChange }) {
     <View style={{ gap: 10 }}>
       {preview ? (
         <View style={styles.previewWrap}>
-          <Image source={{ uri: preview }} style={styles.preview} resizeMode="cover" />
+          <Image source={{ uri: preview }} style={styles.preview} contentFit="cover" />
           <Pressable style={styles.remove} onPress={clear} hitSlop={8}>
             <Text style={styles.removeText}>✕</Text>
           </Pressable>

@@ -65,6 +65,7 @@ export default function AdminLayout() {
               <div className="text-xs text-muted-foreground">{ROLE_LABELS[user?.role] || 'Administrator'}</div>
             </div>
             <button
+              type="button"
               onClick={onLogout}
               className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
             >

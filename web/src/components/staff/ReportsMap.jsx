@@ -4,7 +4,7 @@ import { statusStage } from '@/lib/reports';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/icons';
-import { CHART_COLORS } from '@/components/admin/charts';
+import { CHART_COLORS } from '@/components/admin/chart-colors';
 import MapView from '@/components/MapView';
 
 // Where residents pinned their reports. Staff endpoints return true coordinates

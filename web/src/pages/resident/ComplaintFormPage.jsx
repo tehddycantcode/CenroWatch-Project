@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { complaintApi } from '@/lib/api';
 import { COMPLAINT_TYPES } from '@/lib/reports';
@@ -17,7 +17,7 @@ const todayStr = () => new Date().toLocaleDateString('en-CA');
 export default function ComplaintFormPage() {
   const [form, setForm] = useState({ barangay_id: '', complaint_type: '', description: '', observed_at: todayStr() });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
-  const [photo, setPhoto] = useState(null);
+  const photoRef = useRef(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -30,7 +30,7 @@ export default function ComplaintFormPage() {
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
     if (!form.complaint_type) errs.complaint_type = 'Please choose a complaint type.';
     if (form.description.trim().length < 10) errs.description = 'Describe the issue (at least 10 characters).';
-    if (!photo) errs.photo = 'A photo is required. Please attach at least one.';
+    if (!photoRef.current) errs.photo = 'A photo is required. Please attach at least one.';
     return errs;
   }
 
@@ -50,7 +50,7 @@ export default function ComplaintFormPage() {
       fd.append('latitude', location.latitude);
       fd.append('longitude', location.longitude);
     }
-    fd.append('photo', photo); // required
+    fd.append('photo', photoRef.current); // required
 
     setSubmitting(true);
     try {
@@ -124,7 +124,7 @@ export default function ComplaintFormPage() {
       <FormField label="Photo (required)" hint="Attach at least one photo as evidence." error={fieldErrors.photo}>
         <PhotoField
           onChange={(f) => {
-            setPhoto(f);
+            photoRef.current = f;
             if (f) setFieldErrors((p) => ({ ...p, photo: undefined }));
           }}
         />

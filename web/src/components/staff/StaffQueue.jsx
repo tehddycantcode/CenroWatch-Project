@@ -24,7 +24,6 @@ export default function StaffQueue({ title, subtitle, kind, resource, statuses, 
   const navigate = useNavigate();
   const ui = KIND_UI[kind] || KIND_UI.complaint;
 
-  const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const [applied, setApplied] = useState({ status: '', search: '' });
   const [page, setPage] = useState(1);
@@ -47,16 +46,19 @@ export default function StaffQueue({ title, subtitle, kind, resource, statuses, 
   }, [ui.overviewKey]);
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
     resource
       .list({ status: applied.status, search: applied.search, page, limit: 20 })
-      .then((r) => setData(r.data))
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+      .then((r) => active && setData(r.data))
+      .catch((e) => active && setError(e.message))
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
   }, [resource, applied, page]);
 
   function selectStatus(value) {
-    setStatus(value);
     setPage(1);
     setApplied((a) => ({ ...a, status: value }));
   }
@@ -64,11 +66,10 @@ export default function StaffQueue({ title, subtitle, kind, resource, statuses, 
   function applyFilters(e) {
     e.preventDefault();
     setPage(1);
-    setApplied({ status, search: search.trim() });
+    setApplied((a) => ({ ...a, search: search.trim() }));
   }
 
   function clearFilters() {
-    setStatus('');
     setSearch('');
     setPage(1);
     setApplied({ status: '', search: '' });

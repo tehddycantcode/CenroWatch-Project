@@ -56,6 +56,7 @@ export default function ResidentLayout() {
               <div className="text-xs text-muted-foreground">Resident</div>
             </div>
             <button
+              type="button"
               onClick={onLogout}
               className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
             >

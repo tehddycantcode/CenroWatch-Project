@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { TextInput, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
@@ -25,7 +25,7 @@ export default function ComplaintFormScreen() {
 
   const [form, setForm] = useState({ complaint_type: '', description: '', barangay_id: '', address_details: '', observed_at: todayStr() });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
-  const [photo, setPhoto] = useState(null);
+  const photoRef = useRef(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -38,7 +38,7 @@ export default function ComplaintFormScreen() {
     if (!form.complaint_type) e.complaint_type = 'Select a complaint type.';
     if (!form.barangay_id) e.barangay_id = 'Please select a barangay.';
     if (form.description.trim().length < 10) e.description = 'Describe the concern (at least 10 characters).';
-    if (!photo) e.photo = 'A photo is required. Please attach at least one.';
+    if (!photoRef.current) e.photo = 'A photo is required. Please attach at least one.';
     return e;
   }
 
@@ -58,7 +58,7 @@ export default function ComplaintFormScreen() {
       fd.append('latitude', String(location.latitude));
       fd.append('longitude', String(location.longitude));
     }
-    fd.append('photo', photo); // required
+    fd.append('photo', photoRef.current); // required
 
     setSubmitting(true);
     try {
@@ -144,7 +144,7 @@ export default function ComplaintFormScreen() {
       <Field label="Photo (required)" hint="Attach at least one photo as evidence." error={fieldErrors.photo}>
         <PhotoPicker
           onChange={(f) => {
-            setPhoto(f);
+            photoRef.current = f;
             if (f) setFieldErrors((p) => ({ ...p, photo: undefined }));
           }}
         />

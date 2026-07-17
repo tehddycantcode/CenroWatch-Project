@@ -6,7 +6,7 @@ import {
   Platform,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
 import { useResidentNav } from '../navigation/navContext';
 import ScreenHeader from './ScreenHeader';

@@ -79,6 +79,7 @@ export default function CustodyPhotos({ id, photos = [], onChange }) {
           type="file"
           accept="image/*"
           multiple
+          aria-label="Choose custody photos"
           onChange={(e) => setFiles(Array.from(e.target.files || []))}
           className="block max-w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
         />
