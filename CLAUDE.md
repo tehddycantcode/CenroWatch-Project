@@ -64,6 +64,10 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
 - **Don't stage `uploads/` or throwaway test scripts:** verify `git status` before
   every commit; `uploads/` and `dist/` are gitignored, and `_*.mjs` test scaffolds
   must be deleted (not committed).
+- **`git commit` sweeps in anything ALREADY staged:** the user may have their own
+  files pre-staged (e.g. a workflow file added by a tool). Run `git status` right
+  before every commit and, if unrelated staged files appear, commit only the
+  intended paths with `git commit -- <paths>` or unstage the rest first.
 - **`/auth` is rate-limited — don't hammer it in e2e tests:** the `authLimiter`
   throttles `/api/v1/auth/*`, so a test making many rapid auth calls hits 429 and any
   HTTP-based cleanup at the end silently fails — this once left the `juan` test account
