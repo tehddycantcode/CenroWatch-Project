@@ -10,7 +10,11 @@ import { FormField } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 
-const ROLES = ['Resident', 'CENRO_Staff', 'Admin'];
+// Administrator accounts are not created or granted from this screen (only the
+// bootstrap admin holds that role), so it is not offered when creating or
+// editing a user. The filter still lists it so existing admins stay findable.
+const ASSIGNABLE_ROLES = ['Resident', 'CENRO_Staff'];
+const FILTER_ROLES = ['Resident', 'CENRO_Staff', 'Admin'];
 const EMPTY = { first_name: '', last_name: '', email: '', password: '', role: 'CENRO_Staff', contact_number: '', barangay_id: '' };
 
 export default function AdminUsersPage() {
@@ -87,7 +91,7 @@ export default function AdminUsersPage() {
           >
             <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="h-9 w-40">
               <option value="">All roles</option>
-              {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+              {FILTER_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
             </Select>
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or email…" className="h-9 w-52" />
             <Button type="submit" size="sm" variant="outline">Filter</Button>
@@ -108,7 +112,7 @@ export default function AdminUsersPage() {
             <FormField id="password" label="Temp password" hint="≥ 8 chars, a letter and a number"><Input id="password" value={form.password} onChange={setF('password')} required /></FormField>
             <FormField id="role" label="Role">
               <Select id="role" value={form.role} onChange={setF('role')}>
-                {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
               </Select>
             </FormField>
             <FormField id="barangay_id" label="Barangay" hint="Optional">
@@ -146,14 +150,21 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
                   <td className="px-4 py-3">
-                    <Select
-                      value={u.role}
-                      disabled={isMe}
-                      onChange={(e) => patch(u.user_id, { role: e.target.value })}
-                      className="h-8 w-36"
-                    >
-                      {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                    </Select>
+                    {u.role === 'Admin' ? (
+                      // No dropdown for administrators: their role is not one of
+                      // the assignable options, so a select would render the
+                      // wrong value and one stray click would demote them.
+                      <Badge tone="purple">{ROLE_LABELS.Admin}</Badge>
+                    ) : (
+                      <Select
+                        value={u.role}
+                        disabled={isMe}
+                        onChange={(e) => patch(u.user_id, { role: e.target.value })}
+                        className="h-8 w-36"
+                      >
+                        {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                      </Select>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <Badge tone={u.is_active ? 'green' : 'red'}>{u.is_active ? 'Active' : 'Inactive'}</Badge>

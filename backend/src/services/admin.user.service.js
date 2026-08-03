@@ -7,7 +7,11 @@ const HttpError = require('../utils/httpError');
 const { hashPassword } = require('../utils/password');
 const { writeAuditLog } = require('../utils/audit');
 
-const ROLES = ['Admin', 'CENRO_Staff', 'Resident'];
+// Administrator accounts are never minted here. Only the seeded/bootstrap
+// admin (npm run create-admin) holds that role; this screen assigns the other
+// two. Existing Admin accounts keep working - the restriction is on assigning
+// the role, not on holding it.
+const ASSIGNABLE_ROLES = ['CENRO_Staff', 'Resident'];
 
 const SAFE_FIELDS = {
   user_id: true,
@@ -58,7 +62,9 @@ async function listUsers(filters = {}) {
 
 async function createUser(adminId, input, ctx = {}) {
   const { email, password, first_name, last_name, role, contact_number, barangay_id } = input;
-  if (!ROLES.includes(role)) throw new HttpError(422, 'Invalid role.');
+  if (!ASSIGNABLE_ROLES.includes(role)) {
+    throw new HttpError(422, 'Role must be CENRO Staff or Resident.');
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) throw new HttpError(409, 'An account with this email already exists.');
@@ -101,13 +107,28 @@ async function updateUser(adminId, id, input, ctx = {}) {
   const target = await prisma.user.findUnique({ where: { user_id: targetId }, select: { user_id: true, role: true } });
   if (!target) throw new HttpError(404, 'User not found.');
 
+  // A client may echo the unchanged role back while editing other fields.
+  // Treat that as absent so it never trips the checks below.
+  if (input.role !== undefined && input.role === target.role) delete input.role;
+
   // Prevent an admin from locking themselves out (demoting or deactivating self).
   if (targetId === adminId) {
-    if (input.role !== undefined && input.role !== 'Admin') throw new HttpError(422, 'You cannot change your own role.');
+    if (input.role !== undefined) throw new HttpError(422, 'You cannot change your own role.');
     if (input.is_active === false) throw new HttpError(422, 'You cannot deactivate your own account.');
   }
 
-  if (input.role !== undefined && !ROLES.includes(input.role)) throw new HttpError(422, 'Invalid role.');
+  if (input.role !== undefined && !ASSIGNABLE_ROLES.includes(input.role)) {
+    throw new HttpError(422, 'Role must be CENRO Staff or Resident.');
+  }
+
+  // Never let the system end up with no active administrator.
+  const losesAdmin = target.role === 'Admin' && (input.role !== undefined || input.is_active === false);
+  if (losesAdmin) {
+    const activeAdmins = await prisma.user.count({ where: { role: 'Admin', is_active: true } });
+    if (activeAdmins <= 1) {
+      throw new HttpError(422, 'This is the last active administrator. Assign another one first.');
+    }
+  }
   if (input.barangay_id) {
     const bgy = await prisma.barangay.findUnique({ where: { barangay_id: input.barangay_id } });
     if (!bgy) throw new HttpError(422, 'Selected barangay does not exist.');
@@ -135,4 +156,4 @@ async function updateUser(adminId, id, input, ctx = {}) {
   return user;
 }
 
-module.exports = { listUsers, createUser, updateUser, ROLES };
+module.exports = { listUsers, createUser, updateUser, ASSIGNABLE_ROLES };
