@@ -32,6 +32,12 @@ const DETAIL_SELECT = {
   exceeded_sla: true,
   barangay_id: true,
   barangay: { select: { name: true } },
+  // Progress updates the resident is allowed to see. Deliberately omits
+  // changed_by (and any staff relation) so no staff identity leaks.
+  status_history: {
+    orderBy: { changed_at: 'desc' },
+    select: { new_status: true, note: true, changed_at: true },
+  },
 };
 
 const LIST_SELECT = {

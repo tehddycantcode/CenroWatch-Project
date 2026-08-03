@@ -40,6 +40,7 @@ function buildView(kind, d) {
       latitude: d.latitude,
       longitude: d.longitude,
       status: d.status,
+      history: d.status_history || [],
     };
   }
   if (kind === 'wildlife') {
@@ -61,6 +62,7 @@ function buildView(kind, d) {
       latitude: d.latitude,
       longitude: d.longitude,
       status: d.status,
+      history: d.status_history || [],
     };
   }
   return {
@@ -81,6 +83,7 @@ function buildView(kind, d) {
     latitude: null,
     longitude: null,
     status: d.status,
+    history: d.status_history || [],
   };
 }
 
@@ -162,6 +165,23 @@ export default function TrackReportScreen({ id }) {
               </View>
             ) : null}
 
+            {view.history.length > 0 ? (
+              <View style={styles.updates}>
+                <Text style={styles.rowLabel}>Updates from CENRO</Text>
+                {view.history.map((h) => (
+                  <View key={h.changed_at} style={styles.update}>
+                    <View style={styles.updateHead}>
+                      <Text style={styles.updateStatus}>{humanize(h.new_status)}</Text>
+                      <Text style={styles.updateDate}>{fmt(h.changed_at)}</Text>
+                    </View>
+                    <Text style={h.note ? styles.updateNote : styles.updateEmpty}>
+                      {h.note || 'Status updated.'}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
             {mediaUrl ? (
               <View style={styles.block}>
                 <Text style={styles.rowLabel}>Attachment</Text>
@@ -197,6 +217,14 @@ const styles = StyleSheet.create({
   block: { marginTop: 6 },
   description: { fontSize: 14, color: colors.text, marginTop: 4, lineHeight: 20 },
   geo: { fontSize: 13, color: colors.muted, marginTop: 14 },
+
+  updates: { marginTop: 18 },
+  update: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: 12, marginTop: 12 },
+  updateHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 },
+  updateStatus: { fontSize: 14, fontWeight: '700', color: colors.text },
+  updateDate: { fontSize: 11, color: colors.muted },
+  updateNote: { fontSize: 14, color: colors.text, marginTop: 3, lineHeight: 20 },
+  updateEmpty: { fontSize: 14, color: colors.muted, fontStyle: 'italic', marginTop: 3 },
 
   notes: { backgroundColor: colors.tint, borderRadius: radius.md, padding: 14, marginTop: 16 },
   notesText: { fontSize: 14, color: colors.text, marginTop: 4, lineHeight: 20 },

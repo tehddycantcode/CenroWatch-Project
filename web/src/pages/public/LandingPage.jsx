@@ -5,6 +5,8 @@ import {
   ClipboardList, Search,
 } from 'lucide-react';
 import { gisApi } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { roleHome } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { CenroLogo } from '@/components/ui/cenro-logo';
@@ -82,6 +84,13 @@ function HeroPreview() {
 }
 
 export default function LandingPage() {
+  const { isAuthenticated, user, loading } = useAuth();
+  // Signed-in residents should land on the report form, not the sign-up page.
+  const fileReportHref = !isAuthenticated
+    ? '/register'
+    : user.role === 'Resident'
+      ? '/resident/report-complaint'
+      : roleHome(user.role);
   const [stats, setStats] = useState([
     { label: 'Total Reports', value: '-' },
     { label: 'Resolved', value: '-' },
@@ -118,9 +127,16 @@ export default function LandingPage() {
             <Link to="/map" className="transition-colors hover:text-foreground">Heat Map</Link>
             <Link to="/feed" className="transition-colors hover:text-foreground">Reports</Link>
             <Link to="/wildlife" className="transition-colors hover:text-foreground">Wildlife</Link>
-            <Link to="/login" className="transition-colors hover:text-foreground">Login</Link>
+            {!loading && !isAuthenticated && (
+              <Link to="/login" className="transition-colors hover:text-foreground">Login</Link>
+            )}
           </nav>
-          <Link to="/register" className={buttonVariants({ size: 'sm' })}>Report Now</Link>
+          <Link
+            to={isAuthenticated ? roleHome(user.role) : '/register'}
+            className={buttonVariants({ size: 'sm' })}
+          >
+            {isAuthenticated ? 'My Dashboard' : 'Report Now'}
+          </Link>
         </div>
       </header>
 
@@ -148,7 +164,7 @@ export default function LandingPage() {
                 all 18 barangays of Cabuyao City, from your phone or computer.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
-                <Link to="/register" className={buttonVariants({ size: 'lg' })}>File a Report</Link>
+                <Link to={fileReportHref} className={buttonVariants({ size: 'lg' })}>File a Report</Link>
                 <Link to="/report-anonymous" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
                   Report Anonymously
                 </Link>

@@ -6,6 +6,7 @@ import { trackingKind, KIND, humanize } from '@/lib/reports';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { StatusTimeline } from '@/components/resident/StatusTimeline';
+import { ReportUpdates } from '@/components/resident/ReportUpdates';
 import { Spinner } from '@/components/ui/icons';
 
 const fmt = (d) => (d ? new Date(d).toLocaleString() : '—');
@@ -187,6 +188,15 @@ export default function TrackReportPage() {
         <div className="mt-4">
           <StatusTimeline kind={kind} status={view.status} times={times} />
         </div>
+
+        {view.status_history?.length > 0 && (
+          <div className="mt-6 border-t pt-5">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Updates from CENRO</div>
+            <div className="mt-4">
+              <ReportUpdates history={view.status_history} />
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );
