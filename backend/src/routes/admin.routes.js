@@ -22,6 +22,13 @@ router.get('/users', controller.listUsers);
 router.post('/users', v.createUserRules, validate, controller.createUser);
 router.patch('/users/:id', v.updateUserRules, validate, controller.updateUser);
 
+// Report archive (soft delete). Archived reports drop out of the queues,
+// dashboards, analytics, public endpoints, and the resident's own list, but
+// stay in the database so the record and its history survive.
+router.get('/archive', controller.listArchived);
+router.patch('/archive/:kind/:id', v.archiveReportRules, validate, controller.archiveReport);
+router.patch('/archive/:kind/:id/restore', controller.restoreReport);
+
 // Audit-log viewer
 router.get('/audit-logs', controller.listAuditLogs);
 

@@ -3,12 +3,13 @@
 
 const prisma = require('../utils/prisma');
 const { obfuscatePoint } = require('../utils/geo');
+const { NOT_ARCHIVED, withActive } = require('../utils/archive');
 
 // Map markers: environmental complaints + wildlife sightings that have coords.
 async function getMapMarkers() {
   const [complaints, wildlife] = await Promise.all([
     prisma.complaint.findMany({
-      where: { latitude: { not: null }, longitude: { not: null }, status: { not: 'Rejected' } },
+      where: withActive({ latitude: { not: null }, longitude: { not: null }, status: { not: 'Rejected' } }),
       select: {
         tracking_id: true,
         complaint_type: true,
@@ -20,7 +21,7 @@ async function getMapMarkers() {
       },
     }),
     prisma.wildlifeTurnover.findMany({
-      where: { latitude: { not: null }, longitude: { not: null } },
+      where: withActive({ latitude: { not: null }, longitude: { not: null } }),
       select: {
         reference_id: true,
         species_name: true,
@@ -69,10 +70,10 @@ async function getMapMarkers() {
 
 async function getStats() {
   const [complaints, wildlife, requests, resolvedComplaints] = await Promise.all([
-    prisma.complaint.count(),
-    prisma.wildlifeTurnover.count(),
-    prisma.environmentalRequest.count(),
-    prisma.complaint.count({ where: { status: 'Resolved' } }),
+    prisma.complaint.count({ where: NOT_ARCHIVED }),
+    prisma.wildlifeTurnover.count({ where: NOT_ARCHIVED }),
+    prisma.environmentalRequest.count({ where: NOT_ARCHIVED }),
+    prisma.complaint.count({ where: withActive({ status: 'Resolved' }) }),
   ]);
   return {
     total_reports: complaints + wildlife + requests,
@@ -85,12 +86,13 @@ async function getStats() {
 async function getFeed(limit = 20) {
   const [complaints, wildlife] = await Promise.all([
     prisma.complaint.findMany({
-      where: { status: { not: 'Rejected' } },
+      where: withActive({ status: { not: 'Rejected' } }),
       orderBy: { submitted_at: 'desc' },
       take: limit,
       select: { tracking_id: true, complaint_type: true, status: true, submitted_at: true, barangay: { select: { name: true } } },
     }),
     prisma.wildlifeTurnover.findMany({
+      where: NOT_ARCHIVED,
       orderBy: { submitted_at: 'desc' },
       take: limit,
       select: { reference_id: true, species_name: true, status: true, submitted_at: true, barangay: { select: { name: true } } },

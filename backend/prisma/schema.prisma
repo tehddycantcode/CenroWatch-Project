@@ -208,6 +208,13 @@ model Complaint {
   exceeded_sla         Boolean               @default(false)
   assigned_staff_role  CenroPersonRole?
 
+  // Admin archive (soft delete). Archived rows stay in the database so the
+  // status history and audit trail remain intact, but drop out of queues,
+  // analytics, public endpoints, and the resident's own list.
+  archived_at    DateTime?
+  archived_by    Int?
+  archive_reason String?   @db.VarChar(255)
+
   user           User?                    @relation("UserComplaints", fields: [user_id], references: [user_id])
   barangay       Barangay                 @relation(fields: [barangay_id], references: [barangay_id])
   assigned_staff User?                    @relation("AssignedStaff", fields: [assigned_to], references: [user_id])
@@ -218,6 +225,7 @@ model Complaint {
   @@index([status])
   @@index([barangay_id])
   @@index([user_id])
+  @@index([archived_at])
 }
 
 model ComplaintStatusHistory {
@@ -276,6 +284,11 @@ model WildlifeTurnover {
   exceeded_sla              Boolean              @default(false)
   assigned_staff_role       CenroPersonRole?
 
+  // Admin archive (soft delete) - see the note on Complaint.
+  archived_at    DateTime?
+  archived_by    Int?
+  archive_reason String?   @db.VarChar(255)
+
   resident User     @relation("UserWildlife", fields: [reported_by], references: [user_id])
   staff    User?    @relation("ProcessedByStaff", fields: [processed_by], references: [user_id])
   barangay Barangay @relation(fields: [barangay_id], references: [barangay_id])
@@ -285,6 +298,7 @@ model WildlifeTurnover {
   @@index([barangay_id])
   @@index([species_name])
   @@index([status])
+  @@index([archived_at])
 }
 
 // ============================================================
@@ -315,6 +329,11 @@ model EnvironmentalRequest {
   approved_by_cenro_head Boolean   @default(false)
   approval_date          DateTime?
 
+  // Admin archive (soft delete) - see the note on Complaint.
+  archived_at    DateTime?
+  archived_by    Int?
+  archive_reason String?   @db.VarChar(255)
+
   user      User     @relation("UserRequests", fields: [user_id], references: [user_id])
   barangay  Barangay @relation(fields: [barangay_id], references: [barangay_id])
   processor User?    @relation("ProcessedRequests", fields: [processed_by], references: [user_id])
@@ -324,6 +343,7 @@ model EnvironmentalRequest {
   @@index([status])
   @@index([barangay_id])
   @@index([user_id])
+  @@index([archived_at])
 }
 
 // Status-change timeline for wildlife turnovers (mirrors ComplaintStatusHistory).

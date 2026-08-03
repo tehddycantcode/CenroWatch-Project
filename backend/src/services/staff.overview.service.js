@@ -3,6 +3,7 @@
 // and a small recent-activity feed. Read-only — no AuditLog.
 
 const prisma = require('../utils/prisma');
+const { NOT_ARCHIVED, withActive } = require('../utils/archive');
 
 const COMPLAINT_OPEN = ['Pending', 'Under_Review', 'In_Progress'];
 const WILDLIFE_OPEN = ['Pending_Review', 'Priority_Review', 'Under_Care'];
@@ -25,23 +26,26 @@ async function getOverview() {
     complaintBreached, wildlifeBreached, requestBreached,
     recentComplaints, recentWildlife, recentRequests,
   ] = await Promise.all([
-    prisma.complaint.groupBy({ by: ['status'], _count: { _all: true } }),
-    prisma.wildlifeTurnover.groupBy({ by: ['status'], _count: { _all: true } }),
-    prisma.environmentalRequest.groupBy({ by: ['status'], _count: { _all: true } }),
+    prisma.complaint.groupBy({ by: ['status'], where: NOT_ARCHIVED, _count: { _all: true } }),
+    prisma.wildlifeTurnover.groupBy({ by: ['status'], where: NOT_ARCHIVED, _count: { _all: true } }),
+    prisma.environmentalRequest.groupBy({ by: ['status'], where: NOT_ARCHIVED, _count: { _all: true } }),
 
-    prisma.complaint.count({ where: { status: { in: COMPLAINT_OPEN }, sla_deadline: { lt: now } } }),
-    prisma.wildlifeTurnover.count({ where: { status: { in: WILDLIFE_OPEN }, sla_deadline: { lt: now } } }),
-    prisma.environmentalRequest.count({ where: { status: { in: REQUEST_OPEN }, sla_deadline: { lt: now } } }),
+    prisma.complaint.count({ where: withActive({ status: { in: COMPLAINT_OPEN }, sla_deadline: { lt: now } }) }),
+    prisma.wildlifeTurnover.count({ where: withActive({ status: { in: WILDLIFE_OPEN }, sla_deadline: { lt: now } }) }),
+    prisma.environmentalRequest.count({ where: withActive({ status: { in: REQUEST_OPEN }, sla_deadline: { lt: now } }) }),
 
     prisma.complaint.findMany({
+      where: NOT_ARCHIVED,
       orderBy: { submitted_at: 'desc' }, take: 6,
       select: { tracking_id: true, complaint_type: true, status: true, submitted_at: true, barangay: { select: { name: true } } },
     }),
     prisma.wildlifeTurnover.findMany({
+      where: NOT_ARCHIVED,
       orderBy: { submitted_at: 'desc' }, take: 6,
       select: { reference_id: true, species_name: true, status: true, submitted_at: true, barangay: { select: { name: true } } },
     }),
     prisma.environmentalRequest.findMany({
+      where: NOT_ARCHIVED,
       orderBy: { submitted_at: 'desc' }, take: 6,
       select: { tracking_id: true, request_type: true, status: true, submitted_at: true, barangay: { select: { name: true } } },
     }),

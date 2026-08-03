@@ -215,6 +215,12 @@ export const adminApi = {
     create: (body) => apiFetch('/admin/users', { method: 'POST', body }),
     update: (id, body) => apiFetch(`/admin/users/${id}`, { method: 'PATCH', body }),
   },
+  // Soft delete: archived reports leave the working system but stay on record.
+  archive: {
+    list: () => apiFetch('/admin/archive'),
+    archive: (kind, id, reason) => apiFetch(`/admin/archive/${kind}/${id}`, { method: 'PATCH', body: { reason } }),
+    restore: (kind, id) => apiFetch(`/admin/archive/${kind}/${id}/restore`, { method: 'PATCH' }),
+  },
   auditLogs: (params) => apiFetch(`/admin/audit-logs${qs(params)}`),
   settings: {
     list: () => apiFetch('/admin/settings'),

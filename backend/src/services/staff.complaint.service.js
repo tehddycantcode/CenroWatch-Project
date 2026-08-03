@@ -8,6 +8,7 @@ const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
 const { computeExceededSla, getSlaMinutes, addMinutes } = require('../utils/sla');
+const { NOT_ARCHIVED, assertNotArchived } = require('../utils/archive');
 const { createSequential } = require('../utils/createSequential');
 const { notifyReportStatus } = require('../utils/notify');
 const { notifyStatusChange } = require('./notification.service');
@@ -69,6 +70,10 @@ const DETAIL_SELECT = {
     orderBy: { changed_at: 'asc' },
     select: { id: true, old_status: true, new_status: true, note: true, changed_at: true, changed_by: true },
   },
+  // Detail reads deliberately still return archived rows so an admin can open
+  // one and restore it; the queue above is what filters them out.
+  archived_at: true,
+  archive_reason: true,
 };
 
 // Accept either a numeric complaint_id or a CMP-tracking id.
@@ -89,7 +94,7 @@ async function listComplaints(filters = {}) {
     ? undefined
     : filters.priority === true || filters.priority === 'true';
 
-  const where = {};
+  const where = { ...NOT_ARCHIVED };
   if (status) where.status = status;
   if (barangay_id) where.barangay_id = barangay_id;
   if (typeof priority === 'boolean') where.priority = priority;
@@ -179,11 +184,14 @@ async function updateComplaintStatus(staffId, idOrTracking, input, ctx = {}) {
     where: whereFor(idOrTracking),
     select: {
       complaint_id: true, tracking_id: true, status: true, sla_deadline: true, resolved_at: true,
-      user_id: true,
+      user_id: true, archived_at: true,
       user: { select: { email: true, first_name: true } },
     },
   });
   if (!existing) throw new HttpError(404, 'Complaint not found.');
+  // A stale tab must not update an archived report and email the resident
+  // about a case they can no longer see.
+  assertNotArchived(existing, 'complaint');
 
   const newStatus = input.status;
   const changed = newStatus !== existing.status;
@@ -249,9 +257,10 @@ async function updateComplaintStatus(staffId, idOrTracking, input, ctx = {}) {
 async function updateComplaint(staffId, idOrTracking, input, ctx = {}) {
   const existing = await prisma.complaint.findFirst({
     where: whereFor(idOrTracking),
-    select: { complaint_id: true, tracking_id: true },
+    select: { complaint_id: true, tracking_id: true, archived_at: true },
   });
   if (!existing) throw new HttpError(404, 'Complaint not found.');
+  assertNotArchived(existing, 'complaint');
 
   if (input.assigned_to) {
     const staff = await prisma.user.findUnique({ where: { user_id: input.assigned_to }, select: { role: true } });

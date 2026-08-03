@@ -38,8 +38,19 @@ const updateUserRules = [
   body('barangay_id').optional({ values: 'null' }).isInt({ min: 1 }).withMessage('Invalid barangay.').toInt(),
 ];
 
+// A reason is required: it is what the audit log carries as the justification
+// for hiding a public record.
+const archiveReportRules = [
+  body('reason')
+    .exists().withMessage('A reason is required.')
+    .bail()
+    .trim()
+    .notEmpty().withMessage('A reason is required.')
+    .isLength({ max: 255 }).withMessage('Reason must be 255 characters or fewer.'),
+];
+
 const updateSettingRules = [
   body('setting_value').exists().withMessage('A value is required.').bail().trim().notEmpty().withMessage('Value cannot be empty.').isLength({ max: 2000 }),
 ];
 
-module.exports = { createUserRules, updateUserRules, updateSettingRules, ROLES, ASSIGNABLE_ROLES };
+module.exports = { createUserRules, updateUserRules, archiveReportRules, updateSettingRules, ROLES, ASSIGNABLE_ROLES };

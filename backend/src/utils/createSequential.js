@@ -19,6 +19,10 @@ const { formatTrackingId, PREFIX } = require('./trackingId');
 async function createSequential({ model, type, idField, year, data, select }) {
   const prefix = PREFIX[type];
   return prisma.$transaction(async (tx) => {
+    // DELIBERATELY counts archived rows too. This is the sequence counter for
+    // tracking ids; excluding archived reports would hand out an id that is
+    // already taken and break the unique constraint. Do not add the archive
+    // filter here (see utils/archive.js, exception 1).
     const count = await tx[model].count({
       where: { [idField]: { startsWith: `${prefix}-${year}-` } },
     });

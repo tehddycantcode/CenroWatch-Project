@@ -9,7 +9,7 @@ import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
-import { Rows, ReporterCard, Attachment, LocationBlock, PrintReportButton } from '@/components/staff/detail';
+import { Rows, ReporterCard, Attachment, LocationBlock, PrintReportButton, ArchiveControl } from '@/components/staff/detail';
 import { CHART_COLORS } from '@/components/admin/chart-colors';
 
 export default function ComplaintDetailPage() {
@@ -158,6 +158,15 @@ export default function ComplaintDetailPage() {
             >
               {c.priority ? 'Remove priority flag' : 'Flag as priority'}
             </Button>
+            <div className="mt-4 border-t pt-4">
+              <ArchiveControl
+                kind="complaints"
+                id={id}
+                archivedAt={c.archived_at}
+                archiveReason={c.archive_reason}
+                onChanged={load}
+              />
+            </div>
           </Card>
         </div>
       </div>

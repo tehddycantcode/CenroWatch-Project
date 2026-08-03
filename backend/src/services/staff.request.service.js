@@ -6,6 +6,7 @@ const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
 const { computeExceededSla } = require('../utils/sla');
+const { NOT_ARCHIVED, assertNotArchived } = require('../utils/archive');
 const { notifyReportStatus } = require('../utils/notify');
 const { notifyStatusChange } = require('./notification.service');
 
@@ -53,6 +54,9 @@ const DETAIL_SELECT = {
     orderBy: { changed_at: 'asc' },
     select: { id: true, old_status: true, new_status: true, note: true, changed_at: true, changed_by: true },
   },
+  // Detail reads still return archived rows so an admin can restore them.
+  archived_at: true,
+  archive_reason: true,
 };
 
 function whereFor(idOrTracking) {
@@ -68,7 +72,7 @@ async function listRequests(filters = {}) {
   const limit = Number(filters.limit) > 0 ? Number(filters.limit) : 20;
   const barangay_id = filters.barangay_id ? Number(filters.barangay_id) : undefined;
 
-  const where = {};
+  const where = { ...NOT_ARCHIVED };
   if (status) where.status = status;
   if (barangay_id) where.barangay_id = barangay_id;
   if (search) {
@@ -101,10 +105,12 @@ async function updateRequestStatus(staffId, idOrTracking, input, ctx = {}) {
     select: {
       request_id: true, tracking_id: true, status: true, sla_deadline: true,
       scheduled_date: true, completion_date: true, approval_date: true, user_id: true,
+      archived_at: true,
       user: { select: { email: true, first_name: true } },
     },
   });
   if (!existing) throw new HttpError(404, 'Request not found.');
+  assertNotArchived(existing, 'request');
 
   const newStatus = input.status;
   const changed = newStatus !== existing.status;
@@ -177,9 +183,10 @@ async function updateRequestStatus(staffId, idOrTracking, input, ctx = {}) {
 async function updateRequest(staffId, idOrTracking, input, ctx = {}) {
   const existing = await prisma.environmentalRequest.findFirst({
     where: whereFor(idOrTracking),
-    select: { request_id: true, tracking_id: true },
+    select: { request_id: true, tracking_id: true, archived_at: true },
   });
   if (!existing) throw new HttpError(404, 'Request not found.');
+  assertNotArchived(existing, 'request');
 
   const data = {};
   if (input.staff_notes !== undefined) data.staff_notes = input.staff_notes || null;

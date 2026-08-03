@@ -2,6 +2,7 @@
 // (groupBy + JS bucketing) — no raw SQL, per project rule. Read-only.
 
 const prisma = require('../utils/prisma');
+const { NOT_ARCHIVED, withActive } = require('../utils/archive');
 
 const COMPLAINT_OPEN = ['Pending', 'Under_Review', 'In_Progress'];
 const COMPLAINT_TERMINAL = ['Resolved', 'Rejected'];
@@ -57,9 +58,9 @@ function mergeSpecies(rows) {
 async function slaFor(model, openStatuses, terminalStatuses) {
   const now = new Date();
   const [closed, closedLate, overdueOpen] = await Promise.all([
-    prisma[model].count({ where: { status: { in: terminalStatuses }, sla_deadline: { not: null } } }),
-    prisma[model].count({ where: { status: { in: terminalStatuses }, exceeded_sla: true } }),
-    prisma[model].count({ where: { status: { in: openStatuses }, sla_deadline: { lt: now } } }),
+    prisma[model].count({ where: withActive({ status: { in: terminalStatuses }, sla_deadline: { not: null } }) }),
+    prisma[model].count({ where: withActive({ status: { in: terminalStatuses }, exceeded_sla: true }) }),
+    prisma[model].count({ where: withActive({ status: { in: openStatuses }, sla_deadline: { lt: now } }) }),
   ]);
   const on_time = closed - closedLate;
   return { closed, on_time, late: closedLate, overdue_open: overdueOpen, rate: closed > 0 ? Math.round((on_time / closed) * 100) : null };
@@ -82,29 +83,29 @@ async function getAnalytics() {
     prisma.user.groupBy({ by: ['role'], _count: { _all: true } }),
     prisma.user.count({ where: { is_active: true } }),
 
-    prisma.complaint.groupBy({ by: ['status'], _count: { _all: true } }),
-    prisma.wildlifeTurnover.groupBy({ by: ['status'], _count: { _all: true } }),
-    prisma.environmentalRequest.groupBy({ by: ['status'], _count: { _all: true } }),
+    prisma.complaint.groupBy({ by: ['status'], where: NOT_ARCHIVED, _count: { _all: true } }),
+    prisma.wildlifeTurnover.groupBy({ by: ['status'], where: NOT_ARCHIVED, _count: { _all: true } }),
+    prisma.environmentalRequest.groupBy({ by: ['status'], where: NOT_ARCHIVED, _count: { _all: true } }),
 
-    prisma.complaint.groupBy({ by: ['complaint_type'], _count: { _all: true } }),
-    prisma.environmentalRequest.groupBy({ by: ['request_type'], _count: { _all: true } }),
-    prisma.wildlifeTurnover.groupBy({ by: ['species_name'], _count: { _all: true } }),
+    prisma.complaint.groupBy({ by: ['complaint_type'], where: NOT_ARCHIVED, _count: { _all: true } }),
+    prisma.environmentalRequest.groupBy({ by: ['request_type'], where: NOT_ARCHIVED, _count: { _all: true } }),
+    prisma.wildlifeTurnover.groupBy({ by: ['species_name'], where: NOT_ARCHIVED, _count: { _all: true } }),
 
-    prisma.complaint.groupBy({ by: ['barangay_id'], _count: { _all: true } }),
-    prisma.wildlifeTurnover.groupBy({ by: ['barangay_id'], _count: { _all: true } }),
-    prisma.environmentalRequest.groupBy({ by: ['barangay_id'], _count: { _all: true } }),
+    prisma.complaint.groupBy({ by: ['barangay_id'], where: NOT_ARCHIVED, _count: { _all: true } }),
+    prisma.wildlifeTurnover.groupBy({ by: ['barangay_id'], where: NOT_ARCHIVED, _count: { _all: true } }),
+    prisma.environmentalRequest.groupBy({ by: ['barangay_id'], where: NOT_ARCHIVED, _count: { _all: true } }),
     prisma.barangay.findMany({ select: { barangay_id: true, name: true, latitude: true, longitude: true, geojson_boundary: true }, orderBy: { name: 'asc' } }),
 
-    prisma.complaint.findMany({ where: { submitted_at: { gte: sixMonthsAgo } }, select: { submitted_at: true } }),
-    prisma.wildlifeTurnover.findMany({ where: { submitted_at: { gte: sixMonthsAgo } }, select: { submitted_at: true } }),
-    prisma.environmentalRequest.findMany({ where: { submitted_at: { gte: sixMonthsAgo } }, select: { submitted_at: true } }),
+    prisma.complaint.findMany({ where: withActive({ submitted_at: { gte: sixMonthsAgo } }), select: { submitted_at: true } }),
+    prisma.wildlifeTurnover.findMany({ where: withActive({ submitted_at: { gte: sixMonthsAgo } }), select: { submitted_at: true } }),
+    prisma.environmentalRequest.findMany({ where: withActive({ submitted_at: { gte: sixMonthsAgo } }), select: { submitted_at: true } }),
 
     slaFor('complaint', COMPLAINT_OPEN, COMPLAINT_TERMINAL),
     slaFor('wildlifeTurnover', WILDLIFE_OPEN, WILDLIFE_TERMINAL),
     slaFor('environmentalRequest', REQUEST_OPEN, REQUEST_TERMINAL),
 
-    prisma.complaint.findMany({ where: { status: 'Resolved', resolved_at: { not: null } }, select: { submitted_at: true, resolved_at: true } }),
-    prisma.wildlifeTurnover.count({ where: { is_endangered: true } }),
+    prisma.complaint.findMany({ where: withActive({ status: 'Resolved', resolved_at: { not: null } }), select: { submitted_at: true, resolved_at: true } }),
+    prisma.wildlifeTurnover.count({ where: withActive({ is_endangered: true }) }),
   ]);
 
   // Users

@@ -3,6 +3,7 @@ const analyticsService = require('../services/admin.analytics.service');
 const userService = require('../services/admin.user.service');
 const auditService = require('../services/admin.audit.service');
 const settingsService = require('../services/admin.settings.service');
+const archiveService = require('../services/admin.archive.service');
 const reportService = require('../services/admin.report.service');
 const { writeAuditLog } = require('../utils/audit');
 
@@ -60,6 +61,26 @@ const listAuditLogs = asyncHandler(async (req, res) => {
   res.json({ success: true, data: result });
 });
 
+// Report archive (soft delete)
+const listArchived = asyncHandler(async (req, res) => {
+  const items = await archiveService.listArchived();
+  res.json({ success: true, data: { items } });
+});
+
+const archiveReport = asyncHandler(async (req, res) => {
+  const report = await archiveService.archiveReport(
+    req.user.user_id, req.params.kind, req.params.id, req.body.reason, { ipAddress: req.ip }
+  );
+  res.json({ success: true, message: 'Report archived.', data: { report } });
+});
+
+const restoreReport = asyncHandler(async (req, res) => {
+  const report = await archiveService.restoreReport(
+    req.user.user_id, req.params.kind, req.params.id, { ipAddress: req.ip }
+  );
+  res.json({ success: true, message: 'Report restored.', data: { report } });
+});
+
 // Settings
 const listSettings = asyncHandler(async (req, res) => {
   const settings = await settingsService.listSettings();
@@ -71,4 +92,8 @@ const updateSetting = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Setting updated.', data: { setting } });
 });
 
-module.exports = { analytics, analyticsReport, listUsers, createUser, updateUser, listAuditLogs, listSettings, updateSetting };
+module.exports = {
+  analytics, analyticsReport, listUsers, createUser, updateUser,
+  listArchived, archiveReport, restoreReport,
+  listAuditLogs, listSettings, updateSetting,
+};

@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { MapPin, Printer } from 'lucide-react';
-import { fileUrl } from '@/lib/api';
+import { MapPin, Printer, Archive, RotateCcw } from 'lucide-react';
+import { fileUrl, adminApi } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import MapView from '@/components/MapView';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/icons';
 
 // Small presentational helpers shared by the three staff detail pages.
@@ -58,6 +60,92 @@ export function LocationBlock({ marker, address }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// Archive / restore, Admin only. Archiving hides a report from the working
+// system without deleting it, so it needs a reason for the audit log and a
+// deliberate confirm step rather than a one-click action.
+export function ArchiveControl({ kind, id, archivedAt, archiveReason, onChanged }) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  if (user?.role !== 'Admin') return null;
+
+  async function run(action) {
+    setError('');
+    setBusy(true);
+    try {
+      if (action === 'archive') await adminApi.archive.archive(kind, id, reason.trim());
+      else await adminApi.archive.restore(kind, id);
+      setOpen(false);
+      setReason('');
+      onChanged();
+    } catch (e) {
+      setError(e.message || 'Could not update the archive.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (archivedAt) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-amber-800">Archived</div>
+        <p className="mt-1 text-sm text-foreground">
+          Hidden from queues, dashboards, analytics, the public map, and the resident&apos;s own list
+          on {new Date(archivedAt).toLocaleString()}.
+        </p>
+        {archiveReason && <p className="mt-1 text-sm text-muted-foreground">Reason: {archiveReason}</p>}
+        <div className="mt-3 flex items-center gap-3">
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => run('restore')}>
+            {busy ? <Spinner className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" aria-hidden="true" />}
+            Restore report
+          </Button>
+          {error && <span className="text-xs text-destructive">{error}</span>}
+        </div>
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <Archive className="h-4 w-4" aria-hidden="true" />
+        Archive report
+      </Button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border p-4">
+      <div className="text-sm font-semibold text-foreground">Archive this report?</div>
+      <p className="mt-1 text-sm text-muted-foreground">
+        It stays on record with its full history and can be restored, but it leaves the queues,
+        dashboards, analytics, public map, and the resident&apos;s own list. The reason is recorded
+        in the audit log.
+      </p>
+      <Input
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Reason (required), e.g. duplicate of CMP-2026-00004"
+        maxLength={255}
+        className="mt-3"
+      />
+      <div className="mt-3 flex items-center gap-2">
+        <Button size="sm" disabled={busy || !reason.trim()} onClick={() => run('archive')}>
+          {busy && <Spinner className="h-4 w-4" />}
+          Archive
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => { setOpen(false); setReason(''); setError(''); }}>
+          Cancel
+        </Button>
+        {error && <span className="text-xs text-destructive">{error}</span>}
+      </div>
     </div>
   );
 }

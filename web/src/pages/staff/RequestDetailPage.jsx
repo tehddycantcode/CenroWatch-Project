@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
-import { Rows, ReporterCard, Attachment, PrintReportButton } from '@/components/staff/detail';
+import { Rows, ReporterCard, Attachment, PrintReportButton, ArchiveControl } from '@/components/staff/detail';
 
 export default function RequestDetailPage() {
   const { id } = useParams();
@@ -92,6 +92,15 @@ export default function RequestDetailPage() {
               ]}
               onSubmit={async (payload) => { await staffApi.requests.updateStatus(id, payload); load(); }}
             />
+            <div className="mt-4 border-t pt-4">
+              <ArchiveControl
+                kind="requests"
+                id={id}
+                archivedAt={q.archived_at}
+                archiveReason={q.archive_reason}
+                onChanged={load}
+              />
+            </div>
           </Card>
         </div>
       </div>

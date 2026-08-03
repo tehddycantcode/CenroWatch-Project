@@ -6,6 +6,7 @@ const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
 const { createSequential } = require('../utils/createSequential');
 const { getSlaMinutes, addMinutes } = require('../utils/sla');
+const { withActive } = require('../utils/archive');
 
 // request_type -> SLA setting key + sane fallback (minutes).
 const SLA_BY_TYPE = {
@@ -101,7 +102,7 @@ async function createRequest(userId, input, documentPath, ctx = {}) {
 
 function listMyRequests(userId) {
   return prisma.environmentalRequest.findMany({
-    where: { user_id: userId },
+    where: withActive({ user_id: userId }),
     orderBy: { submitted_at: 'desc' },
     select: LIST_SELECT,
   });
@@ -110,10 +111,12 @@ function listMyRequests(userId) {
 async function getMyRequestByTracking(userId, trackingId) {
   const request = await prisma.environmentalRequest.findUnique({
     where: { tracking_id: trackingId },
-    select: DETAIL_SELECT,
+    select: { ...DETAIL_SELECT, archived_at: true },
   });
-  if (!request) throw new HttpError(404, 'Request not found.');
+  // Archived reads as missing to its owner (see complaint.service).
+  if (!request || request.archived_at) throw new HttpError(404, 'Request not found.');
   if (request.user_id !== userId) throw new HttpError(403, 'You can only view your own requests.');
+  delete request.archived_at;
   return request;
 }
 

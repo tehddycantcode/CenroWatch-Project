@@ -6,6 +6,7 @@ const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
 const { createSequential } = require('../utils/createSequential');
 const { getSlaMinutes, addMinutes } = require('../utils/sla');
+const { withActive } = require('../utils/archive');
 
 // Returned to the owner (their own report) — includes the barangay name.
 const DETAIL_SELECT = {
@@ -107,7 +108,7 @@ async function createComplaint(userId, input, photoPath, ctx = {}, options = {})
 
 function listMyComplaints(userId) {
   return prisma.complaint.findMany({
-    where: { user_id: userId },
+    where: withActive({ user_id: userId }),
     orderBy: { submitted_at: 'desc' },
     select: LIST_SELECT,
   });
@@ -116,18 +117,21 @@ function listMyComplaints(userId) {
 async function getMyComplaintByTracking(userId, trackingId) {
   const complaint = await prisma.complaint.findUnique({
     where: { tracking_id: trackingId },
-    select: DETAIL_SELECT,
+    select: { ...DETAIL_SELECT, archived_at: true },
   });
-  if (!complaint) throw new HttpError(404, 'Report not found.');
+  // An archived report reads as missing to its owner - the same 404 as one
+  // that never existed, so archiving does not leak as a distinct state.
+  if (!complaint || complaint.archived_at) throw new HttpError(404, 'Report not found.');
   if (complaint.user_id !== userId) throw new HttpError(403, 'You can only view your own reports.');
+  delete complaint.archived_at;
   return complaint;
 }
 
 // PUBLIC status lookup by tracking id — zero personal data (R.A. 10173).
 // Lets an anonymous reporter follow up using only their reference number.
 async function getPublicComplaintStatus(trackingId) {
-  const complaint = await prisma.complaint.findUnique({
-    where: { tracking_id: trackingId },
+  const complaint = await prisma.complaint.findFirst({
+    where: withActive({ tracking_id: trackingId }),
     select: {
       tracking_id: true,
       complaint_type: true,

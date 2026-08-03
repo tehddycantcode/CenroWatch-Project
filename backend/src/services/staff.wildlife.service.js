@@ -7,6 +7,7 @@ const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
 const { computeExceededSla } = require('../utils/sla');
+const { NOT_ARCHIVED, assertNotArchived } = require('../utils/archive');
 const { notifyReportStatus } = require('../utils/notify');
 const { notifyStatusChange } = require('./notification.service');
 const storage = require('./storage');
@@ -64,6 +65,9 @@ const DETAIL_SELECT = {
     orderBy: { changed_at: 'asc' },
     select: { id: true, old_status: true, new_status: true, note: true, changed_at: true, changed_by: true },
   },
+  // Detail reads still return archived rows so an admin can restore them.
+  archived_at: true,
+  archive_reason: true,
 };
 
 function whereFor(idOrRef) {
@@ -82,7 +86,7 @@ async function listTurnovers(filters = {}) {
     ? undefined
     : filters.priority === true || filters.priority === 'true';
 
-  const where = {};
+  const where = { ...NOT_ARCHIVED };
   if (status) where.status = status;
   if (barangay_id) where.barangay_id = barangay_id;
   if (typeof priority === 'boolean') where.is_priority_review = priority;
@@ -115,11 +119,12 @@ async function updateTurnoverStatus(staffId, idOrRef, input, ctx = {}) {
     where: whereFor(idOrRef),
     select: {
       turnover_id: true, reference_id: true, status: true, sla_deadline: true,
-      intake_date: true, release_date: true, reported_by: true,
+      intake_date: true, release_date: true, reported_by: true, archived_at: true,
       resident: { select: { email: true, first_name: true } },
     },
   });
   if (!existing) throw new HttpError(404, 'Wildlife record not found.');
+  assertNotArchived(existing, 'wildlife record');
 
   const newStatus = input.status;
   const changed = newStatus !== existing.status;
@@ -191,9 +196,10 @@ async function updateTurnoverStatus(staffId, idOrRef, input, ctx = {}) {
 async function updateTurnover(staffId, idOrRef, input, ctx = {}) {
   const existing = await prisma.wildlifeTurnover.findFirst({
     where: whereFor(idOrRef),
-    select: { turnover_id: true, reference_id: true },
+    select: { turnover_id: true, reference_id: true, archived_at: true },
   });
   if (!existing) throw new HttpError(404, 'Wildlife record not found.');
+  assertNotArchived(existing, 'wildlife record');
 
   const data = {};
   if (input.staff_notes !== undefined) data.staff_notes = input.staff_notes || null;
@@ -222,9 +228,10 @@ async function addCustodyPhotos(staffId, idOrRef, newPaths, ctx = {}) {
   }
   const existing = await prisma.wildlifeTurnover.findFirst({
     where: whereFor(idOrRef),
-    select: { turnover_id: true, reference_id: true, chain_of_custody_photos: true },
+    select: { turnover_id: true, reference_id: true, chain_of_custody_photos: true, archived_at: true },
   });
   if (!existing) throw new HttpError(404, 'Wildlife record not found.');
+  assertNotArchived(existing, 'wildlife record');
 
   const current = Array.isArray(existing.chain_of_custody_photos) ? existing.chain_of_custody_photos : [];
   const updated = [...current, ...newPaths];
@@ -250,9 +257,10 @@ async function removeCustodyPhoto(staffId, idOrRef, targetPath, ctx = {}) {
   if (!targetPath) throw new HttpError(422, 'No photo was specified.');
   const existing = await prisma.wildlifeTurnover.findFirst({
     where: whereFor(idOrRef),
-    select: { turnover_id: true, reference_id: true, chain_of_custody_photos: true },
+    select: { turnover_id: true, reference_id: true, chain_of_custody_photos: true, archived_at: true },
   });
   if (!existing) throw new HttpError(404, 'Wildlife record not found.');
+  assertNotArchived(existing, 'wildlife record');
 
   const current = Array.isArray(existing.chain_of_custody_photos) ? existing.chain_of_custody_photos : [];
   const updated = current.filter((p) => p !== targetPath);

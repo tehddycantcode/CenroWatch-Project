@@ -6,6 +6,7 @@ const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
 const { createSequential } = require('../utils/createSequential');
 const { getSlaMinutes, addMinutes } = require('../utils/sla');
+const { withActive } = require('../utils/archive');
 
 const DETAIL_SELECT = {
   turnover_id: true,
@@ -107,7 +108,7 @@ async function createTurnover(userId, input, photoPath, ctx = {}) {
 
 function listMyTurnovers(userId) {
   return prisma.wildlifeTurnover.findMany({
-    where: { reported_by: userId },
+    where: withActive({ reported_by: userId }),
     orderBy: { submitted_at: 'desc' },
     select: LIST_SELECT,
   });
@@ -116,10 +117,12 @@ function listMyTurnovers(userId) {
 async function getMyTurnoverByRef(userId, referenceId) {
   const turnover = await prisma.wildlifeTurnover.findUnique({
     where: { reference_id: referenceId },
-    select: DETAIL_SELECT,
+    select: { ...DETAIL_SELECT, archived_at: true },
   });
-  if (!turnover) throw new HttpError(404, 'Report not found.');
+  // Archived reads as missing to its owner (see complaint.service).
+  if (!turnover || turnover.archived_at) throw new HttpError(404, 'Report not found.');
   if (turnover.reported_by !== userId) throw new HttpError(403, 'You can only view your own reports.');
+  delete turnover.archived_at;
   return turnover;
 }
 
