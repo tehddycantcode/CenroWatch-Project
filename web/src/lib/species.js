@@ -1,6 +1,16 @@
 // Curated wildlife reference content for the public Wildlife & Biodiversity
 // module. Educational only — species commonly encountered in the Laguna de Bay /
 // Cabuyao area. Conservation labels follow IUCN/DENR categories at a high level.
+//
+// ADDING A PHOTO
+// Drop the image in `web/public/species/` and set `photo` to its path, e.g.
+// `photo: '/species/philippine-duck.jpg'`. Cards without a photo fall back to
+// a text-only layout, so the grid stays correct while photos are collected.
+//
+// Use only public-domain or CC-licensed images and fill in `credit` so the
+// attribution renders under the species guide. An academic deliverable should
+// not ship photos it has no right to use. Aim for landscape shots around
+// 800px wide and under ~120KB so the page stays fast.
 
 export const CONSERVATION_TONE = {
   Endemic: { bg: 'bg-purple-100', fg: 'text-purple-800' },

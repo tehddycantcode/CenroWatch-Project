@@ -10,6 +10,9 @@ function StatusBadge({ status }) {
   return <span className={`rounded px-2 py-0.5 text-xs font-semibold ${tone.bg} ${tone.fg}`}>{status}</span>;
 }
 
+// Attribution for whichever species currently carry a photo.
+const credits = SPECIES.filter((s) => s.photo && s.credit).map((s) => ({ name: s.name, credit: s.credit }));
+
 export default function WildlifePage() {
   const [stats, setStats] = useState(null);
 
@@ -83,23 +86,42 @@ export default function WildlifePage() {
           </p>
           <div className="mx-auto mt-10 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {SPECIES.map((s) => (
-              <Card key={s.scientific} className="flex flex-col p-5">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-semibold text-foreground">{s.name}</h3>
-                    <p className="text-xs italic text-muted-foreground">{s.scientific}</p>
+              <Card key={s.scientific} className="flex flex-col overflow-hidden">
+                {/* Photo is optional: cards fall back to text only, so the grid
+                    stays consistent while images are still being sourced. */}
+                {s.photo && (
+                  <img
+                    src={s.photo}
+                    alt={s.name}
+                    loading="lazy"
+                    className="aspect-[4/3] w-full object-cover img-outline"
+                  />
+                )}
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-semibold text-foreground">{s.name}</h3>
+                      <p className="text-xs italic text-muted-foreground">{s.scientific}</p>
+                    </div>
+                    <StatusBadge status={s.status} />
                   </div>
-                  <StatusBadge status={s.status} />
-                </div>
-                <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{s.group}</div>
-                <p className="mt-3 flex-1 text-sm text-muted-foreground">{s.blurb}</p>
-                <div className="mt-4 rounded-lg bg-accent/40 p-3 text-xs text-foreground">
-                  <span className="font-semibold">If you find one: </span>
-                  {s.note}
+                  <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{s.group}</div>
+                  <p className="mt-3 flex-1 text-sm text-muted-foreground">{s.blurb}</p>
+                  <div className="mt-4 rounded-lg bg-accent/40 p-3 text-xs text-foreground">
+                    <span className="font-semibold">If you find one: </span>
+                    {s.note}
+                  </div>
                 </div>
               </Card>
             ))}
           </div>
+
+          {credits.length > 0 && (
+            <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-muted-foreground">
+              Photos: {credits.map((c) => `${c.name} (${c.credit})`).join('; ')}.
+            </p>
+          )}
+
           <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-muted-foreground">
             Educational reference only. Conservation status follows IUCN/DENR categories. Handling or trading
             protected wildlife is prohibited under R.A. 9147 (Wildlife Resources Conservation and Protection Act).
