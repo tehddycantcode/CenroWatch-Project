@@ -1,8 +1,41 @@
-import { MapPin } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, Printer } from 'lucide-react';
 import { fileUrl } from '@/lib/api';
 import MapView from '@/components/MapView';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/icons';
 
 // Small presentational helpers shared by the three staff detail pages.
+
+// Downloads the printable PDF of this report for CENRO hardcopy files.
+// `download` is the matching staffApi resource method (e.g.
+// staffApi.complaints.downloadReport).
+export function PrintReportButton({ download, id }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function run() {
+    setError('');
+    setBusy(true);
+    try {
+      await download(id);
+    } catch (e) {
+      setError(e.message || 'Could not generate the PDF.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <Button variant="outline" size="sm" onClick={run} disabled={busy}>
+        {busy ? <Spinner className="h-4 w-4" /> : <Printer className="h-4 w-4" aria-hidden="true" />}
+        Download PDF
+      </Button>
+      {error && <span className="text-xs text-destructive">{error}</span>}
+    </div>
+  );
+}
 
 // Where the resident pinned the report: coordinates + a mini-map with the pin
 // (single marker, camera centered on it). Renders nothing without geo/address;

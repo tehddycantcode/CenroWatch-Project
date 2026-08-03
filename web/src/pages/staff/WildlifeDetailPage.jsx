@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
-import { Rows, ReporterCard, Attachment, LocationBlock } from '@/components/staff/detail';
+import { Rows, ReporterCard, Attachment, LocationBlock, PrintReportButton } from '@/components/staff/detail';
 import { CHART_COLORS } from '@/components/admin/chart-colors';
 import CustodyPhotos from '@/components/staff/CustodyPhotos';
 
@@ -29,7 +29,10 @@ export default function WildlifeDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to={`${base}/wildlife`} className="text-sm font-medium text-primary hover:underline">← Wildlife</Link>
+      <div className="flex items-center justify-between gap-4">
+        <Link to={`${base}/wildlife`} className="text-sm font-medium text-primary hover:underline">← Wildlife</Link>
+        <PrintReportButton download={staffApi.wildlife.downloadReport} id={id} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

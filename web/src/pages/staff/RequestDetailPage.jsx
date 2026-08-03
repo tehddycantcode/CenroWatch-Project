@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
-import { Rows, ReporterCard, Attachment } from '@/components/staff/detail';
+import { Rows, ReporterCard, Attachment, PrintReportButton } from '@/components/staff/detail';
 
 export default function RequestDetailPage() {
   const { id } = useParams();
@@ -27,7 +27,10 @@ export default function RequestDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to={`${base}/requests`} className="text-sm font-medium text-primary hover:underline">← Requests</Link>
+      <div className="flex items-center justify-between gap-4">
+        <Link to={`${base}/requests`} className="text-sm font-medium text-primary hover:underline">← Requests</Link>
+        <PrintReportButton download={staffApi.requests.downloadReport} id={id} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

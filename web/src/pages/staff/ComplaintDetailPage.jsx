@@ -9,7 +9,7 @@ import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
-import { Rows, ReporterCard, Attachment, LocationBlock } from '@/components/staff/detail';
+import { Rows, ReporterCard, Attachment, LocationBlock, PrintReportButton } from '@/components/staff/detail';
 import { CHART_COLORS } from '@/components/admin/chart-colors';
 
 export default function ComplaintDetailPage() {
@@ -29,7 +29,10 @@ export default function ComplaintDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to={`${base}/complaints`} className="text-sm font-medium text-primary hover:underline">← Complaints</Link>
+      <div className="flex items-center justify-between gap-4">
+        <Link to={`${base}/complaints`} className="text-sm font-medium text-primary hover:underline">← Complaints</Link>
+        <PrintReportButton download={staffApi.complaints.downloadReport} id={id} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Details */}

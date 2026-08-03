@@ -184,6 +184,8 @@ function staffResource(name) {
     get: (id) => apiFetch(`/staff/${name}/${id}`),
     updateStatus: (id, body) => apiFetch(`/staff/${name}/${id}/status`, { method: 'PATCH', body }),
     update: (id, body) => apiFetch(`/staff/${name}/${id}`, { method: 'PATCH', body }),
+    // Printable copy of one report for CENRO hardcopy files.
+    downloadReport: (id) => downloadFile(`/staff/${name}/${id}/report`, `cenrowatch-${id}.pdf`),
   };
 }
 
