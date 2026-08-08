@@ -6,7 +6,7 @@ const prisma = require('../utils/prisma');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { signToken } = require('../utils/jwt');
 const { writeAuditLog } = require('../utils/audit');
-const { notifyPasswordReset } = require('../utils/notify');
+const { notifyPasswordReset, notifyPasswordResetUnavailable } = require('../utils/notify');
 const HttpError = require('../utils/httpError');
 
 const RESET_TTL_MINUTES = 60;
@@ -117,6 +117,12 @@ async function login(input, ctx = {}) {
  * ALWAYS resolves the same way; a token is only minted (and emailed) when an
  * active account actually matches. Any prior unused token for the user is
  * invalidated so only the newest link works.
+ *
+ * Every request sends SOME email to the typed address, so a person who mistyped
+ * their address (or never registered) is told so instead of waiting forever for
+ * a link. That answer travels by email on purpose: putting it in the API
+ * response would turn this public, unauthenticated endpoint into a way for
+ * anyone to test which addresses have accounts here.
  */
 async function requestPasswordReset(email, ctx = {}) {
   const user = await prisma.user.findUnique({ where: { email } });
@@ -141,6 +147,22 @@ async function requestPasswordReset(email, ctx = {}) {
 
     // Sends only if email is configured; never throws.
     await notifyPasswordReset({ to: user.email, name: user.first_name, token });
+  } else {
+    // No link is possible: either nothing is registered here, or the account
+    // is deactivated. Tell the mailbox owner which, so they stop waiting.
+    await writeAuditLog({
+      performedBy: user ? user.user_id : null,
+      action: user ? 'PASSWORD_RESET_INACTIVE' : 'PASSWORD_RESET_UNKNOWN_EMAIL',
+      targetTable: 'User',
+      targetId: user ? user.user_id : null,
+      // The attempted address is deliberately NOT stored for the unknown case:
+      // it belongs to someone with no account here, and the ip plus the volume
+      // of these entries is what actually reveals enumeration attempts.
+      data: {},
+      ipAddress: ctx.ipAddress || null,
+    });
+
+    await notifyPasswordResetUnavailable({ to: email, reason: user ? 'inactive' : 'no_account' });
   }
 
   return { ok: true };

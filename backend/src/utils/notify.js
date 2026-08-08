@@ -92,6 +92,51 @@ function notifyPasswordReset({ to, name, token }) {
   return sendMail({ to, subject, html, text });
 }
 
+/**
+ * Email someone whose reset request could NOT produce a link, so they stop
+ * waiting for one. Never throws.
+ *
+ * This is how the "your email is not registered" answer is delivered. It is
+ * deliberately NOT in the API response: the endpoint is public and anonymous,
+ * so answering there would let anyone test which addresses have accounts.
+ * Sent to the typed address, only the mailbox owner learns the answer.
+ *
+ * @param {Object} p
+ * @param {string} p.to      the address that was typed into the form
+ * @param {'no_account'|'inactive'} p.reason
+ */
+function notifyPasswordResetUnavailable({ to, reason }) {
+  const base = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const inactive = reason === 'inactive';
+
+  const subject = inactive
+    ? '[CENROWATCH] We could not reset your password'
+    : '[CENROWATCH] No CENROWATCH account uses this email';
+
+  const body = inactive
+    ? `<p>We received a request to reset the CENROWATCH password for this email address.</p>
+       <p>The account is registered, but it is currently inactive, so its password cannot be reset here. Please contact CENRO Cabuyao to have the account restored.</p>`
+    : `<p>We received a request to reset a CENROWATCH password for this email address.</p>
+       <p><strong>There is no CENROWATCH account registered with it</strong>, so there is nothing to reset. You may have signed up with a different email address.</p>
+       <p><a href="${base}/register" style="display:inline-block;background:#22a050;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">Create an account</a></p>`;
+
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto;color:#0f3d1f">
+      <h2 style="color:#22a050;margin-bottom:4px">CENROWATCH</h2>
+      <p style="color:#66756e;margin-top:0">CENRO Cabuyao · Environmental Monitoring</p>
+      ${body}
+      <p style="color:#66756e;font-size:12px;margin-top:24px">
+        If you did not request a password reset, you can safely ignore this email. No account was created or changed.
+      </p>
+    </div>`;
+
+  const text = inactive
+    ? `CENROWATCH Password reset\n\nWe received a request to reset the CENROWATCH password for this email address.\n\nThe account is registered, but it is currently inactive, so its password cannot be reset here. Please contact CENRO Cabuyao to have the account restored.\n\nIf you did not request this, ignore this email. No account was created or changed.`
+    : `CENROWATCH Password reset\n\nWe received a request to reset a CENROWATCH password for this email address.\n\nThere is no CENROWATCH account registered with it, so there is nothing to reset. You may have signed up with a different email address.\n\nCreate an account: ${base}/register\n\nIf you did not request this, ignore this email. No account was created or changed.`;
+
+  return sendMail({ to, subject, html, text });
+}
+
 function escapeHtml(s = '') {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -100,4 +145,4 @@ function escapeHtml(s = '') {
     .replace(/"/g, '&quot;');
 }
 
-module.exports = { notifyReportStatus, notifyPasswordReset };
+module.exports = { notifyReportStatus, notifyPasswordReset, notifyPasswordResetUnavailable };

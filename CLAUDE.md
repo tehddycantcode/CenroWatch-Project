@@ -73,6 +73,12 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   HTTP-based cleanup at the end silently fails — this once left the `juan` test account
   modified. Keep auth calls minimal, and restore/verify test data via Prisma directly
   (not the rate-limited HTTP endpoints).
+- **Scope test cleanup by id, never by a broad predicate:** cleaning up after a
+  verification I ran `auditLog.deleteMany({ action: 'PASSWORD_RESET_REQUEST',
+  performed_by: juan })` and it removed 2 rows — mine plus a historical one from the
+  June feature verification. Capture the ids (or a `performed_at` floor) BEFORE the
+  test and delete only those; a `deleteMany` on attributes alone cannot tell my row
+  from pre-existing data, and audit history is not recoverable.
 - **Proofread Edit strings for stray non-ASCII characters:** twice I injected garbage
   into code/strings (`.километрwithMessage`, `częuploads`). Copy `old_string` verbatim
   from a fresh Read, keep new code ASCII-only, and re-read after writing.

@@ -9,6 +9,7 @@ import { Alert } from '@/components/ui/alert';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -16,13 +17,29 @@ export default function ForgotPasswordPage() {
   async function onSubmit(e) {
     e.preventDefault();
     setError('');
+    // The form is noValidate, so without this a malformed address would spend
+    // one of the few attempts the /auth rate limiter allows per window.
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setFieldErrors({ email: 'Enter a valid email.' });
+      return;
+    }
+    setFieldErrors({});
     setSubmitting(true);
     try {
       await authApi.forgotPassword(email.trim());
       // The server responds the same way whether or not the email exists.
       setSent(true);
     } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.');
+      // Show the server's per-field message ("A valid email is required.")
+      // instead of the bare "Validation failed." envelope wrapped around it.
+      const mapped = {};
+      if (Array.isArray(err.errors)) {
+        for (const { field, message } of err.errors) mapped[field] = message;
+      }
+      setFieldErrors(mapped);
+      setError(
+        Object.keys(mapped).length ? '' : err.message || 'Something went wrong. Please try again.',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -43,13 +60,14 @@ export default function ForgotPasswordPage() {
     >
       {sent ? (
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">
-          If an account exists for <strong>{email.trim()}</strong>, we&apos;ve sent a password reset link.
-          Please check your inbox (and spam folder). The link expires in 1 hour.
+          We&apos;ve sent an email to <strong>{email.trim()}</strong>. If an account uses this
+          address, the email has a reset link that expires in 1 hour. If no account uses it, the
+          email will say so. Please check your inbox and your spam folder.
         </div>
       ) : (
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           {error && <Alert>{error}</Alert>}
-          <FormField id="email" label="Email">
+          <FormField id="email" label="Email" error={fieldErrors.email}>
             <Input
               id="email"
               type="email"

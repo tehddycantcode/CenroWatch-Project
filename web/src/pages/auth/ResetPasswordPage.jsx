@@ -12,29 +12,50 @@ export default function ResetPasswordPage() {
   const token = params.get('token') || '';
 
   const [form, setForm] = useState({ password: '', confirm: '' });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  function validate() {
+    const errs = {};
+    if (form.password.length < 8) errs.password = 'At least 8 characters.';
+    else if (!/[A-Za-z]/.test(form.password) || !/[0-9]/.test(form.password))
+      errs.password = 'Use both letters and numbers.';
+    if (form.confirm !== form.password) errs.confirm = 'Passwords do not match.';
+    return errs;
+  }
+
   async function onSubmit(e) {
     e.preventDefault();
     setError('');
-    if (form.password.length < 8 || !/[A-Za-z]/.test(form.password) || !/[0-9]/.test(form.password)) {
-      setError('Password must be at least 8 characters and include a letter and a number.');
-      return;
-    }
-    if (form.password !== form.confirm) {
-      setError('Passwords do not match.');
-      return;
-    }
+    const errs = validate();
+    setFieldErrors(errs);
+    if (Object.keys(errs).length) return;
+
     setSubmitting(true);
     try {
       await authApi.resetPassword(token, form.password);
       setDone(true);
     } catch (err) {
-      setError(err.message || 'Could not reset your password.');
+      // Put express-validator's per-field messages on the inputs. Anything
+      // with no field on this form (an invalid or expired token) stays in the
+      // banner, as does a plain error like the 400 for a spent link.
+      const mapped = {};
+      let banner = '';
+      if (Array.isArray(err.errors)) {
+        for (const { field, message } of err.errors) {
+          if (field === 'password') mapped.password = message;
+          else banner = message;
+        }
+      }
+      setFieldErrors(mapped);
+      setError(
+        banner ||
+          (Object.keys(mapped).length ? '' : err.message || 'Could not reset your password.'),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -60,7 +81,8 @@ export default function ResetPasswordPage() {
       ) : (
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           {error && <Alert>{error}</Alert>}
-          <FormField id="password" label="New password" hint="≥ 8 chars, a letter and a number">
+          <FormField id="password" label="New password" error={fieldErrors.password}
+            hint="At least 8 characters, with a letter and a number">
             <PasswordInput
               id="password"
               autoComplete="new-password"
@@ -70,7 +92,7 @@ export default function ResetPasswordPage() {
               required
             />
           </FormField>
-          <FormField id="confirm" label="Confirm new password">
+          <FormField id="confirm" label="Confirm new password" error={fieldErrors.confirm}>
             <PasswordInput
               id="confirm"
               autoComplete="new-password"
