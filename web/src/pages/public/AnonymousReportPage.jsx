@@ -156,7 +156,11 @@ export default function AnonymousReportPage() {
                   <span className={fieldErrors.consent ? 'text-destructive' : 'text-muted-foreground'}>
                     I understand this report is submitted anonymously under CENRO&apos;s whistleblower policy,
                     that my identity is not collected, and that the details I provide may be used to investigate
-                    the concern (R.A. 10173 compliant).
+                    the concern (R.A. 10173 compliant).{' '}
+                    <Link to="/privacy" target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">
+                      Read the privacy notice
+                    </Link>
+                    .
                   </span>
                 </label>
 

@@ -17,6 +17,7 @@ import PublicMapPage from '@/pages/public/PublicMapPage';
 import ReportsFeedPage from '@/pages/public/ReportsFeedPage';
 import AnonymousReportPage from '@/pages/public/AnonymousReportPage';
 import PublicTrackPage from '@/pages/public/PublicTrackPage';
+import PrivacyPage from '@/pages/public/PrivacyPage';
 import WildlifePage from '@/pages/public/WildlifePage';
 import StaffLayout from '@/components/staff/StaffLayout';
 import StaffDashboardPage from '@/pages/staff/StaffDashboardPage';
@@ -56,6 +57,7 @@ export default function App() {
       {/* Public anonymous/whistleblower reporting + status tracking (no auth) */}
       <Route path="/report-anonymous" element={<AnonymousReportPage />} />
       <Route path="/track" element={<PublicTrackPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
 
       {/* Public Wildlife & Biodiversity educational module (no auth) */}
       <Route path="/wildlife" element={<WildlifePage />} />

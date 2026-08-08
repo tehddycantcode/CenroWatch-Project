@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormField } from '@/components/ui/field';
 import { Alert } from '@/components/ui/alert';
+import { PrivacyDisclosure } from '@/components/PrivacyNotice';
 
 const EMPTY = {
   first_name: '',
@@ -148,12 +149,13 @@ export default function RegisterPage() {
             value={form.confirm_password} onChange={update('confirm_password')} />
         </FormField>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
+          <PrivacyDisclosure />
           <label className="flex items-start gap-2.5 text-xs leading-relaxed text-muted-foreground">
             <Checkbox checked={form.privacy_consent} onChange={update('privacy_consent')} />
             <span>
-              I consent to the processing of my personal data in accordance with R.A. 10173 (Data
-              Privacy Act of 2012).
+              I have read the privacy notice and consent to the processing of my personal data in
+              accordance with R.A. 10173 (Data Privacy Act of 2012).
             </span>
           </label>
           {fieldErrors.privacy_consent && (

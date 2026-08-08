@@ -21,6 +21,7 @@ export default function PublicHeader() {
           <Link to="/wildlife" className="hover:text-foreground">Wildlife</Link>
           <Link to="/track" className="hover:text-foreground">Track</Link>
           <Link to="/report-anonymous" className="hover:text-foreground">Report Anonymously</Link>
+          <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
           {/* The session resolves asynchronously; hold the space instead of
               flashing "Login" at someone who is already signed in. */}
           {loading ? (

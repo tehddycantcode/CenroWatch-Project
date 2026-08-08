@@ -254,6 +254,7 @@ export default function LandingPage() {
                 <li><Link to="/feed" className="transition-colors hover:text-foreground">Reports</Link></li>
                 <li><Link to="/wildlife" className="transition-colors hover:text-foreground">Wildlife</Link></li>
                 <li><Link to="/track" className="transition-colors hover:text-foreground">Track a Report</Link></li>
+                <li><Link to="/privacy" className="transition-colors hover:text-foreground">Privacy Notice</Link></li>
               </ul>
             </div>
             <div>

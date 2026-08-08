@@ -17,6 +17,7 @@ import Button from '../components/Button';
 import Checkbox from '../components/Checkbox';
 import BarangayPicker from '../components/BarangayPicker';
 import ErrorBanner from '../components/ErrorBanner';
+import { PRIVACY_SUMMARY, PRIVACY_SECTIONS, PRIVACY_UPDATED } from '../lib/privacy';
 
 export default function RegisterScreen({ onNavigate }) {
   const { register } = useAuth();
@@ -34,6 +35,7 @@ export default function RegisterScreen({ onNavigate }) {
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   useEffect(() => {
     api
@@ -163,10 +165,34 @@ export default function RegisterScreen({ onNavigate }) {
               error={fieldErrors.confirm_password}
             />
 
-            <View style={{ gap: 6, marginTop: 2 }}>
+            <View style={{ gap: 8, marginTop: 2 }}>
+              {/* Consent has to be informed, so the notice is readable here
+                  rather than only referenced by name. */}
+              <View style={styles.privacyBox}>
+                <Text style={styles.privacySummary}>{PRIVACY_SUMMARY}</Text>
+                <Pressable onPress={() => setShowPrivacy((v) => !v)} hitSlop={6}>
+                  <Text style={styles.privacyToggle}>
+                    {showPrivacy ? 'Hide the full privacy notice' : 'Read the full privacy notice'}
+                  </Text>
+                </Pressable>
+                {showPrivacy ? (
+                  <View style={styles.privacyBody}>
+                    {PRIVACY_SECTIONS.map((s) => (
+                      <View key={s.title} style={{ marginBottom: 12 }}>
+                        <Text style={styles.privacyHeading}>{s.title}</Text>
+                        {s.body.map((p) => (
+                          <Text key={p} style={styles.privacyText}>{p}</Text>
+                        ))}
+                      </View>
+                    ))}
+                    <Text style={styles.privacyUpdated}>Last updated {PRIVACY_UPDATED}.</Text>
+                  </View>
+                ) : null}
+              </View>
+
               <Checkbox checked={form.privacy_consent} onChange={set('privacy_consent')}>
-                I consent to the processing of my personal data in accordance with R.A. 10173 (Data
-                Privacy Act of 2012).
+                I have read the privacy notice and consent to the processing of my personal data in
+                accordance with R.A. 10173 (Data Privacy Act of 2012).
               </Checkbox>
               {fieldErrors.privacy_consent ? (
                 <Text style={styles.fieldErr}>{fieldErrors.privacy_consent}</Text>
@@ -197,6 +223,15 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 13, color: colors.muted, marginTop: 4 },
   row: { flexDirection: 'row', gap: 12 },
   fieldErr: { fontSize: 12, color: colors.danger, fontWeight: '500' },
+
+  privacyBox: { backgroundColor: colors.tint, borderRadius: 10, padding: 12 },
+  privacySummary: { fontSize: 12, color: colors.text, lineHeight: 18 },
+  privacyToggle: { fontSize: 12, color: colors.primary, fontWeight: '700', marginTop: 8 },
+  privacyBody: { marginTop: 10, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },
+  privacyHeading: { fontSize: 12, fontWeight: '700', color: colors.text },
+  privacyText: { fontSize: 12, color: colors.muted, lineHeight: 18, marginTop: 3 },
+  privacyUpdated: { fontSize: 11, color: colors.muted },
+
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 4 },
   footerText: { fontSize: 13, color: colors.muted },
   link: { fontSize: 13, color: colors.primary, fontWeight: '700' },
