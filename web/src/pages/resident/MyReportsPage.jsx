@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { complaintApi, wildlifeApi, requestApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
+import { COPY_TL } from '@/lib/tagalog';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
+import { StatusLegend } from '@/components/ui/status-legend';
 import { Spinner } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 
@@ -64,23 +66,32 @@ export default function MyReportsPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <Card className="p-8 text-center text-sm text-muted-foreground">No reports in this category yet.</Card>
+        <Card className="p-8 text-center text-sm text-muted-foreground">
+          No reports in this category yet.
+          <span className="mt-1 block text-muted-foreground/80">{COPY_TL.noReports}</span>
+        </Card>
       ) : (
         <Card className="divide-y">
+          {/* This is the page where a resident scans every report they filed,
+              so the color key belongs here as much as on the dashboard. */}
+          <StatusLegend />
           {filtered.map((r) => (
-            <Link key={r.id} to={`/resident/track/${r.id}`} className="flex items-center justify-between gap-4 p-4 hover:bg-accent/40">
+            <Link key={r.id} to={`/resident/track/${r.id}`} className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-accent/40">
               <div className="min-w-0">
-                <div className="truncate font-medium text-foreground">{r.title}</div>
+                <div className="font-medium text-foreground">{r.title}</div>
                 <div className="text-xs text-muted-foreground">
-                  {r.id} · Submitted {new Date(r.date).toLocaleString()}
+                  <span className="whitespace-nowrap tabular-nums">{r.id}</span> · Submitted{' '}
+                  <span className="whitespace-nowrap tabular-nums">
+                    {new Date(r.date).toLocaleString()}
+                  </span>
                 </div>
                 {r.observed && (
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs tabular-nums text-muted-foreground">
                     Observed {new Date(r.observed).toLocaleDateString()}
                   </div>
                 )}
               </div>
-              <StatusBadge status={r.status} stage />
+              <StatusBadge status={r.status} stage className="shrink-0" />
             </Link>
           ))}
         </Card>

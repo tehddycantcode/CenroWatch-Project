@@ -90,7 +90,7 @@ export default function StaffDashboardPage() {
           </div>
           <Link
             to="/staff/complaints"
-            className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-forest shadow-soft transition-all hover:shadow-soft-md"
+            className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-forest shadow-soft transition-shadow duration-150 ease-out hover:shadow-soft-md"
           >
             Open complaints queue
             <ArrowRight className="h-4 w-4" aria-hidden="true" />

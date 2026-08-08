@@ -1,0 +1,15 @@
+[
+  {
+    "date": "2026-08-08",
+    "scope": "redesign pass (public + resident surfaces)",
+    "genre": "modern-minimal",
+    "macrostructure": "unchanged (interaction/responsive/localization pass, not a re-shaping)",
+    "theme": "existing CENROWATCH brand palette (preserved, not a catalog pick)",
+    "theme_axes": "light / high-contrast-serif display (DM Serif Display) / chromatic-green accent",
+    "enrichment": "none (typography only)",
+    "nav": "resident: added fixed bottom tab bar below sm; public: wrapping nav row",
+    "footer": "unchanged",
+    "brief": "CENROWATCH - civic environmental reporting for CENRO Cabuyao. Utilitarian civic tone, inline English/Tagalog on comprehension-critical copy, kind-identity color coding preserved.",
+    "notes": "Palette is locked by the Figma brand + explicit user instruction, so no catalog theme was rotated in. No tokens.css emitted: web/src/index.css :root is already the token block and a parallel file would split the source of truth."
+  }
+]

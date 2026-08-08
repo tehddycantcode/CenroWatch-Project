@@ -120,8 +120,11 @@ export default function LandingPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
         <div className="container flex h-16 items-center justify-between">
+          {/* Seal only on phones: wordmark + "Report Now" together exceeded a
+              320px viewport and pushed the page into horizontal scroll. */}
           <Link to="/" aria-label="CENROWATCH home">
-            <CenroLogo withWordmark />
+            <CenroLogo withWordmark className="hidden sm:inline-flex" />
+            <CenroLogo className="sm:hidden" />
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground sm:flex">
             <Link to="/map" className="transition-colors hover:text-foreground">Heat Map</Link>
@@ -190,7 +193,7 @@ export default function LandingPage() {
               return (
                 <div key={s.label} className="rounded-xl border border-t-2 border-t-brand-accent bg-background p-6 text-center shadow-soft">
                   {meta && <IconChip icon={meta.icon} tone={meta.tone} size="sm" className="mx-auto" />}
-                  <div className="mt-3 text-3xl font-bold text-primary">{s.value}</div>
+                  <div className="mt-3 text-3xl font-bold tabular-nums text-primary">{s.value}</div>
                   <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">{s.label}</div>
                 </div>
               );
@@ -209,11 +212,11 @@ export default function LandingPage() {
             From the first report to a resolved case in three simple steps.
           </p>
           <div className="mx-auto mt-10 grid max-w-4xl gap-8 sm:grid-cols-3">
-            <Step n={1} icon={ClipboardList} tone="primary" title="Report"
+            <Step n={1} icon={ClipboardList} tone="primary" title="Report" titleTl="Mag-ulat"
               desc="File a complaint, wildlife turnover, or service request with a photo and a map pin." />
-            <Step n={2} icon={Search} tone="blue" title="Review"
+            <Step n={2} icon={Search} tone="blue" title="Review" titleTl="Suriin"
               desc="CENRO staff verify the report, set a priority, and begin processing within the SLA." />
-            <Step n={3} icon={CircleCheck} tone="forest" title="Resolve"
+            <Step n={3} icon={CircleCheck} tone="forest" title="Resolve" titleTl="Lutasin"
               desc="You are notified at every status change until the case is resolved or released." />
           </div>
         </div>

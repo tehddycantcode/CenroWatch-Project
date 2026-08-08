@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { complaintApi } from '@/lib/api';
 import { COMPLAINT_TYPES } from '@/lib/reports';
+import { FORM_TL, COPY_TL } from '@/lib/tagalog';
 import PublicHeader from '@/components/public/PublicHeader';
 import BarangaySelect from '@/components/resident/BarangaySelect';
 import PhotoField from '@/components/resident/PhotoField';
@@ -113,9 +114,15 @@ export default function AnonymousReportPage() {
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
                   Because this report is anonymous, CENRO cannot contact you for clarification. Include as much
                   detail as you safely can. Use the reference number you receive to check the status later.
+                  <span className="mt-1.5 block text-muted-foreground/80">{COPY_TL.anonymousHint}</span>
                 </div>
 
-                <FormField id="complaint_type" label="Complaint type" error={fieldErrors.complaint_type}>
+                <FormField
+                  id="complaint_type"
+                  label="Complaint type"
+                  hint={FORM_TL.complaint_type}
+                  error={fieldErrors.complaint_type}
+                >
                   <Select id="complaint_type" value={form.complaint_type} onChange={set('complaint_type')}>
                     <option value="">Select a type</option>
                     {COMPLAINT_TYPES.map((t) => (
@@ -124,11 +131,21 @@ export default function AnonymousReportPage() {
                   </Select>
                 </FormField>
 
-                <FormField id="barangay_id" label="Barangay" error={fieldErrors.barangay_id}>
+                <FormField
+                  id="barangay_id"
+                  label="Barangay"
+                  hint={FORM_TL.barangay}
+                  error={fieldErrors.barangay_id}
+                >
                   <BarangaySelect value={form.barangay_id} onChange={set('barangay_id')} />
                 </FormField>
 
-                <FormField id="description" label="Description" error={fieldErrors.description}>
+                <FormField
+                  id="description"
+                  label="Description"
+                  hint={FORM_TL.description}
+                  error={fieldErrors.description}
+                >
                   <Textarea
                     id="description"
                     rows={4}

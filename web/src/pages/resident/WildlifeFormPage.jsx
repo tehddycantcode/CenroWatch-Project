@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { wildlifeApi } from '@/lib/api';
 import { ANIMAL_CONDITIONS } from '@/lib/reports';
+import { FORM_TL } from '@/lib/tagalog';
 import { SPECIES } from '@/lib/species';
 import { Bird } from 'lucide-react';
 import ReportFormShell from '@/components/resident/ReportFormShell';
@@ -112,7 +113,12 @@ export default function WildlifeFormPage() {
       success={success}
       submitLabel="Submit Report"
     >
-      <FormField id="species_choice" label="Species" error={otherSpecies ? undefined : fieldErrors.species_name}>
+      <FormField
+        id="species_choice"
+        label="Species"
+        hint={FORM_TL.species_name}
+        error={otherSpecies ? undefined : fieldErrors.species_name}
+      >
         <Select id="species_choice" value={speciesChoice} onChange={onSpeciesChoice}>
           <option value="">Select a species</option>
           {speciesOptions.map((s) => (
@@ -137,7 +143,12 @@ export default function WildlifeFormPage() {
         <Input id="species_category" placeholder="Reptile / Bird / Mammal…" value={form.species_category} onChange={set('species_category')} />
       </FormField>
 
-      <FormField id="animal_condition" label="Animal condition" error={fieldErrors.animal_condition}>
+      <FormField
+        id="animal_condition"
+        label="Animal condition"
+        hint={FORM_TL.animal_condition}
+        error={fieldErrors.animal_condition}
+      >
         <Select id="animal_condition" value={form.animal_condition} onChange={set('animal_condition')}>
           <option value="">Select condition</option>
           {ANIMAL_CONDITIONS.map((c) => (
@@ -146,11 +157,11 @@ export default function WildlifeFormPage() {
         </Select>
       </FormField>
 
-      <FormField id="barangay_id" label="Barangay" error={fieldErrors.barangay_id}>
+      <FormField id="barangay_id" label="Barangay" hint={FORM_TL.barangay} error={fieldErrors.barangay_id}>
         <BarangaySelect value={form.barangay_id} onChange={set('barangay_id')} />
       </FormField>
 
-      <FormField id="description" label="Description" error={fieldErrors.description}>
+      <FormField id="description" label="Description" hint={FORM_TL.description} error={fieldErrors.description}>
         <Textarea id="description" rows={4} placeholder="Describe the animal and the situation." value={form.description} onChange={set('description')} />
       </FormField>
 
@@ -159,11 +170,11 @@ export default function WildlifeFormPage() {
         <span>I believe this is an endangered or protected species (flags it for priority review).</span>
       </label>
 
-      <FormField label="Location" hint="Optional: pin where it was found">
+      <FormField label="Location" hint={`Optional: pin where it was found. / ${FORM_TL.location}`}>
         <LocationField value={location} onChange={setLocation} />
       </FormField>
 
-      <FormField label="Photo" hint="Optional: helps identify the species">
+      <FormField label="Photo" hint={`Optional: helps identify the species. / ${FORM_TL.photo}`}>
         <PhotoField onChange={setPhoto} />
       </FormField>
     </ReportFormShell>

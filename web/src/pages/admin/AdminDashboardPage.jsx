@@ -81,7 +81,7 @@ export default function AdminDashboardPage() {
               type="button"
               onClick={downloadReport}
               disabled={downloading}
-              className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-forest shadow-soft transition-all hover:shadow-soft-md disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-forest shadow-soft transition-shadow duration-150 ease-out hover:shadow-soft-md disabled:opacity-60"
             >
               {downloading ? <Spinner className="h-4 w-4" /> : <Download className="h-4 w-4" aria-hidden="true" />}
               Download PDF report

@@ -15,13 +15,18 @@ export function LeafDivider({ className }) {
   );
 }
 
-// One step in the "How it works" strip.
-export function Step({ n, icon, title, desc, tone = 'primary' }) {
+// One step in the "How it works" strip. `titleTl` is the Tagalog companion for
+// the step name - the three steps are the first thing a first-time reporter
+// reads, so they carry both languages.
+export function Step({ n, icon, title, titleTl, desc, tone = 'primary' }) {
   return (
     <div className="flex flex-col items-center text-center">
       <IconChip icon={icon} tone={tone} size="lg" />
       <div className="mt-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Step {n}</div>
-      <div className="mt-1 font-semibold text-foreground">{title}</div>
+      <div className="mt-1 font-semibold text-foreground">
+        {title}
+        {titleTl && <span className="font-normal text-muted-foreground"> / {titleTl}</span>}
+      </div>
       <p className="mt-1 max-w-[16rem] text-sm text-muted-foreground">{desc}</p>
     </div>
   );

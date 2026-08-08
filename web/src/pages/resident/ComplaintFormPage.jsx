@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { complaintApi } from '@/lib/api';
 import { COMPLAINT_TYPES } from '@/lib/reports';
+import { FORM_TL } from '@/lib/tagalog';
 import ReportFormShell from '@/components/resident/ReportFormShell';
 import BarangaySelect from '@/components/resident/BarangaySelect';
 import PhotoField from '@/components/resident/PhotoField';
@@ -80,7 +81,12 @@ export default function ComplaintFormPage() {
       success={success}
       submitLabel="Submit Report"
     >
-      <FormField id="complaint_type" label="Complaint type" error={fieldErrors.complaint_type}>
+      <FormField
+        id="complaint_type"
+        label="Complaint type"
+        hint={FORM_TL.complaint_type}
+        error={fieldErrors.complaint_type}
+      >
         <Select id="complaint_type" value={form.complaint_type} onChange={set('complaint_type')}>
           <option value="">Select a type</option>
           {COMPLAINT_TYPES.map((t) => (
@@ -89,11 +95,21 @@ export default function ComplaintFormPage() {
         </Select>
       </FormField>
 
-      <FormField id="barangay_id" label="Barangay" error={fieldErrors.barangay_id}>
+      <FormField
+        id="barangay_id"
+        label="Barangay"
+        hint={FORM_TL.barangay}
+        error={fieldErrors.barangay_id}
+      >
         <BarangaySelect value={form.barangay_id} onChange={set('barangay_id')} />
       </FormField>
 
-      <FormField id="description" label="Description" error={fieldErrors.description}>
+      <FormField
+        id="description"
+        label="Description"
+        hint={FORM_TL.description}
+        error={fieldErrors.description}
+      >
         <Textarea
           id="description"
           rows={4}
@@ -106,7 +122,7 @@ export default function ComplaintFormPage() {
       <FormField
         id="observed_at"
         label="Date issue was observed"
-        hint="When did you actually see the problem? Defaults to today."
+        hint={`When did you actually see the problem? Defaults to today. / ${FORM_TL.observed_at}`}
       >
         <Input
           id="observed_at"
@@ -117,11 +133,15 @@ export default function ComplaintFormPage() {
         />
       </FormField>
 
-      <FormField label="Location" hint="Optional: pin where it happened">
+      <FormField label="Location" hint={`Optional: pin where it happened. / ${FORM_TL.location}`}>
         <LocationField value={location} onChange={setLocation} />
       </FormField>
 
-      <FormField label="Photo (required)" hint="Attach at least one photo as evidence." error={fieldErrors.photo}>
+      <FormField
+        label="Photo (required)"
+        hint={`Attach at least one photo as evidence. / ${FORM_TL.photo}`}
+        error={fieldErrors.photo}
+      >
         <PhotoField
           onChange={(f) => {
             photoRef.current = f;

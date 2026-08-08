@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TIMELINE_TL } from '@/lib/tagalog';
 
 // Canonical resident-visible step sequences per report kind. Built without an API
 // change - the report's current status is mapped onto its flow to mark progress.
@@ -21,6 +22,9 @@ function statusIndex(flow, status) {
 export function StatusTimeline({ kind, status, times = {} }) {
   const flow = FLOWS[kind] || FLOWS.complaint;
   const active = statusIndex(flow, status);
+  // Per-kind, because "Released" is a freed animal on a turnover but a
+  // delivered service on a request.
+  const tl = TIMELINE_TL[kind] || TIMELINE_TL.complaint;
   return (
     <ol className="space-y-0">
       {flow.map((label, i) => {
@@ -48,8 +52,13 @@ export function StatusTimeline({ kind, status, times = {} }) {
             <div className="pb-6">
               <div className={cn('text-sm font-semibold', current ? 'text-primary' : done ? 'text-foreground' : 'text-muted-foreground')}>
                 {label}
+                {tl[label] && (
+                  <span className="ml-1.5 font-normal text-muted-foreground">/ {tl[label]}</span>
+                )}
               </div>
-              {times[label] && <div className="text-xs text-muted-foreground">{times[label]}</div>}
+              {times[label] && (
+                <div className="text-xs tabular-nums text-muted-foreground">{times[label]}</div>
+              )}
             </div>
           </li>
         );

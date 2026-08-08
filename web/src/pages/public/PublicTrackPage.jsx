@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { complaintApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
+import { COPY_TL } from '@/lib/tagalog';
 import { fmtDate } from '@/lib/staff';
 import PublicHeader from '@/components/public/PublicHeader';
 import { Card } from '@/components/ui/card';
@@ -56,6 +57,7 @@ export default function PublicTrackPage() {
             <p className="mt-1 text-muted-foreground">
               Enter the reference number you received (e.g. CMP-2026-00001) to see its current status.
             </p>
+            <p className="mt-1 text-sm text-muted-foreground/80">{COPY_TL.trackHint}</p>
           </div>
 
           <Card className="p-6">
@@ -78,9 +80,11 @@ export default function PublicTrackPage() {
                     <div className="text-xs uppercase tracking-wide text-muted-foreground">Reference</div>
                     <div className="font-mono text-lg font-semibold">{result.tracking_id}</div>
                   </div>
-                  <StatusBadge status={result.status} />
+                  {/* `stage` so a public lookup shows the same three-stage
+                      label the resident sees, not the raw internal status. */}
+                  <StatusBadge status={result.status} stage />
                 </div>
-                <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-sm">
+                <dl className="grid grid-cols-1 gap-4 border-t pt-4 text-sm sm:grid-cols-2">
                   <div>
                     <dt className="text-xs uppercase tracking-wide text-muted-foreground">Type</dt>
                     <dd className="mt-0.5">{humanize(result.complaint_type)}</dd>

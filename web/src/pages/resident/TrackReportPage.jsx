@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { MapPin, ArrowLeft } from 'lucide-react';
 import { complaintApi, wildlifeApi, requestApi, fileUrl } from '@/lib/api';
 import { trackingKind, KIND, humanize } from '@/lib/reports';
+import { KIND_TL, COPY_TL } from '@/lib/tagalog';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { StatusTimeline } from '@/components/resident/StatusTimeline';
@@ -133,25 +134,30 @@ export default function TrackReportPage() {
       <Card className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            <div className="text-xs uppercase tracking-wide tabular-nums text-muted-foreground">
               {KIND[kind].label} · {view.id}
             </div>
             <h1 className="mt-1 font-display text-2xl">{view.title}</h1>
+            <div className="text-sm text-muted-foreground">{KIND_TL[kind]}</div>
           </div>
           <StatusBadge status={view.status} stage />
         </div>
 
-        <dl className="mt-6 grid grid-cols-2 gap-4">
+        {/* One column on a phone: values like "Improper Hazardous Waste
+            Storage" have nowhere to go in a 2-up grid at 320px. */}
+        <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {view.rows.map(([label, value]) => (
             <div key={label}>
               <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
-              <dd className="mt-0.5 text-sm text-foreground">{value || '—'}</dd>
+              <dd className="mt-0.5 text-sm tabular-nums text-foreground">{value || '—'}</dd>
             </div>
           ))}
         </dl>
 
         <div className="mt-6">
-          <div className="text-xs uppercase tracking-wide text-muted-foreground">Description</div>
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            Description <span className="normal-case tracking-normal">/ {COPY_TL.description}</span>
+          </div>
           <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{view.description}</p>
         </div>
 
@@ -164,7 +170,9 @@ export default function TrackReportPage() {
 
         {view.notes && (
           <div className="mt-6 rounded-lg bg-accent/50 p-4">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">CENRO notes</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+              CENRO notes <span className="normal-case tracking-normal">/ {COPY_TL.cenroNotes}</span>
+            </div>
             <p className="mt-1 text-sm text-foreground">{view.notes}</p>
           </div>
         )}
@@ -184,14 +192,19 @@ export default function TrackReportPage() {
       </Card>
 
       <Card className="p-6">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground">Progress</div>
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">
+          Progress <span className="normal-case tracking-normal">/ {COPY_TL.progress}</span>
+        </div>
         <div className="mt-4">
           <StatusTimeline kind={kind} status={view.status} times={times} />
         </div>
 
         {view.status_history?.length > 0 && (
           <div className="mt-6 border-t pt-5">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Updates from CENRO</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+              Updates from CENRO{' '}
+              <span className="normal-case tracking-normal">/ {COPY_TL.updatesFromCenro}</span>
+            </div>
             <div className="mt-4">
               <ReportUpdates history={view.status_history} />
             </div>

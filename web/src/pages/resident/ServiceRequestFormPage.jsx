@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { requestApi } from '@/lib/api';
 import { REQUEST_TYPES } from '@/lib/reports';
+import { FORM_TL } from '@/lib/tagalog';
 import { Sprout } from 'lucide-react';
 import ReportFormShell from '@/components/resident/ReportFormShell';
 import BarangaySelect from '@/components/resident/BarangaySelect';
@@ -77,7 +78,12 @@ export default function ServiceRequestFormPage() {
       success={success}
       submitLabel="Submit Request"
     >
-      <FormField id="request_type" label="Service type" error={fieldErrors.request_type}>
+      <FormField
+        id="request_type"
+        label="Service type"
+        hint={FORM_TL.request_type}
+        error={fieldErrors.request_type}
+      >
         <Select id="request_type" value={form.request_type} onChange={set('request_type')}>
           <option value="">Select a service</option>
           {REQUEST_TYPES.map((t) => (
@@ -86,24 +92,29 @@ export default function ServiceRequestFormPage() {
         </Select>
       </FormField>
 
-      <FormField id="barangay_id" label="Barangay" error={fieldErrors.barangay_id}>
+      <FormField id="barangay_id" label="Barangay" hint={FORM_TL.barangay} error={fieldErrors.barangay_id}>
         <BarangaySelect value={form.barangay_id} onChange={set('barangay_id')} />
       </FormField>
 
-      <FormField id="description" label="Description" error={fieldErrors.description}>
+      <FormField id="description" label="Description" hint={FORM_TL.description} error={fieldErrors.description}>
         <Textarea id="description" rows={4} placeholder="Describe what you need and why." value={form.description} onChange={set('description')} />
       </FormField>
 
-      <div className="grid grid-cols-2 gap-3">
-        <FormField id="requested_quantity" label="Quantity" hint="Optional: e.g. seedlings">
+      {/* Stacks on a phone: two number/date inputs side by side at 320px
+          leaves each about 130px wide, and the date picker overflows. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <FormField id="requested_quantity" label="Quantity" hint={`Optional. / ${FORM_TL.quantity}`}>
           <Input id="requested_quantity" type="number" min="1" placeholder="e.g. 50" value={form.requested_quantity} onChange={set('requested_quantity')} />
         </FormField>
-        <FormField id="preferred_schedule" label="Preferred date" hint="Optional">
+        <FormField id="preferred_schedule" label="Preferred date" hint={`Optional. / ${FORM_TL.schedule}`}>
           <Input id="preferred_schedule" type="date" value={form.preferred_schedule} onChange={set('preferred_schedule')} />
         </FormField>
       </div>
 
-      <FormField label="Supporting document" hint="Optional: image or PDF (e.g. a letter)">
+      <FormField
+        label="Supporting document"
+        hint={`Optional: image or PDF (e.g. a letter). / ${FORM_TL.document}`}
+      >
         <PhotoField onChange={setDoc} accept="image/*,application/pdf" label="Tap to attach a file" />
       </FormField>
     </ReportFormShell>

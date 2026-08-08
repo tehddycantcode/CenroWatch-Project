@@ -4,6 +4,7 @@ import { FileText, Clock, CircleCheck, Bird, Trash2, Sprout, ArrowRight } from '
 import { useAuth } from '@/context/AuthContext';
 import { complaintApi, wildlifeApi, requestApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
+import { ACTION_TL, STAT_TL, COPY_TL } from '@/lib/tagalog';
 import { cn } from '@/lib/utils';
 import { Card, cardHover } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
@@ -47,6 +48,9 @@ function Stat({ icon, tone, label, value }) {
       <IconChip icon={icon} tone={tone} size="sm" />
       <div className="mt-3 text-3xl font-bold tabular-nums text-primary">{value}</div>
       <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      {STAT_TL[label] && (
+        <div className="text-xs text-muted-foreground/80">{STAT_TL[label]}</div>
+      )}
     </Card>
   );
 }
@@ -91,7 +95,7 @@ export default function DashboardPage() {
             <p className="mt-1 text-white/80">Cabuyao Environmental Monitor</p>
             <Link
               to="/resident/report-complaint"
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-forest shadow-soft transition-all hover:shadow-soft-md"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-forest shadow-soft transition-shadow duration-150 ease-out hover:shadow-soft-md"
             >
               File a report
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -128,9 +132,15 @@ export default function DashboardPage() {
                 <IconChip icon={k.icon} tone={k.tone} size="lg" />
                 <div className="mt-3 flex items-center gap-1 font-semibold text-foreground">
                   {a.title}
-                  <ArrowRight className="h-4 w-4 text-primary transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                  <ArrowRight className="h-4 w-4 shrink-0 text-primary transition-transform duration-150 ease-out group-hover:translate-x-1" aria-hidden="true" />
                 </div>
-                <div className="mt-1 text-sm text-muted-foreground">{a.desc}</div>
+                {ACTION_TL[a.to] && (
+                  <div className="text-sm font-medium text-primary">{ACTION_TL[a.to].title}</div>
+                )}
+                <div className="mt-1.5 text-sm text-muted-foreground">{a.desc}</div>
+                {ACTION_TL[a.to] && (
+                  <div className="text-sm text-muted-foreground/80">{ACTION_TL[a.to].desc}</div>
+                )}
               </Link>
             );
           })}
@@ -147,6 +157,7 @@ export default function DashboardPage() {
         {recent.length === 0 ? (
           <Card className="p-8 text-center text-sm text-muted-foreground">
             You haven&apos;t filed any reports yet. Use an action above to get started.
+            <span className="mt-1 block text-muted-foreground/80">{COPY_TL.noReports}</span>
           </Card>
         ) : (
           <Card className="divide-y">
@@ -156,13 +167,18 @@ export default function DashboardPage() {
               return (
                 <Link key={r.id} to={`/resident/track/${r.id}`} className="flex items-center gap-4 p-4 transition-colors hover:bg-accent/40">
                   <IconChip icon={k.icon} tone={k.tone} size="sm" />
+                  {/* Titles wrap rather than truncate: at 320px the badge left
+                      so little room that "Open Burning" rendered "Open Burni...". */}
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium text-foreground">{r.title}</div>
+                    <div className="font-medium text-foreground">{r.title}</div>
                     <div className="text-xs text-muted-foreground">
-                      {r.id} · Submitted {new Date(r.date).toLocaleDateString()}
+                      <span className="whitespace-nowrap tabular-nums">{r.id}</span> · Submitted{' '}
+                      <span className="whitespace-nowrap tabular-nums">
+                        {new Date(r.date).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
-                  <StatusBadge status={r.status} stage />
+                  <StatusBadge status={r.status} stage className="shrink-0" />
                 </Link>
               );
             })}
