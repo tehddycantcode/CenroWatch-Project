@@ -3,6 +3,7 @@ import { TextInput, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { REQUEST_TYPES } from '../../lib/reports';
+import { FORM_TL } from '../../lib/tagalog';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
 import ReportFormShell, { Field } from '../../components/ReportFormShell';
@@ -80,6 +81,7 @@ export default function RequestFormScreen() {
     >
       <Select
         label="Service type"
+        hint={FORM_TL.request_type}
         options={REQUEST_TYPES}
         value={form.request_type}
         onChange={set('request_type')}
@@ -91,10 +93,11 @@ export default function RequestFormScreen() {
         items={barangays}
         value={form.barangay_id}
         onChange={set('barangay_id')}
+        hint={FORM_TL.barangay}
         error={fieldErrors.barangay_id}
       />
 
-      <Field label="Description" error={fieldErrors.description}>
+      <Field label="Description" hint={FORM_TL.description} error={fieldErrors.description}>
         <TextInput
           style={styles.textarea}
           placeholder="Tell us what you need and any helpful detail."
@@ -107,7 +110,7 @@ export default function RequestFormScreen() {
         />
       </Field>
 
-      <Field label="Quantity" hint="Optional: e.g. number of seedlings">
+      <Field label="Quantity" hint={`Optional: e.g. number of seedlings. / ${FORM_TL.quantity}`}>
         <TextInput
           style={styles.input}
           placeholder="e.g. 25"
@@ -118,7 +121,7 @@ export default function RequestFormScreen() {
         />
       </Field>
 
-      <Field label="Preferred date" hint="Optional: format YYYY-MM-DD" error={fieldErrors.preferred_schedule}>
+      <Field label="Preferred date" hint={`Optional: format YYYY-MM-DD. / ${FORM_TL.schedule}`} error={fieldErrors.preferred_schedule}>
         <TextInput
           style={styles.input}
           placeholder="2026-06-25"

@@ -134,12 +134,12 @@ export default function DashboardPage() {
                   {a.title}
                   <ArrowRight className="h-4 w-4 shrink-0 text-primary transition-transform duration-150 ease-out group-hover:translate-x-1" aria-hidden="true" />
                 </div>
-                {ACTION_TL[a.to] && (
-                  <div className="text-sm font-medium text-primary">{ACTION_TL[a.to].title}</div>
+                {ACTION_TL[a.kind] && (
+                  <div className="text-sm font-medium text-primary">{ACTION_TL[a.kind].title}</div>
                 )}
                 <div className="mt-1.5 text-sm text-muted-foreground">{a.desc}</div>
-                {ACTION_TL[a.to] && (
-                  <div className="text-sm text-muted-foreground/80">{ACTION_TL[a.to].desc}</div>
+                {ACTION_TL[a.kind] && (
+                  <div className="text-sm text-muted-foreground/80">{ACTION_TL[a.kind].desc}</div>
                 )}
               </Link>
             );

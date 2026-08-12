@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { ANIMAL_CONDITIONS, WILDLIFE_SPECIES } from '../../lib/reports';
+import { FORM_TL } from '../../lib/tagalog';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
 import ReportFormShell, { Field } from '../../components/ReportFormShell';
@@ -108,6 +109,7 @@ export default function WildlifeFormScreen() {
     >
       <Select
         label="Species"
+        hint={FORM_TL.species_name}
         options={WILDLIFE_SPECIES}
         value={speciesChoice}
         onChange={onSpeciesChoice}
@@ -139,6 +141,7 @@ export default function WildlifeFormScreen() {
 
       <Select
         label="Animal condition"
+        hint={FORM_TL.animal_condition}
         options={ANIMAL_CONDITIONS}
         value={form.animal_condition}
         onChange={set('animal_condition')}
@@ -150,10 +153,11 @@ export default function WildlifeFormScreen() {
         items={barangays}
         value={form.barangay_id}
         onChange={set('barangay_id')}
+        hint={FORM_TL.barangay}
         error={fieldErrors.barangay_id}
       />
 
-      <Field label="Description" error={fieldErrors.description}>
+      <Field label="Description" hint={FORM_TL.description} error={fieldErrors.description}>
         <TextInput
           style={styles.textarea}
           placeholder="Describe the animal and the situation."
@@ -172,11 +176,11 @@ export default function WildlifeFormScreen() {
         </Checkbox>
       </View>
 
-      <Field label="Location" hint="Optional: pin where it was found">
+      <Field label="Location" hint={`Optional: pin where it was found. / ${FORM_TL.location}`}>
         <LocationField value={location} onChange={setLocation} />
       </Field>
 
-      <Field label="Photo" hint="Optional: helps identify the species">
+      <Field label="Photo" hint={`Optional: helps identify the species. / ${FORM_TL.photo}`}>
         <PhotoPicker onChange={setPhoto} />
       </Field>
     </ReportFormShell>

@@ -2,6 +2,11 @@
 // correctly, not just read: status stages, timeline steps, the report kinds,
 // and the guidance on the report forms.
 //
+// DUPLICATE OF web/src/lib/tagalog.js. Mobile cannot import from web/src
+// (see AGENTS.md), so the two copies must be kept in sync by hand. Everything
+// below the header is intentionally byte-identical to the web copy - if you
+// change a string here, change it there too.
+//
 // This is NOT an i18n system. There is no locale switch and no lookup at the
 // call site - English stays the primary label and the Tagalog sits beside or
 // beneath it, so a resident who reads either one gets the same meaning. That

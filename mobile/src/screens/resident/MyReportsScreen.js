@@ -12,10 +12,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { humanize } from '../../lib/reports';
+import { COPY_TL } from '../../lib/tagalog';
 import { colors, radius } from '../../theme';
 import { useResidentNav } from '../../navigation/navContext';
 import ScreenHeader from '../../components/ScreenHeader';
 import StatusBadge from '../../components/StatusBadge';
+import StatusLegend from '../../components/StatusLegend';
 
 const TABS = [
   { key: 'all', label: 'All' },
@@ -93,9 +95,13 @@ export default function MyReportsScreen() {
         ) : filtered.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>No reports in this category yet.</Text>
+            <Text style={styles.emptyTextTl}>{COPY_TL.noReports}</Text>
           </View>
         ) : (
           <View style={styles.list}>
+            {/* This is the screen where a resident scans every report they
+                filed, so the color key belongs here, not only on the dashboard. */}
+            <StatusLegend />
             {filtered.map((r, i) => (
               <Pressable
                 key={r.id}
@@ -140,4 +146,5 @@ const styles = StyleSheet.create({
 
   empty: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: 24, marginTop: 4 },
   emptyText: { fontSize: 13, color: colors.muted, textAlign: 'center' },
+  emptyTextTl: { fontSize: 13, color: colors.muted, opacity: 0.8, textAlign: 'center', marginTop: 4 },
 });

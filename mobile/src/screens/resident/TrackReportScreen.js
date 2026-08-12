@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { api, fileUrl } from '../../api/client';
 import { trackingKind, KIND, humanize } from '../../lib/reports';
+import { KIND_TL, COPY_TL } from '../../lib/tagalog';
 import { colors, radius } from '../../theme';
 import { useResidentNav } from '../../navigation/navContext';
 import ScreenHeader from '../../components/ScreenHeader';
@@ -134,6 +135,7 @@ export default function TrackReportScreen({ id }) {
                   {KIND[kind].label} · {view.id}
                 </Text>
                 <Text style={styles.title}>{view.title}</Text>
+                {KIND_TL[kind] ? <Text style={styles.titleTl}>{KIND_TL[kind]}</Text> : null}
               </View>
               <StatusBadge status={view.status} stage />
             </View>
@@ -148,7 +150,9 @@ export default function TrackReportScreen({ id }) {
             </View>
 
             <View style={styles.block}>
-              <Text style={styles.rowLabel}>Description</Text>
+              <Text style={styles.rowLabel}>
+                Description<Text style={styles.rowLabelTl}> / {COPY_TL.description}</Text>
+              </Text>
               <Text style={styles.description}>{view.description}</Text>
             </View>
 
@@ -160,14 +164,19 @@ export default function TrackReportScreen({ id }) {
 
             {view.notes ? (
               <View style={styles.notes}>
-                <Text style={styles.rowLabel}>CENRO notes</Text>
+                <Text style={styles.rowLabel}>
+                  CENRO notes<Text style={styles.rowLabelTl}> / {COPY_TL.cenroNotes}</Text>
+                </Text>
                 <Text style={styles.notesText}>{view.notes}</Text>
               </View>
             ) : null}
 
             {view.history.length > 0 ? (
               <View style={styles.updates}>
-                <Text style={styles.rowLabel}>Updates from CENRO</Text>
+                <Text style={styles.rowLabel}>
+                  Updates from CENRO
+                  <Text style={styles.rowLabelTl}> / {COPY_TL.updatesFromCenro}</Text>
+                </Text>
                 {view.history.map((h) => (
                   <View key={h.changed_at} style={styles.update}>
                     <View style={styles.updateHead}>
@@ -184,7 +193,9 @@ export default function TrackReportScreen({ id }) {
 
             {mediaUrl ? (
               <View style={styles.block}>
-                <Text style={styles.rowLabel}>Attachment</Text>
+                <Text style={styles.rowLabel}>
+                  Attachment<Text style={styles.rowLabelTl}> / {COPY_TL.attachment}</Text>
+                </Text>
                 {isPdf ? (
                   <Pressable onPress={() => Linking.openURL(mediaUrl)} style={{ marginTop: 6 }}>
                     <Text style={styles.link}>View document (PDF)</Text>
@@ -208,10 +219,14 @@ const styles = StyleSheet.create({
   cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   kindLine: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.muted },
   title: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 3 },
+  titleTl: { fontSize: 14, color: colors.muted, marginTop: 2 },
 
   rows: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 18 },
   rowItem: { width: '50%', marginBottom: 14 },
   rowLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.muted },
+  // Nested Text inherits textTransform in RN, so the Tagalog half has to opt
+  // back out or it renders shouting in caps.
+  rowLabelTl: { textTransform: 'none', letterSpacing: 0, opacity: 0.8 },
   rowValue: { fontSize: 14, color: colors.text, marginTop: 2 },
 
   block: { marginTop: 6 },

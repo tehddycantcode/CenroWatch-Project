@@ -6,7 +6,7 @@ import { colors, radius } from '../theme';
 const EMPTY_ITEMS = [];
 
 // Dropdown built from RN core (Modal + FlatList) — no extra picker dependency.
-export default function BarangayPicker({ items = EMPTY_ITEMS, value, onChange, label = 'Barangay', error }) {
+export default function BarangayPicker({ items = EMPTY_ITEMS, value, onChange, label = 'Barangay', hint, error }) {
   const [open, setOpen] = useState(false);
   const selected = items.find((i) => String(i.barangay_id) === String(value));
 
@@ -38,7 +38,12 @@ export default function BarangayPicker({ items = EMPTY_ITEMS, value, onChange, l
         </Text>
         <Text style={styles.chevron}>▾</Text>
       </Pressable>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {/* Error wins over hint, matching Field in ReportFormShell. */}
+      {error ? (
+        <Text style={styles.error}>{error}</Text>
+      ) : hint ? (
+        <Text style={styles.hint}>{hint}</Text>
+      ) : null}
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
@@ -74,6 +79,7 @@ const styles = StyleSheet.create({
   fieldText: { fontSize: 15, color: colors.text },
   chevron: { fontSize: 14, color: colors.muted },
   error: { fontSize: 12, color: colors.danger, fontWeight: '500' },
+  hint: { fontSize: 12, color: colors.muted },
   backdrop: { flex: 1, backgroundColor: 'rgba(15,61,31,0.45)', justifyContent: 'center', padding: 24 },
   sheet: { backgroundColor: colors.white, borderRadius: radius.lg, padding: 16, paddingBottom: 8 },
   sheetTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 8 },

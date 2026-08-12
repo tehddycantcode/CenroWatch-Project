@@ -3,6 +3,7 @@ import { TextInput, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { COMPLAINT_TYPES } from '../../lib/reports';
+import { FORM_TL } from '../../lib/tagalog';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
 import ReportFormShell, { Field } from '../../components/ReportFormShell';
@@ -88,6 +89,7 @@ export default function ComplaintFormScreen() {
     >
       <Select
         label="Complaint type"
+        hint={FORM_TL.complaint_type}
         options={COMPLAINT_TYPES}
         value={form.complaint_type}
         onChange={set('complaint_type')}
@@ -99,10 +101,11 @@ export default function ComplaintFormScreen() {
         items={barangays}
         value={form.barangay_id}
         onChange={set('barangay_id')}
+        hint={FORM_TL.barangay}
         error={fieldErrors.barangay_id}
       />
 
-      <Field label="Description" error={fieldErrors.description}>
+      <Field label="Description" hint={FORM_TL.description} error={fieldErrors.description}>
         <TextInput
           style={styles.textarea}
           placeholder="Describe what you observed, when, and where."
@@ -125,7 +128,7 @@ export default function ComplaintFormScreen() {
         />
       </Field>
 
-      <Field label="Date issue was observed" hint="When you saw it (YYYY-MM-DD). Defaults to today." error={fieldErrors.observed_at}>
+      <Field label="Date issue was observed" hint={`When you saw it (YYYY-MM-DD). Defaults to today. / ${FORM_TL.observed_at}`} error={fieldErrors.observed_at}>
         <TextInput
           style={styles.input}
           placeholder="YYYY-MM-DD"
@@ -137,11 +140,11 @@ export default function ComplaintFormScreen() {
         />
       </Field>
 
-      <Field label="Location" hint="Optional: pin where it happened">
+      <Field label="Location" hint={`Optional: pin where it happened. / ${FORM_TL.location}`}>
         <LocationField value={location} onChange={setLocation} />
       </Field>
 
-      <Field label="Photo (required)" hint="Attach at least one photo as evidence." error={fieldErrors.photo}>
+      <Field label="Photo (required)" hint={`Attach at least one photo as evidence. / ${FORM_TL.photo}`} error={fieldErrors.photo}>
         <PhotoPicker
           onChange={(f) => {
             photoRef.current = f;

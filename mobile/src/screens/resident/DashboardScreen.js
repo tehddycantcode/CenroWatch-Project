@@ -12,12 +12,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { humanize } from '../../lib/reports';
+import { ACTION_TL, STAT_TL, COPY_TL } from '../../lib/tagalog';
 import { colors, radius } from '../../theme';
 import { useResidentNav } from '../../navigation/navContext';
 import StatusBadge from '../../components/StatusBadge';
+import StatusLegend from '../../components/StatusLegend';
 
 const DONE = ['Resolved', 'Completed', 'Released'];
 
+// `screen` doubles as the report kind, which is how ACTION_TL is keyed.
 const ACTIONS = [
   { screen: 'complaint', emoji: '🗑️', title: 'Report a Complaint', desc: 'Illegal dumping, burning, noise, pollution…' },
   { screen: 'wildlife', emoji: '🦅', title: 'Wildlife Turnover', desc: 'Report or turn over rescued wildlife.' },
@@ -113,7 +116,13 @@ export default function DashboardScreen() {
               <Text style={styles.actionEmoji}>{a.emoji}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.actionTitle}>{a.title}</Text>
+                {ACTION_TL[a.screen] ? (
+                  <Text style={styles.actionTitleTl}>{ACTION_TL[a.screen].title}</Text>
+                ) : null}
                 <Text style={styles.actionDesc}>{a.desc}</Text>
+                {ACTION_TL[a.screen] ? (
+                  <Text style={styles.actionDescTl}>{ACTION_TL[a.screen].desc}</Text>
+                ) : null}
               </View>
               <Text style={styles.chevron}>›</Text>
             </Pressable>
@@ -137,6 +146,7 @@ export default function DashboardScreen() {
             <Text style={styles.emptyText}>
               You haven&apos;t filed any reports yet. Use an action above to get started.
             </Text>
+            <Text style={styles.emptyTextTl}>{COPY_TL.noReports}</Text>
           </View>
         ) : (
           <View style={styles.list}>
@@ -168,28 +178,7 @@ function Stat({ label, value }) {
     <View style={styles.stat}>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
-// Legend for the recent list: the three lifecycle stages (adviser model, see
-// statusStage in lib/reports). Rejected/Deceased badges stay red and carry
-// their own label, so they need no legend entry.
-const LEGEND = [
-  { color: '#fbbf24', label: 'Submitted' },
-  { color: '#3b82f6', label: 'Under review' },
-  { color: '#22c55e', label: 'Finished' },
-];
-
-function StatusLegend() {
-  return (
-    <View style={styles.legend}>
-      {LEGEND.map((item) => (
-        <View key={item.label} style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-          <Text style={styles.legendText}>{item.label}</Text>
-        </View>
-      ))}
+      {STAT_TL[label] ? <Text style={styles.statLabelTl}>{STAT_TL[label]}</Text> : null}
     </View>
   );
 }
@@ -228,6 +217,7 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 26, fontWeight: '800', color: colors.primary, fontVariant: ['tabular-nums'] },
   pressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
   statLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.muted, marginTop: 2 },
+  statLabelTl: { fontSize: 11, color: colors.muted, opacity: 0.8, marginTop: 1 },
 
   sectionTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginTop: 26, marginBottom: 12 },
 
@@ -243,29 +233,15 @@ const styles = StyleSheet.create({
   },
   actionEmoji: { fontSize: 24 },
   actionTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
-  actionDesc: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  actionTitleTl: { fontSize: 13, fontWeight: '600', color: colors.primary, marginTop: 1 },
+  actionDesc: { fontSize: 13, color: colors.muted, marginTop: 5 },
+  actionDescTl: { fontSize: 13, color: colors.muted, opacity: 0.8, marginTop: 1 },
   chevron: { fontSize: 24, color: colors.placeholder, fontWeight: '700' },
 
   recentHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   seeAll: { fontSize: 13, fontWeight: '700', color: colors.primary },
 
   list: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, overflow: 'hidden' },
-  legend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    columnGap: 14,
-    rowGap: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 11, color: colors.muted },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
   listDivider: { borderTopWidth: 1, borderTopColor: colors.border },
   rowTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
@@ -273,4 +249,5 @@ const styles = StyleSheet.create({
 
   empty: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: 24 },
   emptyText: { fontSize: 13, color: colors.muted, textAlign: 'center', lineHeight: 20 },
+  emptyTextTl: { fontSize: 13, color: colors.muted, opacity: 0.8, textAlign: 'center', marginTop: 4 },
 });
