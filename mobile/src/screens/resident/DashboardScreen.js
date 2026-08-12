@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
-import { humanize } from '../../lib/reports';
+import { humanize, REPORT_ACTIONS, KIND_TONES } from '../../lib/reports';
 import { ACTION_TL, STAT_TL, COPY_TL } from '../../lib/tagalog';
 import { colors, radius } from '../../theme';
 import { useResidentNav } from '../../navigation/navContext';
@@ -20,18 +20,28 @@ import StatusLegend from '../../components/StatusLegend';
 
 const DONE = ['Resolved', 'Completed', 'Released'];
 
-// `screen` doubles as the report kind, which is how ACTION_TL is keyed.
-const ACTIONS = [
-  { screen: 'complaint', emoji: '🗑️', title: 'Report a Complaint', desc: 'Illegal dumping, burning, noise, pollution…' },
-  { screen: 'wildlife', emoji: '🦅', title: 'Wildlife Turnover', desc: 'Report or turn over rescued wildlife.' },
-  { screen: 'request', emoji: '🌱', title: 'Request a Service', desc: 'Seedlings, hauling, creek cleaning…' },
-];
+// Stat tiles carry their own tint so the four numbers are told apart at a
+// glance instead of reading as one green block. Matches the web dashboard.
+// Emoji per kind, for the recent-report rows. Falls back rather than throwing
+// if a row ever arrives with a kind this build does not know about.
+const KIND_EMOJI = Object.fromEntries(REPORT_ACTIONS.map((a) => [a.kind, a.emoji]));
+const kindChip = (kind) => ({
+  emoji: KIND_EMOJI[kind] || '📄',
+  bg: (KIND_TONES[kind] || KIND_TONES.request).bg,
+});
+
+const STATS_TONE = {
+  'Total Reports': { emoji: '📄', bg: '#dcfce7', fg: '#15803d' },
+  Active: { emoji: '⏳', bg: '#fef3c7', fg: '#b45309' },
+  Resolved: { emoji: '✅', bg: '#e6fdf0', fg: '#0f3d1f' },
+  'Wildlife Cases': { emoji: '🦅', bg: '#ede9fe', fg: '#6d28d9' },
+};
 
 function normalize(complaints, wildlife, requests) {
   return [
-    ...complaints.map((c) => ({ id: c.tracking_id, title: humanize(c.complaint_type), status: c.status, date: c.submitted_at })),
-    ...wildlife.map((w) => ({ id: w.reference_id, title: w.species_name, status: w.status, date: w.submitted_at })),
-    ...requests.map((r) => ({ id: r.tracking_id, title: humanize(r.request_type), status: r.status, date: r.submitted_at })),
+    ...complaints.map((c) => ({ id: c.tracking_id, kind: 'complaint', title: humanize(c.complaint_type), status: c.status, date: c.submitted_at })),
+    ...wildlife.map((w) => ({ id: w.reference_id, kind: 'wildlife', title: w.species_name, status: w.status, date: w.submitted_at })),
+    ...requests.map((r) => ({ id: r.tracking_id, kind: 'request', title: humanize(r.request_type), status: r.status, date: r.submitted_at })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
@@ -72,6 +82,7 @@ export default function DashboardScreen() {
   const resolved = items?.filter((i) => DONE.includes(i.status)).length ?? 0;
   const active = total - resolved;
   const recent = items?.slice(0, 6) ?? [];
+  const resolvedPct = total ? Math.round((resolved / total) * 100) : 0;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -91,8 +102,24 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <Text style={styles.greeting}>Good day, {user?.first_name || 'there'} 👋</Text>
-        <Text style={styles.sub}>Cabuyao Environmental Monitor</Text>
+        {/* Hero. Deliberately full-bleed and the same forest as the bar above
+            it, so the two read as one block that scrolls away together - a
+            second, brighter green card here looked like a mistake. Mirrors the
+            web dashboard's forest banner, ending on the one number a resident
+            actually wants: how much of their reporting is done. */}
+        <View style={styles.hero}>
+          <Text style={styles.greeting}>Good day, {user?.first_name || 'there'} 👋</Text>
+          <Text style={styles.sub}>Cabuyao Environmental Monitor</Text>
+
+          <View style={styles.progressRow}>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${resolvedPct}%` }]} />
+            </View>
+            <Text style={styles.progressText}>
+              {resolved} of {total} resolved
+            </Text>
+          </View>
+        </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -107,21 +134,23 @@ export default function DashboardScreen() {
         {/* Actions */}
         <Text style={styles.sectionTitle}>What would you like to do?</Text>
         <View style={{ gap: 12 }}>
-          {ACTIONS.map((a) => (
+          {REPORT_ACTIONS.map((a) => (
             <Pressable
-              key={a.screen}
+              key={a.kind}
               style={({ pressed }) => [styles.action, pressed && styles.pressed]}
-              onPress={() => navigate(a.screen)}
+              onPress={() => navigate(a.kind)}
             >
-              <Text style={styles.actionEmoji}>{a.emoji}</Text>
+              <View style={[styles.actionChip, { backgroundColor: KIND_TONES[a.kind].bg }]}>
+                <Text style={styles.actionEmoji}>{a.emoji}</Text>
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.actionTitle}>{a.title}</Text>
-                {ACTION_TL[a.screen] ? (
-                  <Text style={styles.actionTitleTl}>{ACTION_TL[a.screen].title}</Text>
+                {ACTION_TL[a.kind] ? (
+                  <Text style={styles.actionTitleTl}>{ACTION_TL[a.kind].title}</Text>
                 ) : null}
                 <Text style={styles.actionDesc}>{a.desc}</Text>
-                {ACTION_TL[a.screen] ? (
-                  <Text style={styles.actionDescTl}>{ACTION_TL[a.screen].desc}</Text>
+                {ACTION_TL[a.kind] ? (
+                  <Text style={styles.actionDescTl}>{ACTION_TL[a.kind].desc}</Text>
                 ) : null}
               </View>
               <Text style={styles.chevron}>›</Text>
@@ -157,10 +186,18 @@ export default function DashboardScreen() {
                 style={({ pressed }) => [styles.listRow, i > 0 && styles.listDivider, pressed && styles.pressed]}
                 onPress={() => navigate('track', { id: r.id })}
               >
+                <View style={[styles.rowChip, { backgroundColor: kindChip(r.kind).bg }]}>
+                  <Text style={styles.rowChipEmoji}>{kindChip(r.kind).emoji}</Text>
+                </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>{r.title}</Text>
+                  {/* Titles wrap rather than truncate: on a narrow phone the
+                      badge left so little room that "Open Burning" cut off. */}
+                  <Text style={styles.rowTitle}>{r.title}</Text>
+                  {/* The tracking id gets its own line - it must not break
+                      mid-id, so inline with the date it overflowed its box. */}
+                  <Text style={styles.rowId}>{r.id}</Text>
                   <Text style={styles.rowMeta}>
-                    {r.id} · Submitted {new Date(r.date).toLocaleDateString()}
+                    Submitted {new Date(r.date).toLocaleDateString()}
                   </Text>
                 </View>
                 <StatusBadge status={r.status} stage />
@@ -174,9 +211,15 @@ export default function DashboardScreen() {
 }
 
 function Stat({ label, value }) {
+  const tone = STATS_TONE[label];
   return (
     <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
+      <View style={styles.statTop}>
+        <View style={[styles.statChip, { backgroundColor: tone.bg }]}>
+          <Text style={styles.statChipEmoji}>{tone.emoji}</Text>
+        </View>
+        <Text style={[styles.statValue, { color: tone.fg }]}>{value}</Text>
+      </View>
       <Text style={styles.statLabel}>{label}</Text>
       {STAT_TL[label] ? <Text style={styles.statLabelTl}>{STAT_TL[label]}</Text> : null}
     </View>
@@ -199,9 +242,36 @@ const styles = StyleSheet.create({
   brand: { color: colors.white, fontSize: 17, fontWeight: '800', letterSpacing: 0.5 },
   logout: { color: colors.light, fontSize: 13, fontWeight: '700' },
 
-  scroll: { padding: 20, paddingBottom: 32 },
-  greeting: { fontSize: 24, fontWeight: '800', color: colors.text },
-  sub: { fontSize: 14, color: colors.muted, marginTop: 2 },
+  // The floating Report button sits ~68px tall over the bottom of this list,
+  // so the last row needs room to scroll clear of it.
+  scroll: { padding: 20, paddingBottom: 96 },
+
+  // Negative margins cancel the scroll container's padding so the hero can run
+  // edge to edge and butt up against the bar above it, without restructuring
+  // the rest of the screen into a second padded wrapper.
+  hero: {
+    marginTop: -20,
+    marginHorizontal: -20,
+    marginBottom: 6,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 22,
+    backgroundColor: colors.forest,
+    borderBottomLeftRadius: radius.xl,
+    borderBottomRightRadius: radius.xl,
+  },
+  greeting: { fontSize: 24, fontWeight: '800', color: colors.white },
+  sub: { fontSize: 14, color: colors.heroSubtle, marginTop: 2 },
+  progressRow: { marginTop: 16, gap: 8 },
+  progressTrack: {
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    overflow: 'hidden',
+  },
+  progressFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.white },
+  progressText: { fontSize: 13, fontWeight: '600', color: colors.white, fontVariant: ['tabular-nums'] },
+
   error: { fontSize: 13, color: colors.danger, marginTop: 12 },
 
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 18 },
@@ -212,11 +282,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.lg,
-    padding: 16,
+    padding: 14,
   },
-  statValue: { fontSize: 26, fontWeight: '800', color: colors.primary, fontVariant: ['tabular-nums'] },
+  statTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  statChip: { width: 32, height: 32, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  statChipEmoji: { fontSize: 15 },
+  statValue: { fontSize: 26, fontWeight: '800', fontVariant: ['tabular-nums'] },
   pressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
-  statLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.muted, marginTop: 2 },
+  statLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.muted, marginTop: 8 },
   statLabelTl: { fontSize: 11, color: colors.muted, opacity: 0.8, marginTop: 1 },
 
   sectionTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginTop: 26, marginBottom: 12 },
@@ -229,9 +302,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.lg,
-    padding: 16,
+    padding: 14,
   },
-  actionEmoji: { fontSize: 24 },
+  // Tinted per kind (amber / violet / green), the same identity colors the web
+  // app uses, so the type of a report reads before its text does.
+  actionChip: { width: 44, height: 44, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  actionEmoji: { fontSize: 22 },
   actionTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   actionTitleTl: { fontSize: 13, fontWeight: '600', color: colors.primary, marginTop: 1 },
   actionDesc: { fontSize: 13, color: colors.muted, marginTop: 5 },
@@ -242,10 +318,13 @@ const styles = StyleSheet.create({
   seeAll: { fontSize: 13, fontWeight: '700', color: colors.primary },
 
   list: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, overflow: 'hidden' },
-  listRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   listDivider: { borderTopWidth: 1, borderTopColor: colors.border },
+  rowChip: { width: 34, height: 34, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  rowChipEmoji: { fontSize: 16 },
   rowTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
-  rowMeta: { fontSize: 12, color: colors.muted, marginTop: 2 },
+  rowId: { fontSize: 12, color: colors.muted, marginTop: 2, fontVariant: ['tabular-nums'] },
+  rowMeta: { fontSize: 12, color: colors.muted, fontVariant: ['tabular-nums'] },
 
   empty: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: 24 },
   emptyText: { fontSize: 13, color: colors.muted, textAlign: 'center', lineHeight: 20 },

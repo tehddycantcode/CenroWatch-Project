@@ -135,7 +135,9 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 13, fontWeight: '600', color: colors.muted },
   tabTextActive: { color: colors.white },
 
-  scroll: { padding: 16, paddingTop: 8, paddingBottom: 32 },
+  // Extra bottom room so the last row can scroll clear of the floating
+  // Report button, which overlays this screen too.
+  scroll: { padding: 16, paddingTop: 8, paddingBottom: 96 },
   error: { fontSize: 13, color: colors.danger, marginBottom: 12 },
 
   list: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, overflow: 'hidden' },

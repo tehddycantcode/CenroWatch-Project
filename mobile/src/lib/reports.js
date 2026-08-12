@@ -82,6 +82,40 @@ export function statusTone(status) {
   return TONES.amber; // submitted and anything new
 }
 
+// Kind identity colors, shared with the web app (complaint amber, wildlife
+// violet, request green). These say WHAT a report is; the status tones above
+// say WHERE it is. Keeping the two palettes separate is deliberate - a resident
+// should never have to work out whether a color means type or progress.
+export const KIND_TONES = {
+  complaint: { bg: '#fef3c7', fg: '#b45309' },
+  wildlife: { bg: '#ede9fe', fg: '#6d28d9' },
+  request: { bg: '#dcfce7', fg: '#15803d' },
+};
+
+// The three things a resident can file. One list, used by the dashboard cards
+// and the Report button's sheet, so the two can never offer different options.
+// `kind` doubles as the navigator screen name and as the ACTION_TL key.
+export const REPORT_ACTIONS = [
+  {
+    kind: 'complaint',
+    emoji: '🗑️',
+    title: 'Report a Complaint',
+    desc: 'Illegal dumping, burning, noise, pollution…',
+  },
+  {
+    kind: 'wildlife',
+    emoji: '🦅',
+    title: 'Wildlife Turnover',
+    desc: 'Report or turn over rescued wildlife.',
+  },
+  {
+    kind: 'request',
+    emoji: '🌱',
+    title: 'Request a Service',
+    desc: 'Seedlings, hauling, creek cleaning…',
+  },
+];
+
 // The three report kinds, keyed by tracking-id prefix.
 export const KIND = {
   complaint: { label: 'Complaint', prefix: 'CMP', idField: 'tracking_id' },
