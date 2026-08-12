@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
 } from 'react-native';
@@ -90,8 +89,16 @@ export default function RegisterScreen({ onNavigate }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      {/* `padding` on both platforms: under Expo's default edge-to-edge the
+          Android window does not reliably resize for the keyboard, so leaving
+          the behavior undefined let it cover the lower fields. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+        >
           <View style={styles.header}>
             <Pressable onPress={() => onNavigate('login')} hitSlop={8}>
               <Text style={styles.back}>‹</Text>

@@ -3,7 +3,6 @@ import {
   Text,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -76,8 +75,20 @@ export default function ReportFormShell({
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenHeader title={headerTitle} />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      {/* `padding` on BOTH platforms. Android used to be left undefined and
+          rely on the window resizing itself, but Expo enables edge-to-edge by
+          default from SDK 53 on, and under edge-to-edge the window no longer
+          reliably resizes for the keyboard - so the bottom fields on this form
+          were typed blind. react-native-safe-area-context 5.x reports the IME
+          inset, which is what makes `padding` work here. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          // Keeps a focused field clear of the keyboard on iOS; harmless elsewhere.
+          automaticallyAdjustKeyboardInsets
+        >
           <Text style={styles.title}>{title}</Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 

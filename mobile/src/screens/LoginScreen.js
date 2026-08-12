@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
 } from 'react-native';
@@ -38,8 +37,15 @@ export default function LoginScreen({ onNavigate }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      {/* `padding` on both platforms: under Expo's default edge-to-edge the
+          Android window does not reliably resize for the keyboard. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+        >
           {/* Hero */}
           <View style={styles.hero}>
             <LogoMark size={60} onDark />
