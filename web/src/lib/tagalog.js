@@ -8,6 +8,12 @@
 // keeps every component's logic untouched: nothing here can change what a
 // status IS, only how it is explained.
 //
+// REGISTER: everyday conversational Tagalog, the way a Cabuyao resident would
+// actually say it - NOT the formal register of a government memo. Deliberately
+// avoided: isinasagawa, nakatakda, maglakip, kahilingan, upang, kabuuang.
+// Loanwords that are genuinely the everyday word (status, report, iskedyul)
+// are kept, because "kalagayan" and "iulat" read as stiffer than the English.
+//
 // Deliberately partial. Staff and admin surfaces stay English (office users,
 // and the system terms have no settled Tagalog), and short button labels stay
 // English so they never wrap onto a second line on a phone.
@@ -15,10 +21,10 @@
 // The three resident-facing lifecycle stages (see statusStage in lib/reports.js)
 // plus the two terminal exceptions. Keyed by the English label those return.
 export const STAGE_TL = {
-  Submitted: 'Naisumite',
-  'Under review': 'Sinusuri',
+  Submitted: 'Naipasa na',
+  'Under review': 'Tinitingnan na',
   Finished: 'Tapos na',
-  Rejected: 'Tinanggihan',
+  Rejected: 'Hindi tinanggap',
   Deceased: 'Namatay',
 };
 
@@ -27,81 +33,81 @@ export const STAGE_TL = {
 // would mistranslate it.
 export const TIMELINE_TL = {
   complaint: {
-    Submitted: 'Naisumite',
-    'Under Review': 'Sinusuri',
-    'In Progress': 'Isinasagawa',
-    Resolved: 'Nalutas',
+    Submitted: 'Naipasa na',
+    'Under Review': 'Tinitingnan na',
+    'In Progress': 'Ginagawa na',
+    Resolved: 'Naayos na',
   },
   wildlife: {
-    Submitted: 'Naisumite',
-    'Under Review': 'Sinusuri',
-    'In Progress': 'Inaasikaso',
-    Completed: 'Natapos',
+    Submitted: 'Naipasa na',
+    'Under Review': 'Tinitingnan na',
+    'In Progress': 'Inaasikaso na',
+    Completed: 'Tapos na',
   },
   request: {
-    Submitted: 'Naisumite',
-    'Under Review': 'Sinusuri',
-    Scheduled: 'Nakatakda',
-    Released: 'Naibigay',
+    Submitted: 'Naipasa na',
+    'Under Review': 'Tinitingnan na',
+    Scheduled: 'May iskedyul na',
+    Released: 'Naibigay na',
   },
 };
 
 export const KIND_TL = {
   complaint: 'Reklamo',
   wildlife: 'Ligaw na hayop',
-  request: 'Kahilingan sa serbisyo',
+  request: 'Hiling na serbisyo',
 };
 
 // Resident dashboard: the three things someone comes here to do.
 export const ACTION_TL = {
   '/resident/report-complaint': {
-    title: 'Maghain ng reklamo',
-    desc: 'Iligal na pagtatapon, pagsusunog, ingay, polusyon.',
+    title: 'Mag-report ng reklamo',
+    desc: 'Basurang itinapon kahit saan, sunog, ingay, polusyon.',
   },
   '/resident/report-wildlife': {
-    title: 'Pagsuko ng ligaw na hayop',
-    desc: 'Iulat o isuko ang nasagip na hayop.',
+    title: 'Mag-report ng ligaw na hayop',
+    desc: 'I-report o dalhin sa CENRO ang hayop na nailigtas mo.',
   },
   '/resident/request-service': {
-    title: 'Humiling ng serbisyo',
-    desc: 'Punla, paghakot ng basura, paglilinis ng sapa.',
+    title: 'Mag-request ng serbisyo',
+    desc: 'Punla, hakot ng basura, linis ng sapa.',
   },
 };
 
 export const STAT_TL = {
-  'Total Reports': 'Kabuuang ulat',
+  'Total Reports': 'Lahat ng ulat',
   Active: 'Ginagawa pa',
-  Resolved: 'Nalutas',
-  'Wildlife Cases': 'Kaso ng hayop',
+  Resolved: 'Tapos na',
+  'Wildlife Cases': 'Ligaw na hayop',
 };
 
 // Report-form field guidance. Each entry pairs with the English label/hint
 // already on the field; the Tagalog is shown as a second line.
 export const FORM_TL = {
-  complaint_type: 'Uri ng reklamo',
-  request_type: 'Uri ng serbisyong hinihiling',
-  species_name: 'Pangalan ng hayop, kung alam mo',
-  animal_condition: 'Kalagayan ng hayop',
-  barangay: 'Piliin ang iyong barangay',
-  description: 'Ano ang nangyari? Isama ang oras, amoy, o gaano na katagal.',
+  complaint_type: 'Anong klaseng reklamo?',
+  request_type: 'Anong serbisyo ang kailangan mo?',
+  species_name: 'Anong hayop? Kung alam mo.',
+  animal_condition: 'Kumusta ang lagay ng hayop?',
+  barangay: 'Piliin ang barangay mo',
+  description: 'Ano ang nangyari? Ilagay ang oras, amoy, o gaano na katagal.',
   observed_at: 'Kailan mo ito nakita?',
-  location: 'Opsyonal: itakda kung saan ito nangyari.',
-  photo: 'Maglakip ng kahit isang larawan bilang ebidensya.',
-  document: 'Opsyonal: maglakip ng sulat o dokumento.',
+  location: 'Pwedeng laktawan. Ituro sa mapa kung saan ito nangyari.',
+  photo: 'Maglagay ng kahit isang litrato bilang patunay.',
+  document: 'Pwedeng laktawan. Pwede kang maglagay ng sulat o dokumento.',
   quantity: 'Ilan ang kailangan mo?',
   schedule: 'Kailan mo ito gusto?',
 };
 
 // Short bilingual lines used on empty states and page guidance.
 export const COPY_TL = {
-  noReports: 'Wala ka pang naisumiteng ulat.',
+  noReports: 'Wala ka pang naipapasang ulat.',
   legendIntro: 'Ano ang ibig sabihin ng bawat kulay',
-  trackHint: 'Ipasok ang numero ng iyong ulat upang makita ang kalagayan nito.',
+  trackHint: 'Ilagay ang numero ng ulat mo para makita ang status nito.',
   updatesFromCenro: 'Mga update mula sa CENRO',
-  progress: 'Kalagayan ng ulat',
-  description: 'Paglalarawan',
-  attachment: 'Nakalakip',
+  progress: 'Status ng ulat',
+  description: 'Detalye',
+  attachment: 'Kalakip na file',
   cenroNotes: 'Paalala mula sa CENRO',
   anonymousHint:
-    'Hindi hihingin ang iyong pangalan. Itago ang numero ng ulat upang masubaybayan mo ito.',
+    'Hindi hihingin ang pangalan mo. Itago ang numero ng ulat para ma-check mo ito mamaya.',
 };

@@ -169,12 +169,18 @@ export default function DashboardPage() {
                   <IconChip icon={k.icon} tone={k.tone} size="sm" />
                   {/* Titles wrap rather than truncate: at 320px the badge left
                       so little room that "Open Burning" rendered "Open Burni...". */}
+                  {/* The tracking id gets its own line. Inline with the date it
+                      could not wrap (it must not break mid-id) and so ran out
+                      of its box and under the status badge. */}
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-foreground">{r.title}</div>
                     <div className="text-xs text-muted-foreground">
-                      <span className="whitespace-nowrap tabular-nums">{r.id}</span> · Submitted{' '}
-                      <span className="whitespace-nowrap tabular-nums">
-                        {new Date(r.date).toLocaleDateString()}
+                      <span className="block truncate tabular-nums">{r.id}</span>
+                      <span className="block">
+                        Submitted{' '}
+                        <span className="tabular-nums">
+                          {new Date(r.date).toLocaleDateString()}
+                        </span>
                       </span>
                     </div>
                   </div>

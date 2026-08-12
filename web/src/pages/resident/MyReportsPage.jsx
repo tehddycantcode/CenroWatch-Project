@@ -79,10 +79,13 @@ export default function MyReportsPage() {
             <Link key={r.id} to={`/resident/track/${r.id}`} className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-accent/40">
               <div className="min-w-0">
                 <div className="font-medium text-foreground">{r.title}</div>
+                {/* Id on its own line: it must not break mid-id, so inline it
+                    overflowed the row and ran under the status badge. */}
                 <div className="text-xs text-muted-foreground">
-                  <span className="whitespace-nowrap tabular-nums">{r.id}</span> · Submitted{' '}
-                  <span className="whitespace-nowrap tabular-nums">
-                    {new Date(r.date).toLocaleString()}
+                  <span className="block truncate tabular-nums">{r.id}</span>
+                  <span className="block">
+                    Submitted{' '}
+                    <span className="tabular-nums">{new Date(r.date).toLocaleString()}</span>
                   </span>
                 </div>
                 {r.observed && (
