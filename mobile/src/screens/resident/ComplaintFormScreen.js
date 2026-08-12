@@ -59,7 +59,9 @@ export default function ComplaintFormScreen() {
       fd.append('latitude', String(location.latitude));
       fd.append('longitude', String(location.longitude));
     }
-    fd.append('photo', photoRef.current); // required
+    // Third argument is the multipart filename: the API derives the stored
+    // file's extension from it.
+    fd.append('photo', photoRef.current.file, photoRef.current.name); // required
 
     setSubmitting(true);
     try {

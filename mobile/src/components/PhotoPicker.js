@@ -2,16 +2,25 @@ import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { File } from 'expo-file-system';
 import { colors, radius } from '../theme';
 
-// Derive a FormData-ready file descriptor { uri, name, type } from a picked asset.
+// Turn a picked asset into something FormData will actually accept.
+//
+// The old React Native shape - a plain { uri, name, type } object - is NOT
+// supported by the WinterCG-compliant fetch that Expo SDK 56 ships. Appending
+// one throws "Unsupported FormDataPart implementation" and the request never
+// leaves the phone, which is why JSON calls worked and only uploads failed.
+// expo-file-system's File implements Blob, which FormData does accept.
+//
+// `name` is carried separately and passed as FormData.append's third argument:
+// the backend derives the stored file's extension from the multipart filename
+// and falls back to ".bin" without one (see storage/local.driver.js).
 function toFile(asset) {
-  const uri = asset.uri;
   const mime = asset.mimeType || 'image/jpeg';
-  // Prefer the asset's own name; otherwise synthesize one from the mime subtype.
   const ext = (mime.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
   const name = asset.fileName || `report-photo.${ext}`;
-  return { uri, name, type: mime };
+  return { file: new File(asset.uri), name, type: mime };
 }
 
 // Optional photo for a report. Pick from the library or take one with the camera;

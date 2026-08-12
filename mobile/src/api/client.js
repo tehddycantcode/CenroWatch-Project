@@ -16,6 +16,16 @@ export function setSessionExpiredHandler(fn) {
   onSessionExpired = fn;
 }
 
+// `fetch` rejects for any transport-level failure, not only an unreachable
+// host - a photo uri the OS won't read, a body over the size cap, or a dropped
+// connection all land here too. The old message blamed Wi-Fi unconditionally,
+// which sent people to check their router when the real cause was elsewhere.
+// Keep the hint, but always carry the underlying reason so it can be acted on.
+function netErrorMessage(err) {
+  const detail = err && err.message ? ` (${err.message})` : '';
+  return `Could not reach the server. Check your Wi-Fi and the API URL in src/config.js.${detail}`;
+}
+
 // Shared non-2xx path for request/requestForm: notify on expired sessions,
 // then throw the normalized Error (.status, .errors) callers already expect.
 function throwApiError(res, data, token) {
@@ -39,8 +49,8 @@ async function request(path, { method = 'GET', body, token } = {}) {
       headers,
       body: body ? JSON.stringify(body) : undefined,
     });
-  } catch {
-    throw new Error('Cannot reach the server. Check the API URL in src/config.js and your Wi-Fi.');
+  } catch (err) {
+    throw new Error(netErrorMessage(err));
   }
 
   let data = null;
@@ -63,8 +73,10 @@ async function requestForm(path, form, token) {
   let res;
   try {
     res = await fetch(`${API_URL}${path}`, { method: 'POST', headers, body: form });
-  } catch {
-    throw new Error('Cannot reach the server. Check the API URL in src/config.js and your Wi-Fi.');
+  } catch (err) {
+    // Uploads fail here for reasons that have nothing to do with the network
+    // (an unreadable photo uri, a file over the 5 MB cap). Keep the cause.
+    throw new Error(netErrorMessage(err));
   }
 
   let data = null;
