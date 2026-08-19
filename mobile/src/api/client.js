@@ -130,4 +130,13 @@ export const api = {
     mine: (token) => request('/requests/mine', { token }),
     get: (trackingId, token) => request(`/requests/${trackingId}`, { token }),
   },
+
+  // In-app notifications. A user only ever sees and mutates their own — the
+  // backend scopes every one of these by the token's user_id, so there is no
+  // id to pass beyond the notification's own.
+  notifications: {
+    list: (token, limit = 20) => request(`/notifications?limit=${limit}`, { token }),
+    markRead: (id, token) => request(`/notifications/${id}/read`, { method: 'PATCH', token }),
+    markAllRead: (token) => request('/notifications/read-all', { method: 'PATCH', token }),
+  },
 };

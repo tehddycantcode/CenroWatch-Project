@@ -10,6 +10,7 @@ import WildlifeFormScreen from '../screens/resident/WildlifeFormScreen';
 import RequestFormScreen from '../screens/resident/RequestFormScreen';
 import TrackReportScreen from '../screens/resident/TrackReportScreen';
 import ProfileScreen from '../screens/resident/ProfileScreen';
+import NotificationsScreen from '../screens/resident/NotificationsScreen';
 import ReportSheet from '../components/ReportSheet';
 
 // Dependency-light navigation for the resident area: a small screen stack with
@@ -47,6 +48,8 @@ function renderScreen(entry) {
       return <TrackReportScreen id={entry.params.id} />;
     case 'profile':
       return <ProfileScreen />;
+    case 'notifications':
+      return <NotificationsScreen />;
     default:
       return <DashboardScreen />;
   }

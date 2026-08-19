@@ -106,6 +106,8 @@ export const COPY_TL = {
   legendIntro: 'Ano ang ibig sabihin ng bawat kulay',
   trackHint: 'Ilagay ang numero ng ulat mo para makita ang status nito.',
   updatesFromCenro: 'Mga update mula sa CENRO',
+  notifications: 'Mga abiso',
+  noNotifications: 'Wala ka pang abiso. Sasabihan ka namin kapag may bago sa ulat mo.',
   progress: 'Status ng ulat',
   description: 'Detalye',
   attachment: 'Kalakip na file',

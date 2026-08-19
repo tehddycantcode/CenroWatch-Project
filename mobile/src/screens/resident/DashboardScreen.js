@@ -17,6 +17,7 @@ import { colors, radius } from '../../theme';
 import { useResidentNav } from '../../navigation/navContext';
 import StatusBadge from '../../components/StatusBadge';
 import StatusLegend from '../../components/StatusLegend';
+import NotificationBell from '../../components/NotificationBell';
 
 const DONE = ['Resolved', 'Completed', 'Released'];
 
@@ -93,9 +94,14 @@ export default function DashboardScreen() {
           </View>
           <Text style={styles.brand}>CENROWATCH</Text>
         </View>
-        <Pressable onPress={logout} hitSlop={8}>
-          <Text style={styles.logout}>Log out</Text>
-        </Pressable>
+        {/* The bell lives on Home only. My Reports and Profile share
+            ScreenHeader with the report forms, where a bell would be noise. */}
+        <View style={styles.headerActions}>
+          <NotificationBell />
+          <Pressable onPress={logout} hitSlop={8}>
+            <Text style={styles.logout}>Log out</Text>
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -240,6 +246,7 @@ const styles = StyleSheet.create({
   brandTile: { width: 30, height: 30, borderRadius: 8, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   brandTileText: { color: colors.primary, fontWeight: '800', fontSize: 12 },
   brand: { color: colors.white, fontSize: 17, fontWeight: '800', letterSpacing: 0.5 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   logout: { color: colors.light, fontSize: 13, fontWeight: '700' },
 
   // The floating Report button sits ~68px tall over the bottom of this list,
