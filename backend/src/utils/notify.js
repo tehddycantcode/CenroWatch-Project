@@ -145,4 +145,34 @@ function escapeHtml(s = '') {
     .replace(/"/g, '&quot;');
 }
 
-module.exports = { notifyReportStatus, notifyPasswordReset, notifyPasswordResetUnavailable };
+/**
+ * Email a six-digit confirmation code. Never throws. The code is only ever
+ * sent here - the DB stores its hash - and it expires in 10 minutes.
+ * @param {Object} p
+ * @param {string} p.to    recipient email
+ * @param {string} p.name  recipient first name
+ * @param {string} p.code  the six-digit code
+ */
+function notifyEmailVerification({ to, name, code }) {
+  const subject = '[CENROWATCH] Your confirmation code';
+
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto;color:#0f3d1f">
+      <h2 style="color:#22a050;margin-bottom:4px">CENROWATCH</h2>
+      <p style="color:#66756e;margin-top:0">CENRO Cabuyao &middot; Environmental Monitoring</p>
+      <p>Hi ${escapeHtml(name || 'there')},</p>
+      <p>Use this code to confirm your email address:</p>
+      <p style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#0f3d1f">${escapeHtml(code)}</p>
+      <p>The code expires in 10 minutes. CENRO sends your report updates to this
+         address, so confirming it is what lets us reach you.</p>
+      <p style="color:#66756e;font-size:12px;margin-top:24px">
+        If you did not create a CENROWATCH account, you can ignore this email.
+      </p>
+    </div>`;
+
+  const text = `CENROWATCH\n\nHi ${name || 'there'},\n\nYour confirmation code is: ${code}\n\nThe code expires in 10 minutes.\n\nIf you did not create a CENROWATCH account, you can ignore this email.`;
+
+  return sendMail({ to, subject, html, text });
+}
+
+module.exports = { notifyReportStatus, notifyPasswordReset, notifyPasswordResetUnavailable, notifyEmailVerification };
