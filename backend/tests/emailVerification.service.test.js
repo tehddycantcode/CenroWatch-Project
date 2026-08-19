@@ -15,10 +15,14 @@ jest.mock('../src/utils/prisma', () => ({
 }));
 jest.mock('../src/utils/audit', () => ({ writeAuditLog: jest.fn() }));
 jest.mock('../src/utils/notify', () => ({ notifyEmailVerification: jest.fn() }));
-jest.mock('../src/utils/mailer', () => ({ isConfigured: () => true }));
+// A jest.fn(), not a fixed arrow function - the console-gate tests below
+// need to flip its return value per test.
+jest.mock('../src/utils/mailer', () => ({ isConfigured: jest.fn(() => true) }));
 
 const prisma = require('../src/utils/prisma');
+const { writeAuditLog } = require('../src/utils/audit');
 const { notifyEmailVerification } = require('../src/utils/notify');
+const { isConfigured } = require('../src/utils/mailer');
 const service = require('../src/services/emailVerification.service');
 
 const UNVERIFIED_USER = {
@@ -33,6 +37,10 @@ beforeEach(() => {
   prisma.emailVerificationToken.findFirst.mockResolvedValue(null);
   prisma.emailVerificationToken.deleteMany.mockResolvedValue({ count: 0 });
   prisma.emailVerificationToken.create.mockResolvedValue({});
+  // clearAllMocks() wipes call history but not a mockReturnValue, so restate
+  // the "mail is configured" default here - otherwise a test that flips it
+  // to false would leak into whatever runs next.
+  isConfigured.mockReturnValue(true);
 });
 
 describe('sendVerificationCode', () => {
@@ -40,7 +48,9 @@ describe('sendVerificationCode', () => {
     prisma.user.findUnique.mockResolvedValue(UNVERIFIED_USER);
     jest.spyOn(crypto, 'randomInt').mockReturnValue(418203);
 
-    await service.sendVerificationCode(1);
+    const result = await service.sendVerificationCode(1);
+
+    expect(result).toEqual({ ok: true });
 
     const stored = prisma.emailVerificationToken.create.mock.calls[0][0].data;
     expect(stored.code_hash).toBe(
@@ -54,6 +64,11 @@ describe('sendVerificationCode', () => {
     expect(stored.code_hash).not.toBe('418203');
     expect(notifyEmailVerification).toHaveBeenCalledWith(
       expect.objectContaining({ to: 'juan@example.com', code: '418203' })
+    );
+    // The code must never reach the audit trail: right action, and an empty
+    // data payload (not merely "no code key" - the whole object is {}).
+    expect(writeAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'EMAIL_VERIFY_SENT', data: {} })
     );
 
     crypto.randomInt.mockRestore();
@@ -96,5 +111,34 @@ describe('sendVerificationCode', () => {
   test('refuses when the address is already confirmed', async () => {
     prisma.user.findUnique.mockResolvedValue({ ...UNVERIFIED_USER, email_verified_at: new Date() });
     await expect(service.sendVerificationCode(1)).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  test('logs the raw code to console when mail is not configured', async () => {
+    prisma.user.findUnique.mockResolvedValue(UNVERIFIED_USER);
+    isConfigured.mockReturnValue(false);
+    jest.spyOn(crypto, 'randomInt').mockReturnValue(418203);
+    // Spied and silenced so this deliberate dev-fallback log doesn't dirty
+    // the test runner's own output.
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    await service.sendVerificationCode(1);
+
+    expect(logSpy).toHaveBeenCalled();
+    expect(logSpy.mock.calls[0][0]).toContain('418203');
+
+    crypto.randomInt.mockRestore();
+    logSpy.mockRestore();
+  });
+
+  test('does not log the code to console when mail is configured', async () => {
+    prisma.user.findUnique.mockResolvedValue(UNVERIFIED_USER);
+    isConfigured.mockReturnValue(true);
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    await service.sendVerificationCode(1);
+
+    expect(logSpy).not.toHaveBeenCalled();
+
+    logSpy.mockRestore();
   });
 });
