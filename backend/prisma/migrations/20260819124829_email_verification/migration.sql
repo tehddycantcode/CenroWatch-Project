@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `user` ADD COLUMN `email_verified_at` DATETIME(3) NULL;
+ALTER TABLE `User` ADD COLUMN `email_verified_at` DATETIME(3) NULL;
 
 -- CreateTable
 CREATE TABLE `EmailVerificationToken` (
