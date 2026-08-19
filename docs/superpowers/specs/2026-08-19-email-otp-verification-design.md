@@ -72,6 +72,13 @@ model EmailVerificationToken {
 
 And on `User`: `email_verified_at DateTime?` (null means unverified).
 
+**Existing users are backfilled as verified.** The migration sets
+`email_verified_at = created_at` for every row already in the table. They
+registered before the rule existed, were never asked, and leaving them null
+would strip password reset from the seeded test accounts and show a banner to
+people who did nothing wrong. Only accounts created from this migration onward
+start unverified.
+
 Two deliberate departures from `PasswordResetToken`:
 
 - **`code_hash` is not `@unique`.** A six-digit code has only 10^6 values;
