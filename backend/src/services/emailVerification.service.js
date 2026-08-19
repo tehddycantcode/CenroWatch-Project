@@ -91,8 +91,78 @@ async function sendVerificationCode(userId, ctx = {}) {
   return { ok: true };
 }
 
+// Constant-time compare of two hex digests. With a 5-attempt cap a timing
+// attack is already impractical; this simply removes the question.
+function hashesEqual(a, b) {
+  const bufA = Buffer.from(a, 'hex');
+  const bufB = Buffer.from(b, 'hex');
+  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
+}
+
+// One message for wrong, expired, and missing. Telling them apart would say
+// whether a live code exists, which is the same reason login uses a single
+// message for a bad email and a bad password.
+const INVALID_CODE = 'That code is not valid. Request a new one and try again.';
+
+/**
+ * Confirm the address with a code. Idempotent: verifying an already-confirmed
+ * account succeeds without touching anything.
+ */
+async function verifyCode(userId, code, ctx = {}) {
+  const user = await prisma.user.findUnique({ where: { user_id: userId } });
+  if (!user) throw new HttpError(404, 'User not found.');
+  if (user.email_verified_at) return { ok: true, already: true };
+
+  const token = await prisma.emailVerificationToken.findFirst({
+    where: { user_id: userId, used_at: null },
+    orderBy: { created_at: 'desc' },
+  });
+  if (!token) throw new HttpError(400, INVALID_CODE);
+
+  if (token.attempts >= MAX_ATTEMPTS) {
+    throw new HttpError(429, 'Too many incorrect attempts. Ask for a new code.');
+  }
+
+  // Spend the attempt BEFORE comparing. Otherwise a dropped connection mid
+  // verify would hand back a free retry.
+  await prisma.emailVerificationToken.update({
+    where: { id: token.id },
+    data: { attempts: { increment: 1 } },
+  });
+
+  if (token.expires_at < new Date()) throw new HttpError(400, INVALID_CODE);
+  // The address moved after this code was sent: the old code must not confirm
+  // the new address.
+  if (token.email !== user.email) throw new HttpError(400, INVALID_CODE);
+  if (!hashesEqual(hashCode(code), token.code_hash)) throw new HttpError(400, INVALID_CODE);
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { user_id: userId },
+      data: { email_verified_at: new Date() },
+    }),
+    prisma.emailVerificationToken.update({
+      where: { id: token.id },
+      data: { used_at: new Date() },
+    }),
+    prisma.emailVerificationToken.deleteMany({ where: { user_id: userId, used_at: null } }),
+  ]);
+
+  await writeAuditLog({
+    performedBy: userId,
+    action: 'EMAIL_VERIFIED',
+    targetTable: 'User',
+    targetId: userId,
+    data: { email: user.email },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return { ok: true };
+}
+
 module.exports = {
   sendVerificationCode,
+  verifyCode,
   CODE_TTL_MINUTES,
   RESEND_COOLDOWN_SECONDS,
   MAX_ATTEMPTS,
