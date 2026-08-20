@@ -85,8 +85,7 @@ const verifyEmailRules = [
     .trim()
     .notEmpty().withMessage('Enter the code from your email.')
     .bail()
-    .isLength({ min: 6, max: 6 }).withMessage('The code is 6 digits.')
-    .isNumeric().withMessage('The code is 6 digits.'),
+    .matches(/^\d{6}$/).withMessage('The code is 6 digits.'),
 ];
 
 // Mirrors registerRules so the same address normalizes to the same string on
