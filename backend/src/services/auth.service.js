@@ -8,6 +8,7 @@ const { signToken } = require('../utils/jwt');
 const { writeAuditLog } = require('../utils/audit');
 const { notifyPasswordReset, notifyPasswordResetUnavailable } = require('../utils/notify');
 const HttpError = require('../utils/httpError');
+const { sendVerificationCode } = require('./emailVerification.service');
 
 const RESET_TTL_MINUTES = 60;
 
@@ -28,6 +29,7 @@ const PUBLIC_USER_FIELDS = {
   barangay_id: true,
   is_active: true,
   privacy_consent: true,
+  email_verified_at: true,
   created_at: true,
 };
 
@@ -77,6 +79,15 @@ async function register(input, ctx = {}) {
     data: { email: user.email, role: user.role },
     ipAddress: ctx.ipAddress || null,
   });
+
+  // Mail the confirmation code. Deliberately swallowed: the account exists
+  // either way, the resident can use Resend, and a mail outage must not turn
+  // a successful registration into an error.
+  try {
+    await sendVerificationCode(user.user_id, ctx);
+  } catch (err) {
+    console.error(`[register] could not send verification code: ${err.message}`);
+  }
 
   return { user, token: tokenFor(user) };
 }

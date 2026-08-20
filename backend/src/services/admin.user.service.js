@@ -23,6 +23,7 @@ const SAFE_FIELDS = {
   is_active: true,
   barangay_id: true,
   created_at: true,
+  email_verified_at: true,
   barangay: { select: { name: true } },
 };
 
@@ -86,6 +87,10 @@ async function createUser(adminId, input, ctx = {}) {
       barangay_id: barangay_id ?? null,
       privacy_consent: true,
       consent_date: new Date(),
+      // An Admin typed this address and set the password, so there is nothing
+      // to confirm. Leaving it null would lock a new staff member out of
+      // password reset on their first day.
+      email_verified_at: new Date(),
     },
     select: SAFE_FIELDS,
   });
