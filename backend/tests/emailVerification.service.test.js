@@ -177,6 +177,9 @@ describe('verifyCode', () => {
         data: { email_verified_at: expect.any(Date) },
       })
     );
+    expect(writeAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'EMAIL_VERIFIED' })
+    );
   });
 
   test('rejects a wrong code and does NOT verify', async () => {
@@ -220,6 +223,18 @@ describe('verifyCode', () => {
       where: { id: 7 },
       data: { attempts: { increment: 1 } },
     });
+
+    // What actually proves attempt-before-compare is the assertion above: the
+    // code was WRONG, so the request rejected, and the increment still landed.
+    // The ordering check below is the weaker companion property - the token is
+    // read before it is incremented - which mocks can pin directly. Neither can
+    // observe the hash comparison itself, since it is not a mocked call.
+    const lookedUp = prisma.emailVerificationToken.findFirst.mock.invocationCallOrder[0];
+    const incremented = prisma.emailVerificationToken.update.mock.invocationCallOrder[0];
+    expect(lookedUp).toBeLessThan(incremented);
+
+    // The rejecting path must never stamp the user as verified.
+    expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
   test('reports the same message for wrong, expired, and missing', async () => {
@@ -236,6 +251,11 @@ describe('verifyCode', () => {
     prisma.emailVerificationToken.findFirst.mockResolvedValue(null);
     await service.verifyCode(1, CODE).catch((e) => messages.push(e.message));
 
+    // Exhaustiveness first. Without this the test passes green if a path stops
+    // rejecting at all: its catch never fires, the array holds only the two
+    // surviving messages, and a Set of two identical strings is still size 1 -
+    // so a broken anti-enumeration path would look identical to a healthy one.
+    expect(messages).toHaveLength(3);
     expect(new Set(messages).size).toBe(1);
   });
 
