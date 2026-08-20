@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { CenroLogo } from '@/components/ui/cenro-logo';
 import { BackButton } from '@/components/ui/back-button';
 import NotificationBell from '@/components/resident/NotificationBell';
+import VerifyEmailBanner from '@/components/resident/VerifyEmailBanner';
 
 // `short` is what the phone bar shows: one word, so the label can never wrap
 // onto a second line inside a tap target.
@@ -116,6 +117,7 @@ export default function ResidentLayout() {
       {/* Bottom padding clears the fixed phone nav so it never covers a submit
           button at the end of a report form. */}
       <main className="container py-8 pb-28 sm:pb-8">
+        <VerifyEmailBanner />
         <Outlet />
       </main>
     </div>

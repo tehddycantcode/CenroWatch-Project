@@ -110,6 +110,9 @@ export const authApi = {
   changePassword: (payload) => apiFetch('/auth/change-password', { method: 'POST', body: payload }),
   forgotPassword: (email) => apiFetch('/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),
   resetPassword: (token, password) => apiFetch('/auth/reset-password', { method: 'POST', body: { token, password }, auth: false }),
+  verifyEmail: (code) => apiFetch('/auth/verify-email', { method: 'POST', body: { code } }),
+  resendVerification: () => apiFetch('/auth/resend-verification', { method: 'POST' }),
+  changeEmail: (email) => apiFetch('/auth/email', { method: 'PATCH', body: { email } }),
 };
 
 // The barangay list is immutable seed data (18 rows): cache the in-flight
