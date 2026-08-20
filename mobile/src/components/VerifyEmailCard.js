@@ -37,7 +37,7 @@ export default function VerifyEmailCard() {
       const res = await api.verifyEmail(code.trim(), token);
       updateUser(res.data.user);
     } catch (e) {
-      setError(e.message);
+      setError(e.errors?.[0]?.message || e.message);
     } finally {
       setBusy(false);
     }
@@ -52,7 +52,7 @@ export default function VerifyEmailCard() {
       setNotice('A new code is on its way.');
       setCooldown(COOLDOWN_SECONDS);
     } catch (e) {
-      setError(e.message);
+      setError(e.errors?.[0]?.message || e.message);
     } finally {
       setBusy(false);
     }
@@ -71,7 +71,7 @@ export default function VerifyEmailCard() {
       setNotice('Address updated. Check it for a new code.');
       setCooldown(COOLDOWN_SECONDS);
     } catch (e) {
-      setError(e.message);
+      setError(e.errors?.[0]?.message || e.message);
     } finally {
       setBusy(false);
     }

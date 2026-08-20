@@ -37,7 +37,7 @@ export default function VerifyEmailBanner() {
       const res = await authApi.verifyEmail(code.trim());
       updateUser(res.data.user);
     } catch (err) {
-      setError(err.message);
+      setError(err.errors?.[0]?.message || err.message);
     } finally {
       setBusy(false);
     }
@@ -52,7 +52,7 @@ export default function VerifyEmailBanner() {
       setNotice('A new code is on its way.');
       setCooldown(COOLDOWN_SECONDS);
     } catch (err) {
-      setError(err.message);
+      setError(err.errors?.[0]?.message || err.message);
     } finally {
       setBusy(false);
     }
@@ -72,7 +72,7 @@ export default function VerifyEmailBanner() {
       setNotice('Address updated. Check it for a new code.');
       setCooldown(COOLDOWN_SECONDS);
     } catch (err) {
-      setError(err.message);
+      setError(err.errors?.[0]?.message || err.message);
     } finally {
       setBusy(false);
     }
@@ -115,7 +115,6 @@ export default function VerifyEmailBanner() {
           type="button"
           onClick={() => setShowChange((s) => !s)}
           aria-expanded={showChange}
-          aria-controls="verify-email-change-form"
           className="text-sm font-medium text-amber-900 underline"
         >
           {COPY_TL.wrongAddress}
