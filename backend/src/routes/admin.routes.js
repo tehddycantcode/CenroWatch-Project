@@ -21,6 +21,9 @@ router.get('/analytics/report', controller.analyticsReport);
 router.get('/users', controller.listUsers);
 router.post('/users', v.createUserRules, validate, controller.createUser);
 router.patch('/users/:id', v.updateUserRules, validate, controller.updateUser);
+// Vouch for an address CENRO confirmed off-system. No body, so no validator:
+// the only transition this performs is null -> now(). See markEmailVerified.
+router.patch('/users/:id/verify-email', controller.verifyUserEmail);
 
 // Report archive (soft delete). Archived reports drop out of the queues,
 // dashboards, analytics, public endpoints, and the resident's own list, but

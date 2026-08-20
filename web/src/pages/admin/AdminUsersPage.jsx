@@ -31,6 +31,12 @@ export default function AdminUsersPage() {
   const [formErr, setFormErr] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Confirming an address on someone's behalf is an assertion that CENRO
+  // established ownership off-system, so it takes two clicks. The row holding
+  // this id is showing "is this really theirs?" rather than the plain button.
+  const [confirmId, setConfirmId] = useState(null);
+  const [confirming, setConfirming] = useState(false);
+
   const load = useCallback(() => {
     adminApi.users
       .list({ role: applied.role, search: applied.search, limit: 100 })
@@ -74,6 +80,20 @@ export default function AdminUsersPage() {
       load();
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function confirmEmail(id) {
+    setConfirming(true);
+    setError('');
+    try {
+      await adminApi.users.verifyEmail(id);
+      setConfirmId(null);
+      load();
+    } catch (err) {
+      setError(err.message || 'Could not confirm that address.');
+    } finally {
+      setConfirming(false);
     }
   }
 
@@ -129,6 +149,18 @@ export default function AdminUsersPage() {
         </Card>
       )}
 
+      {/* An unverified resident who has also forgotten their password cannot
+          reach any self-service route: confirming needs a sign-in, signing in
+          needs the password, and a reset is refused to an unconfirmed address.
+          The reset email tells them to contact CENRO -- this is where that call
+          gets answered, so the instruction has to be visible to whoever is on
+          the phone, not buried in a manual. */}
+      <p className="text-sm text-muted-foreground">
+        A resident who never opened their confirmation email cannot reset a forgotten password.
+        Once you have checked who they are, use <span className="font-medium text-foreground">Mark confirmed</span> on
+        their row to unlock it. Confirming is recorded against your account in the audit log.
+      </p>
+
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -148,7 +180,15 @@ export default function AdminUsersPage() {
                   <td className="px-4 py-3 font-medium text-foreground">
                     {u.first_name} {u.last_name}{isMe && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span>{u.email}</span>
+                      {/* Only ever flagged when unverified. A "Confirmed" pill on
+                          every other row would be noise on a screen whose normal
+                          state is that everyone is confirmed. */}
+                      {!u.email_verified_at && <Badge tone="amber">Unverified</Badge>}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     {u.role === 'Admin' ? (
                       // No dropdown for administrators: their role is not one of
@@ -169,16 +209,35 @@ export default function AdminUsersPage() {
                   <td className="px-4 py-3">
                     <Badge tone={u.is_active ? 'green' : 'red'}>{u.is_active ? 'Active' : 'Inactive'}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    {!isMe && (
-                      <Button
-                        size="sm"
-                        variant={u.is_active ? 'outline' : 'default'}
-                        onClick={() => patch(u.user_id, { is_active: !u.is_active })}
-                      >
-                        {u.is_active ? 'Deactivate' : 'Activate'}
-                      </Button>
-                    )}
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {!u.email_verified_at && (confirmId === u.user_id ? (
+                        <>
+                          <span className="text-xs text-muted-foreground">
+                            Confirmed this address is theirs?
+                          </span>
+                          <Button size="sm" loading={confirming} onClick={() => confirmEmail(u.user_id)}>
+                            Yes, confirm
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setConfirmId(null)}>
+                            Cancel
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => setConfirmId(u.user_id)}>
+                          Mark confirmed
+                        </Button>
+                      ))}
+                      {!isMe && (
+                        <Button
+                          size="sm"
+                          variant={u.is_active ? 'outline' : 'default'}
+                          onClick={() => patch(u.user_id, { is_active: !u.is_active })}
+                        >
+                          {u.is_active ? 'Deactivate' : 'Activate'}
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

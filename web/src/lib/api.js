@@ -217,6 +217,9 @@ export const adminApi = {
     list: (params) => apiFetch(`/admin/users${qs(params)}`),
     create: (body) => apiFetch('/admin/users', { method: 'POST', body }),
     update: (id, body) => apiFetch(`/admin/users/${id}`, { method: 'PATCH', body }),
+    // Vouch for an address CENRO confirmed off-system (in person, by phone).
+    // Separate from update() on purpose - see markEmailVerified on the server.
+    verifyEmail: (id) => apiFetch(`/admin/users/${id}/verify-email`, { method: 'PATCH' }),
   },
   // Soft delete: archived reports leave the working system but stay on record.
   archive: {

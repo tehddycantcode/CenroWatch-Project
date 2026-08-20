@@ -55,6 +55,11 @@ const updateUser = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'User updated.', data: { user } });
 });
 
+const verifyUserEmail = asyncHandler(async (req, res) => {
+  const user = await userService.markEmailVerified(req.user.user_id, req.params.id, { ipAddress: req.ip });
+  res.json({ success: true, message: 'Email address confirmed.', data: { user } });
+});
+
 // Audit logs
 const listAuditLogs = asyncHandler(async (req, res) => {
   const result = await auditService.listAuditLogs(req.query);
@@ -93,7 +98,7 @@ const updateSetting = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  analytics, analyticsReport, listUsers, createUser, updateUser,
+  analytics, analyticsReport, listUsers, createUser, updateUser, verifyUserEmail,
   listArchived, archiveReport, restoreReport,
   listAuditLogs, listSettings, updateSetting,
 };

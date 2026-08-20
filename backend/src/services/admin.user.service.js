@@ -161,4 +161,64 @@ async function updateUser(adminId, id, input, ctx = {}) {
   return user;
 }
 
-module.exports = { listUsers, createUser, updateUser, ASSIGNABLE_ROLES };
+/**
+ * Confirm a user's email address on their behalf, after CENRO has established
+ * ownership some other way (in person at the office, over the phone).
+ *
+ * This is the escape hatch the password-reset email already promises: "If you
+ * cannot sign in, contact CENRO Cabuyao and we will confirm your address for
+ * you." Until this existed, that sentence pointed at nothing. A resident who
+ * never opened the confirmation mail and has since forgotten their password is
+ * otherwise sealed out from every direction at once - /verify-email and
+ * /resend-verification both sit behind `authenticate`, signing in needs the
+ * password they have lost, and requestPasswordReset refuses to mail a link to
+ * an address nobody has confirmed. Staff need a way to end that.
+ *
+ * Deliberately its own action rather than a field on updateUser. The only legal
+ * transition is null -> now(); exposing it as an editable field would also
+ * permit un-verifying an address and back-dating the stamp, and neither does
+ * anything except blur the record. The separate audit action matters just as
+ * much: ADMIN_EMAIL_VERIFIED says a STAFF MEMBER vouched for the address, which
+ * is a weaker claim than EMAIL_VERIFIED (the user held the code and proved it),
+ * and the two must stay distinguishable in the log permanently.
+ */
+async function markEmailVerified(adminId, id, ctx = {}) {
+  const targetId = Number(id);
+  // Guard NaN before it reaches Prisma, which would raise a 500 for what is
+  // really a bad URL.
+  if (!Number.isInteger(targetId)) throw new HttpError(404, 'User not found.');
+
+  const target = await prisma.user.findUnique({
+    where: { user_id: targetId },
+    select: { user_id: true, email: true, email_verified_at: true },
+  });
+  if (!target) throw new HttpError(404, 'User not found.');
+
+  // Refused rather than treated as a no-op success. Nothing would be mutated,
+  // so there would be no audit entry, and an admin would walk away believing
+  // they had made a vouching decision that the record does not show them making.
+  if (target.email_verified_at) throw new HttpError(422, 'This address is already confirmed.');
+
+  const [user] = await prisma.$transaction([
+    prisma.user.update({
+      where: { user_id: targetId },
+      data: { email_verified_at: new Date() },
+      select: SAFE_FIELDS,
+    }),
+    // Any code still in flight is dead now. Mirrors verifyCode's cleanup.
+    prisma.emailVerificationToken.deleteMany({ where: { user_id: targetId, used_at: null } }),
+  ]);
+
+  await writeAuditLog({
+    performedBy: adminId,
+    action: 'ADMIN_EMAIL_VERIFIED',
+    targetTable: 'User',
+    targetId: targetId,
+    data: { email: target.email },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return user;
+}
+
+module.exports = { listUsers, createUser, updateUser, markEmailVerified, ASSIGNABLE_ROLES };
