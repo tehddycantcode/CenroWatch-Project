@@ -103,22 +103,29 @@ function notifyPasswordReset({ to, name, token }) {
  *
  * @param {Object} p
  * @param {string} p.to      the address that was typed into the form
- * @param {'no_account'|'inactive'} p.reason
+ * @param {'no_account'|'inactive'|'unverified'} p.reason
  */
 function notifyPasswordResetUnavailable({ to, reason }) {
   const base = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
   const inactive = reason === 'inactive';
+  const unverified = reason === 'unverified';
 
-  const subject = inactive
-    ? '[CENROWATCH] We could not reset your password'
-    : '[CENROWATCH] No CENROWATCH account uses this email';
+  const subject = unverified
+    ? '[CENROWATCH] Confirm your email before resetting your password'
+    : inactive
+      ? '[CENROWATCH] We could not reset your password'
+      : '[CENROWATCH] No CENROWATCH account uses this email';
 
-  const body = inactive
+  const body = unverified
     ? `<p>We received a request to reset the CENROWATCH password for this email address.</p>
-       <p>The account is registered, but it is currently inactive, so its password cannot be reset here. Please contact CENRO Cabuyao to have the account restored.</p>`
-    : `<p>We received a request to reset a CENROWATCH password for this email address.</p>
-       <p><strong>There is no CENROWATCH account registered with it</strong>, so there is nothing to reset. You may have signed up with a different email address.</p>
-       <p><a href="${base}/register" style="display:inline-block;background:#22a050;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">Create an account</a></p>`;
+       <p>This address has not been confirmed yet, so we cannot send a reset link to it. Sign in and enter the confirmation code we emailed you, then try again.</p>
+       <p><a href="${base}/login" style="display:inline-block;background:#22a050;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">Sign in</a></p>`
+    : inactive
+      ? `<p>We received a request to reset the CENROWATCH password for this email address.</p>
+         <p>The account is registered, but it is currently inactive, so its password cannot be reset here. Please contact CENRO Cabuyao to have the account restored.</p>`
+      : `<p>We received a request to reset a CENROWATCH password for this email address.</p>
+         <p><strong>There is no CENROWATCH account registered with it</strong>, so there is nothing to reset. You may have signed up with a different email address.</p>
+         <p><a href="${base}/register" style="display:inline-block;background:#22a050;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">Create an account</a></p>`;
 
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto;color:#0f3d1f">
@@ -130,9 +137,11 @@ function notifyPasswordResetUnavailable({ to, reason }) {
       </p>
     </div>`;
 
-  const text = inactive
-    ? `CENROWATCH Password reset\n\nWe received a request to reset the CENROWATCH password for this email address.\n\nThe account is registered, but it is currently inactive, so its password cannot be reset here. Please contact CENRO Cabuyao to have the account restored.\n\nIf you did not request this, ignore this email. No account was created or changed.`
-    : `CENROWATCH Password reset\n\nWe received a request to reset a CENROWATCH password for this email address.\n\nThere is no CENROWATCH account registered with it, so there is nothing to reset. You may have signed up with a different email address.\n\nCreate an account: ${base}/register\n\nIf you did not request this, ignore this email. No account was created or changed.`;
+  const text = unverified
+    ? `CENROWATCH Password reset\n\nWe received a request to reset the CENROWATCH password for this email address.\n\nThis address has not been confirmed yet, so we cannot send a reset link to it. Sign in and enter the confirmation code we emailed you, then try again.\n\nSign in: ${base}/login\n\nIf you did not request this, ignore this email. No account was created or changed.`
+    : inactive
+      ? `CENROWATCH Password reset\n\nWe received a request to reset the CENROWATCH password for this email address.\n\nThe account is registered, but it is currently inactive, so its password cannot be reset here. Please contact CENRO Cabuyao to have the account restored.\n\nIf you did not request this, ignore this email. No account was created or changed.`
+      : `CENROWATCH Password reset\n\nWe received a request to reset a CENROWATCH password for this email address.\n\nThere is no CENROWATCH account registered with it, so there is nothing to reset. You may have signed up with a different email address.\n\nCreate an account: ${base}/register\n\nIf you did not request this, ignore this email. No account was created or changed.`;
 
   return sendMail({ to, subject, html, text });
 }

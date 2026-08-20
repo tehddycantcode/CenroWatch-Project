@@ -138,7 +138,10 @@ async function login(input, ctx = {}) {
 async function requestPasswordReset(email, ctx = {}) {
   const user = await prisma.user.findUnique({ where: { email } });
 
-  if (user && user.is_active) {
+  // Deactivated takes precedence over unverified: it is the harder block, and
+  // sending someone to confirm an address that still will not let them reset
+  // would waste their time.
+  if (user && user.is_active && user.email_verified_at) {
     await prisma.passwordResetToken.deleteMany({ where: { user_id: user.user_id, used_at: null } });
 
     const token = crypto.randomBytes(32).toString('hex'); // 256-bit
@@ -159,11 +162,20 @@ async function requestPasswordReset(email, ctx = {}) {
     // Sends only if email is configured; never throws.
     await notifyPasswordReset({ to: user.email, name: user.first_name, token });
   } else {
-    // No link is possible: either nothing is registered here, or the account
-    // is deactivated. Tell the mailbox owner which, so they stop waiting.
+    // No link is possible: either nothing is registered here, the account is
+    // deactivated, or its email has not been confirmed yet. Tell the mailbox
+    // owner which, so they stop waiting.
+    const reason = !user ? 'no_account' : !user.is_active ? 'inactive' : 'unverified';
+    const action =
+      reason === 'no_account'
+        ? 'PASSWORD_RESET_UNKNOWN_EMAIL'
+        : reason === 'inactive'
+          ? 'PASSWORD_RESET_INACTIVE'
+          : 'PASSWORD_RESET_UNVERIFIED';
+
     await writeAuditLog({
       performedBy: user ? user.user_id : null,
-      action: user ? 'PASSWORD_RESET_INACTIVE' : 'PASSWORD_RESET_UNKNOWN_EMAIL',
+      action,
       targetTable: 'User',
       targetId: user ? user.user_id : null,
       // The attempted address is deliberately NOT stored for the unknown case:
@@ -173,7 +185,7 @@ async function requestPasswordReset(email, ctx = {}) {
       ipAddress: ctx.ipAddress || null,
     });
 
-    await notifyPasswordResetUnavailable({ to: email, reason: user ? 'inactive' : 'no_account' });
+    await notifyPasswordResetUnavailable({ to: email, reason });
   }
 
   return { ok: true };
