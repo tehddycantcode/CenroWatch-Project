@@ -68,11 +68,16 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   files pre-staged (e.g. a workflow file added by a tool). Run `git status` right
   before every commit and, if unrelated staged files appear, commit only the
   intended paths with `git commit -- <paths>` or unstage the rest first.
-- **`/auth` is rate-limited — don't hammer it in e2e tests:** the `authLimiter`
-  throttles `/api/v1/auth/*`, so a test making many rapid auth calls hits 429 and any
-  HTTP-based cleanup at the end silently fails — this once left the `juan` test account
-  modified. Keep auth calls minimal, and restore/verify test data via Prisma directly
-  (not the rate-limited HTTP endpoints).
+- **Auth rate limits are per-route now — don't hammer them in e2e tests:** the caps
+  live in `backend/src/middlewares/rateLimiters.js` and are applied route by route in
+  `auth.routes.js`, NOT blanket on `/api/v1/auth` (that old mount charged `GET /me`
+  the strict budget, so residents sharing one IP got 429s just by opening the app).
+  Today: `authLimiter` on login/register counts FAILED attempts only (30/15min/IP);
+  `resetLimiter` on forgot/reset-password counts every request (10/15min/IP); every
+  authenticated `/auth` route is covered by the global `apiLimiter` alone. A test that
+  hits 429 makes any HTTP-based cleanup at the end silently fail — this once left the
+  `juan` test account modified. Keep auth calls minimal, and restore/verify test data
+  via Prisma directly (not the rate-limited HTTP endpoints).
 - **Scope test cleanup by id, never by a broad predicate:** cleaning up after a
   verification I ran `auditLog.deleteMany({ action: 'PASSWORD_RESET_REQUEST',
   performed_by: juan })` and it removed 2 rows — mine plus a historical one from the
@@ -89,6 +94,23 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
 - **No `Co-Authored-By` trailer on commits:** the user wants commits authored solely
   under their GitHub name (re-confirmed 2026-07-16). This overrides the harness
   default; also tell any commit-making subagent explicitly.
+- **NEVER accept a Prisma "reset the database?" prompt — the answer is always no:**
+  the dev `cenrowatch_db` holds the 18 seeded barangays, SLA settings, the test
+  accounts, and real audit history, and a reset destroys all of it. Only `seed.js`
+  content comes back; everything else is gone for good. Say no, then fix the actual
+  cause. Standing trap on this machine: one applied migration in
+  `prisma/migrations/` was edited after it ran, so its checksum no longer matches the
+  `_prisma_migrations` row. An interactive `prisma migrate dev` may notice the drift
+  and OFFER a reset. `migrate resolve` does not fix this case either — I once
+  prescribed `--rolled-back`/`--applied` for it and both are wrong (P3012 "not in a
+  failed state" / P3008 "already recorded as applied"). The only correct repair is
+  updating that one row's `checksum` to match the file. The database is otherwise
+  correct; nothing is broken at runtime, so this is safe to leave alone.
+- **A promise in user-facing copy is a feature commitment:** the unverified-password-
+  reset email said "contact CENRO Cabuyao and we will confirm your address for you"
+  while no such capability existed — staff could not even see who was unverified. If
+  an email, error message, or UI string tells a person that someone can do something
+  for them, the thing that does it has to exist. Grep new copy for these promises.
 
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
@@ -104,6 +126,17 @@ Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
   barangay table), Users (create + inline role/active edits), Audit Log viewer,
   System Settings (inline edit). All-reports views reuse the staff queue pages.
   Routes nested under `<ProtectedRoute roles={['Admin']}>`.
+- Post-Sprint-4 (branch `feature/email-otp-verification`): email confirmation by
+  six-digit code. SOFT GATE — an unconfirmed resident signs in and files reports
+  normally; the only thing withheld is a password reset, because mailing a reset
+  link to an unproven address is the actual risk. `User.email_verified_at` +
+  `EmailVerificationToken` (hashed code, TTL, attempts spent BEFORE compare).
+  Authenticated `POST /auth/verify-email`, `POST /auth/resend-verification`,
+  `PATCH /auth/email` (self-service typo fix while unverified). Admin escape hatch
+  `PATCH /admin/users/:id/verify-email` writes `ADMIN_EMAIL_VERIFIED` — deliberately
+  a DIFFERENT audit action from `EMAIL_VERIFIED`, since a staff member vouching is a
+  weaker claim than the user proving it. `create-admin.js` and admin-created accounts
+  stamp verified at creation (an Admin typed the address).
 - Sprint 3 (done): CENRO Staff interface — `/staff` queues + status workflow +
   ComplaintStatusHistory + SLA recompute + resident email (Nodemailer/Gmail,
   graceful) + StaffLayout/queues/detail web UI.
