@@ -46,6 +46,7 @@ export default function VerifyEmailBanner() {
   async function onResend() {
     setBusy(true);
     setError('');
+    setNotice('');
     try {
       await authApi.resendVerification();
       setNotice('A new code is on its way.');
@@ -61,11 +62,13 @@ export default function VerifyEmailBanner() {
     e.preventDefault();
     setBusy(true);
     setError('');
+    setNotice('');
     try {
       const res = await authApi.changeEmail(newEmail.trim());
       updateUser(res.data.user);
       setShowChange(false);
       setNewEmail('');
+      setCode('');
       setNotice('Address updated. Check it for a new code.');
       setCooldown(COOLDOWN_SECONDS);
     } catch (err) {
@@ -95,13 +98,14 @@ export default function VerifyEmailBanner() {
           aria-label="Confirmation code"
           className="h-9 w-32 tracking-[0.3em]"
         />
-        <Button type="submit" size="sm" disabled={busy || code.trim().length !== 6}>
+        <Button type="submit" size="sm" loading={busy} disabled={busy || code.trim().length !== 6}>
           Confirm
         </Button>
         <Button
           type="button"
           size="sm"
           variant="outline"
+          loading={busy}
           onClick={onResend}
           disabled={busy || cooldown > 0}
         >
@@ -110,6 +114,8 @@ export default function VerifyEmailBanner() {
         <button
           type="button"
           onClick={() => setShowChange((s) => !s)}
+          aria-expanded={showChange}
+          aria-controls="verify-email-change-form"
           className="text-sm font-medium text-amber-900 underline"
         >
           {COPY_TL.wrongAddress}
@@ -117,7 +123,11 @@ export default function VerifyEmailBanner() {
       </form>
 
       {showChange && (
-        <form onSubmit={onChangeEmail} className="mt-3 flex flex-wrap items-center gap-2">
+        <form
+          id="verify-email-change-form"
+          onSubmit={onChangeEmail}
+          className="mt-3 flex flex-wrap items-center gap-2"
+        >
           <Input
             type="email"
             value={newEmail}
@@ -126,7 +136,7 @@ export default function VerifyEmailBanner() {
             aria-label="Correct email address"
             className="h-9 w-64"
           />
-          <Button type="submit" size="sm" disabled={busy || !newEmail.trim()}>
+          <Button type="submit" size="sm" loading={busy} disabled={busy || !newEmail.trim()}>
             Send new code
           </Button>
         </form>
