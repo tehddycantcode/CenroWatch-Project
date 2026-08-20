@@ -7,11 +7,11 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
 
 const apiV1 = require('./routes');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { UPLOAD_ROOT } = require('./middlewares/upload');
+const { apiLimiter } = require('./middlewares/rateLimiters');
 
 const app = express();
 
@@ -66,30 +66,11 @@ app.get('/api/health', (req, res) => {
 });
 
 // ── Rate limiting (DDoS / abuse mitigation) ────────────────
-// Two layers, both keyed per client IP:
-//   1. A generous GLOBAL cap across the whole API — the first line of defence
-//      against request floods hammering the database.
-//   2. A strict cap on /auth (login, register, password reset) to blunt
-//      credential stuffing / brute force. Auth requests hit both limiters.
-// Limits are tunable via env so production can adjust without a code change.
-const apiLimiter = rateLimit({
-  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  limit: Number(process.env.RATE_LIMIT_MAX) || 1000,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many requests, please try again later.' },
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: Number(process.env.AUTH_RATE_LIMIT_MAX) || 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many requests, please try again later.' },
-});
-
+// The generous global cap covers the whole API. The strict credential and
+// password-reset caps are applied route by route in auth.routes.js rather than
+// blanket on /auth — see the header of middlewares/rateLimiters.js for why
+// that distinction is the thing that keeps shared-IP residents out of a 429.
 app.use('/api/v1', apiLimiter);
-app.use('/api/v1/auth', authLimiter);
 
 // ── Uploaded files: served locally only under the local driver. Under the GCS
 //    driver, files live in the bucket and are reached via signed URLs instead.

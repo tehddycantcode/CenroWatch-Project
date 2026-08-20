@@ -180,8 +180,9 @@ async function changeUnverifiedEmail(userId, email, ctx = {}) {
   }
 
   // The resend cooldown is deliberately bypassed for a corrected address, so
-  // this is the only brake on using an unverified account to mail arbitrary
-  // recipients. authLimiter cannot serve: it is keyed by IP, so residents
+  // this per-ACCOUNT count is the only brake on using an unverified account to
+  // mail arbitrary recipients. No IP limiter covers this route (see
+  // middlewares/rateLimiters.js), and none should: keyed by IP, residents
   // sharing a barangay-hall connection would pay for one account's abuse.
   const recentChanges = await prisma.auditLog.count({
     where: {
