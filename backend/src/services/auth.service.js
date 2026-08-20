@@ -178,9 +178,11 @@ async function requestPasswordReset(email, ctx = {}) {
       action,
       targetTable: 'User',
       targetId: user ? user.user_id : null,
-      // The attempted address is deliberately NOT stored for the unknown case:
-      // it belongs to someone with no account here, and the ip plus the volume
-      // of these entries is what actually reveals enumeration attempts.
+      // The attempted address is deliberately NOT stored here, for any of the
+      // three reasons: for the unknown-email case it belongs to someone with
+      // no account here, and for the inactive/unverified cases it is already
+      // on the user row via targetId. The ip plus the volume of these entries
+      // is what actually reveals enumeration attempts.
       data: {},
       ipAddress: ctx.ipAddress || null,
     });

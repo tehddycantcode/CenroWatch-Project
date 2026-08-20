@@ -119,6 +119,7 @@ function notifyPasswordResetUnavailable({ to, reason }) {
   const body = unverified
     ? `<p>We received a request to reset the CENROWATCH password for this email address.</p>
        <p>This address has not been confirmed yet, so we cannot send a reset link to it. Sign in and enter the confirmation code we emailed you, then try again.</p>
+       <p>If you cannot sign in, contact CENRO Cabuyao and we will confirm your address for you.</p>
        <p><a href="${base}/login" style="display:inline-block;background:#22a050;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">Sign in</a></p>`
     : inactive
       ? `<p>We received a request to reset the CENROWATCH password for this email address.</p>
@@ -138,7 +139,7 @@ function notifyPasswordResetUnavailable({ to, reason }) {
     </div>`;
 
   const text = unverified
-    ? `CENROWATCH Password reset\n\nWe received a request to reset the CENROWATCH password for this email address.\n\nThis address has not been confirmed yet, so we cannot send a reset link to it. Sign in and enter the confirmation code we emailed you, then try again.\n\nSign in: ${base}/login\n\nIf you did not request this, ignore this email. No account was created or changed.`
+    ? `CENROWATCH Password reset\n\nWe received a request to reset the CENROWATCH password for this email address.\n\nThis address has not been confirmed yet, so we cannot send a reset link to it. Sign in and enter the confirmation code we emailed you, then try again.\n\nIf you cannot sign in, contact CENRO Cabuyao and we will confirm your address for you.\n\nSign in: ${base}/login\n\nIf you did not request this, ignore this email. No account was created or changed.`
     : inactive
       ? `CENROWATCH Password reset\n\nWe received a request to reset the CENROWATCH password for this email address.\n\nThe account is registered, but it is currently inactive, so its password cannot be reset here. Please contact CENRO Cabuyao to have the account restored.\n\nIf you did not request this, ignore this email. No account was created or changed.`
       : `CENROWATCH Password reset\n\nWe received a request to reset a CENROWATCH password for this email address.\n\nThere is no CENROWATCH account registered with it, so there is nothing to reset. You may have signed up with a different email address.\n\nCreate an account: ${base}/register\n\nIf you did not request this, ignore this email. No account was created or changed.`;
