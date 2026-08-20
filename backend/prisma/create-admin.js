@@ -42,7 +42,16 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { email },
-    update: { password_hash, role, first_name: first, last_name: last, is_active: true },
+    update: {
+      password_hash,
+      role,
+      first_name: first,
+      last_name: last,
+      is_active: true,
+      // Repairs an account already stuck unverified from a prior run of this
+      // script, before this field was set here.
+      email_verified_at: new Date(),
+    },
     create: {
       email,
       password_hash,
@@ -51,6 +60,10 @@ async function main() {
       role,
       privacy_consent: true,
       consent_date: new Date(),
+      // The operator running this script typed the address and set the
+      // password, so there is nothing to confirm. Without this a fresh
+      // deployment's first Admin cannot use password reset.
+      email_verified_at: new Date(),
     },
     select: { user_id: true, email: true, role: true },
   });

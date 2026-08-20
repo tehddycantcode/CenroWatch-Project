@@ -11,6 +11,7 @@ jest.mock('../src/utils/prisma', () => ({
     update: jest.fn(),
     deleteMany: jest.fn(),
   },
+  auditLog: { count: jest.fn() },
   $transaction: jest.fn(async (ops) => ops),
 }));
 jest.mock('../src/utils/audit', () => ({ writeAuditLog: jest.fn() }));
@@ -270,6 +271,7 @@ describe('verifyCode', () => {
 describe('changeUnverifiedEmail', () => {
   beforeEach(() => {
     prisma.user.update.mockResolvedValue({});
+    prisma.auditLog.count.mockResolvedValue(0);
   });
 
   test('updates the address and mails a code to the NEW one', async () => {
@@ -357,6 +359,16 @@ describe('changeUnverifiedEmail', () => {
     await expect(
       service.changeUnverifiedEmail(1, 'taken@example.com')
     ).rejects.toMatchObject({ statusCode: 409 });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  test('refuses once the per-hour change cap is hit, without touching the row', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(UNVERIFIED_USER);
+    prisma.auditLog.count.mockResolvedValue(5); // MAX_EMAIL_CHANGES_PER_HOUR
+
+    await expect(
+      service.changeUnverifiedEmail(1, 'juan.fixed@example.com')
+    ).rejects.toMatchObject({ statusCode: 429 });
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
 });

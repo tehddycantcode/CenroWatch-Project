@@ -86,7 +86,7 @@ async function register(input, ctx = {}) {
   try {
     await sendVerificationCode(user.user_id, ctx);
   } catch (err) {
-    console.error(`[register] could not send verification code: ${err.message}`);
+    console.error(`[register] could not send verification code to ${user.email}: ${err.message}`);
   }
 
   return { user, token: tokenFor(user) };

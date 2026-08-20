@@ -19,6 +19,7 @@ const HttpError = require('../utils/httpError');
 const CODE_TTL_MINUTES = 10;
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_ATTEMPTS = 5;
+const MAX_EMAIL_CHANGES_PER_HOUR = 5;
 
 function hashCode(code) {
   return crypto.createHash('sha256').update(String(code)).digest('hex');
@@ -72,8 +73,10 @@ async function sendVerificationCode(userId, ctx = {}) {
 
   // Without this a fresh `docker compose up` mints accounts nobody can confirm,
   // because sendMail quietly no-ops when credentials are absent. Never logged
-  // when mail IS configured.
-  if (!isConfigured()) {
+  // when mail IS configured. The production guard is a second independent
+  // check: it stops a misconfigured live deployment (creds unset or still the
+  // placeholder) from writing real six-digit codes to server logs in plaintext.
+  if (!isConfigured() && process.env.NODE_ENV !== 'production') {
     console.log(`[verify] mail disabled - code for ${user.email} is ${code}`);
   }
 
@@ -174,6 +177,21 @@ async function changeUnverifiedEmail(userId, email, ctx = {}) {
   }
   if (email === user.email) {
     throw new HttpError(422, 'That is already the address on this account.');
+  }
+
+  // The resend cooldown is deliberately bypassed for a corrected address, so
+  // this is the only brake on using an unverified account to mail arbitrary
+  // recipients. authLimiter cannot serve: it is keyed by IP, so residents
+  // sharing a barangay-hall connection would pay for one account's abuse.
+  const recentChanges = await prisma.auditLog.count({
+    where: {
+      performed_by: userId,
+      action: 'EMAIL_CHANGE_UNVERIFIED',
+      performed_at: { gte: new Date(Date.now() - 60 * 60 * 1000) },
+    },
+  });
+  if (recentChanges >= MAX_EMAIL_CHANGES_PER_HOUR) {
+    throw new HttpError(429, 'Too many address changes. Please try again later.');
   }
 
   const taken = await prisma.user.findUnique({ where: { email } });

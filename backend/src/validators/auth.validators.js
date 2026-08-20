@@ -7,6 +7,7 @@ const registerRules = [
     .trim()
     .notEmpty().withMessage('Email is required.')
     .isEmail().withMessage('A valid email is required.')
+    .isLength({ max: 255 }).withMessage('That email address is too long.')
     .normalizeEmail(),
   body('password')
     .isString()
@@ -96,6 +97,7 @@ const changeEmailRules = [
     .trim()
     .notEmpty().withMessage('Email is required.')
     .isEmail().withMessage('A valid email is required.')
+    .isLength({ max: 255 }).withMessage('That email address is too long.')
     .normalizeEmail(),
 ];
 
