@@ -301,6 +301,14 @@ describe('changeUnverifiedEmail', () => {
 
     const stored = prisma.emailVerificationToken.create.mock.calls[0][0].data;
     expect(stored.email).toBe('juan.fixed@example.com');
+
+    // The address must be written BEFORE the code is minted. Without this, the
+    // canned third findUnique would keep these tests green even if the two were
+    // swapped - which is exactly the bug that would mail a code bound to the
+    // address the resident cannot read.
+    expect(prisma.user.update.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.emailVerificationToken.create.mock.invocationCallOrder[0]
+    );
   });
 
   test('ignores the resend cooldown, so a corrected typo is not made to wait', async () => {
@@ -329,6 +337,15 @@ describe('changeUnverifiedEmail', () => {
     await expect(
       service.changeUnverifiedEmail(1, 'juan.fixed@example.com')
     ).rejects.toMatchObject({ statusCode: 409 });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  test('refuses when the new address equals the current one', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(UNVERIFIED_USER);
+
+    await expect(
+      service.changeUnverifiedEmail(1, 'juan@example.com')
+    ).rejects.toMatchObject({ statusCode: 422 });
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
