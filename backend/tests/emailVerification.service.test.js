@@ -266,3 +266,80 @@ describe('verifyCode', () => {
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
 });
+
+describe('changeUnverifiedEmail', () => {
+  beforeEach(() => {
+    prisma.user.update.mockResolvedValue({});
+  });
+
+  test('updates the address and mails a code to the NEW one', async () => {
+    prisma.user.findUnique
+      .mockResolvedValueOnce(UNVERIFIED_USER)              // the caller
+      .mockResolvedValueOnce(null)                          // new address is free
+      .mockResolvedValueOnce({ ...UNVERIFIED_USER, email: 'juan.fixed@example.com' }); // reload inside send
+
+    await service.changeUnverifiedEmail(1, 'juan.fixed@example.com');
+
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { user_id: 1 },
+        data: { email: 'juan.fixed@example.com' },
+      })
+    );
+    expect(notifyEmailVerification).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'juan.fixed@example.com' })
+    );
+  });
+
+  test('binds the new code to the new address', async () => {
+    prisma.user.findUnique
+      .mockResolvedValueOnce(UNVERIFIED_USER)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ ...UNVERIFIED_USER, email: 'juan.fixed@example.com' });
+
+    await service.changeUnverifiedEmail(1, 'juan.fixed@example.com');
+
+    const stored = prisma.emailVerificationToken.create.mock.calls[0][0].data;
+    expect(stored.email).toBe('juan.fixed@example.com');
+  });
+
+  test('ignores the resend cooldown, so a corrected typo is not made to wait', async () => {
+    prisma.user.findUnique
+      .mockResolvedValueOnce(UNVERIFIED_USER)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ ...UNVERIFIED_USER, email: 'juan.fixed@example.com' });
+    // A code was sent seconds ago; this must NOT block the change.
+    prisma.emailVerificationToken.findFirst.mockResolvedValue({
+      id: 9,
+      created_at: new Date(),
+    });
+
+    await expect(
+      service.changeUnverifiedEmail(1, 'juan.fixed@example.com')
+    ).resolves.toMatchObject({ ok: true });
+    expect(prisma.emailVerificationToken.create).toHaveBeenCalled();
+  });
+
+  test('refuses when the address is already confirmed', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce({
+      ...UNVERIFIED_USER,
+      email_verified_at: new Date(),
+    });
+
+    await expect(
+      service.changeUnverifiedEmail(1, 'juan.fixed@example.com')
+    ).rejects.toMatchObject({ statusCode: 409 });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  test('refuses an address that belongs to another account', async () => {
+    prisma.user.findUnique
+      .mockResolvedValueOnce(UNVERIFIED_USER)
+      .mockResolvedValueOnce({ user_id: 2, email: 'taken@example.com' });
+
+    await expect(
+      service.changeUnverifiedEmail(1, 'taken@example.com')
+    ).rejects.toMatchObject({ statusCode: 409 });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+});

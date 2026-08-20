@@ -160,9 +160,48 @@ async function verifyCode(userId, code, ctx = {}) {
   return { ok: true };
 }
 
+/**
+ * Correct the address on an unverified account. This is what closes the gap
+ * the feature exists for: without it a mistyped address is detected but still
+ * unreachable, because updateProfile excludes email and no admin field edits
+ * it either. Once verified, the address locks again.
+ */
+async function changeUnverifiedEmail(userId, email, ctx = {}) {
+  const user = await prisma.user.findUnique({ where: { user_id: userId } });
+  if (!user) throw new HttpError(404, 'User not found.');
+  if (user.email_verified_at) {
+    throw new HttpError(409, 'Your email address is already confirmed and cannot be changed here.');
+  }
+  if (email === user.email) {
+    throw new HttpError(422, 'That is already the address on this account.');
+  }
+
+  const taken = await prisma.user.findUnique({ where: { email } });
+  if (taken) throw new HttpError(409, 'An account with this email already exists.');
+
+  await prisma.user.update({ where: { user_id: userId }, data: { email } });
+
+  await writeAuditLog({
+    performedBy: userId,
+    action: 'EMAIL_CHANGE_UNVERIFIED',
+    targetTable: 'User',
+    targetId: userId,
+    data: { from: user.email, to: email },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  // Fresh code, bound to the new address. sendVerificationCode discards the
+  // old one, and the cooldown is bypassed because the new mailbox has had
+  // nothing from us yet.
+  await sendVerificationCode(userId, { ...ctx, bypassCooldown: true });
+
+  return { ok: true };
+}
+
 module.exports = {
   sendVerificationCode,
   verifyCode,
+  changeUnverifiedEmail,
   CODE_TTL_MINUTES,
   RESEND_COOLDOWN_SECONDS,
   MAX_ATTEMPTS,
