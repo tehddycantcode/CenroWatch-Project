@@ -18,6 +18,7 @@ import { useResidentNav } from '../../navigation/navContext';
 import StatusBadge from '../../components/StatusBadge';
 import StatusLegend from '../../components/StatusLegend';
 import NotificationBell from '../../components/NotificationBell';
+import VerifyEmailCard from '../../components/VerifyEmailCard';
 
 const DONE = ['Resolved', 'Completed', 'Released'];
 
@@ -126,6 +127,8 @@ export default function DashboardScreen() {
             </Text>
           </View>
         </View>
+
+        <VerifyEmailCard />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 

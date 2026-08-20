@@ -139,4 +139,10 @@ export const api = {
     markRead: (id, token) => request(`/notifications/${id}/read`, { method: 'PATCH', token }),
     markAllRead: (token) => request('/notifications/read-all', { method: 'PATCH', token }),
   },
+
+  // Email confirmation. All three require the token: the soft gate means the
+  // resident is signed in while their address is still unconfirmed.
+  verifyEmail: (code, token) => request('/auth/verify-email', { method: 'POST', body: { code }, token }),
+  resendVerification: (token) => request('/auth/resend-verification', { method: 'POST', token }),
+  changeEmail: (email, token) => request('/auth/email', { method: 'PATCH', body: { email }, token }),
 };
