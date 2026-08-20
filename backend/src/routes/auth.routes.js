@@ -13,6 +13,8 @@ const {
   resetPasswordRules,
   updateProfileRules,
   changePasswordRules,
+  verifyEmailRules,
+  changeEmailRules,
 } = require('../validators/auth.validators');
 
 router.post('/register', registerRules, validate, authController.register);
@@ -22,5 +24,8 @@ router.post('/reset-password', resetPasswordRules, validate, authController.rese
 router.get('/me', authenticate, authController.me);
 router.patch('/me', authenticate, updateProfileRules, validate, authController.updateMe);
 router.post('/change-password', authenticate, changePasswordRules, validate, authController.changePassword);
+router.post('/verify-email', authenticate, verifyEmailRules, validate, authController.verifyEmail);
+router.post('/resend-verification', authenticate, authController.resendVerification);
+router.patch('/email', authenticate, changeEmailRules, validate, authController.changeEmail);
 
 module.exports = router;

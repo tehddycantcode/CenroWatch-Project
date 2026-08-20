@@ -80,6 +80,26 @@ const changePasswordRules = [
     .matches(/[0-9]/).withMessage('Password must contain a number.'),
 ];
 
+const verifyEmailRules = [
+  body('code')
+    .trim()
+    .notEmpty().withMessage('Enter the code from your email.')
+    .bail()
+    .isLength({ min: 6, max: 6 }).withMessage('The code is 6 digits.')
+    .isNumeric().withMessage('The code is 6 digits.'),
+];
+
+// Mirrors registerRules so the same address normalizes to the same string on
+// both paths - otherwise a change could create an address that login cannot
+// match.
+const changeEmailRules = [
+  body('email')
+    .trim()
+    .notEmpty().withMessage('Email is required.')
+    .isEmail().withMessage('A valid email is required.')
+    .normalizeEmail(),
+];
+
 module.exports = {
   registerRules,
   loginRules,
@@ -87,4 +107,6 @@ module.exports = {
   resetPasswordRules,
   updateProfileRules,
   changePasswordRules,
+  verifyEmailRules,
+  changeEmailRules,
 };

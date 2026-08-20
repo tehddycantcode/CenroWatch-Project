@@ -2,6 +2,7 @@
 
 const asyncHandler = require('../utils/asyncHandler');
 const authService = require('../services/auth.service');
+const verificationService = require('../services/emailVerification.service');
 
 const register = asyncHandler(async (req, res) => {
   const { user, token } = await authService.register(req.body, { ipAddress: req.ip });
@@ -37,6 +38,25 @@ const changePassword = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: 'Your password has been changed.' });
 });
 
+// All three require `authenticate`: the soft gate means the resident is
+// already signed in while their address is still unconfirmed.
+const verifyEmail = asyncHandler(async (req, res) => {
+  await verificationService.verifyCode(req.user.user_id, req.body.code, { ipAddress: req.ip });
+  const user = await authService.getProfile(req.user.user_id);
+  res.status(200).json({ success: true, message: 'Your email address is confirmed.', data: { user } });
+});
+
+const resendVerification = asyncHandler(async (req, res) => {
+  await verificationService.sendVerificationCode(req.user.user_id, { ipAddress: req.ip });
+  res.status(200).json({ success: true, message: 'A new code is on its way.' });
+});
+
+const changeEmail = asyncHandler(async (req, res) => {
+  await verificationService.changeUnverifiedEmail(req.user.user_id, req.body.email, { ipAddress: req.ip });
+  const user = await authService.getProfile(req.user.user_id);
+  res.status(200).json({ success: true, message: 'Address updated. Check it for a new code.', data: { user } });
+});
+
 // Public. Generic response regardless of whether the email exists (no enumeration).
 const forgotPassword = asyncHandler(async (req, res) => {
   await authService.requestPasswordReset(req.body.email, { ipAddress: req.ip });
@@ -52,4 +72,4 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: 'Your password has been reset. You can now sign in.' });
 });
 
-module.exports = { register, login, me, updateMe, changePassword, forgotPassword, resetPassword };
+module.exports = { register, login, me, updateMe, changePassword, forgotPassword, resetPassword, verifyEmail, resendVerification, changeEmail };
