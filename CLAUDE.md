@@ -98,14 +98,20 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   the dev `cenrowatch_db` holds the 18 seeded barangays, SLA settings, the test
   accounts, and real audit history, and a reset destroys all of it. Only `seed.js`
   content comes back; everything else is gone for good. Say no, then fix the actual
-  cause. Standing trap on this machine: one applied migration in
-  `prisma/migrations/` was edited after it ran, so its checksum no longer matches the
-  `_prisma_migrations` row. An interactive `prisma migrate dev` may notice the drift
-  and OFFER a reset. `migrate resolve` does not fix this case either — I once
-  prescribed `--rolled-back`/`--applied` for it and both are wrong (P3012 "not in a
-  failed state" / P3008 "already recorded as applied"). The only correct repair is
-  updating that one row's `checksum` to match the file. The database is otherwise
-  correct; nothing is broken at runtime, so this is safe to leave alone.
+  cause. Standing trap on this machine: THREE applied migrations were edited after
+  they ran, so their checksums no longer match their `_prisma_migrations` rows —
+  `20260703130540_complaint_observed_at`, `20260704124738_complaint_walkin_fields`,
+  and `20260819124829_email_verification` (verified 2026-08-21 by hashing each
+  `migration.sql` against its row). An interactive `prisma migrate dev` may notice
+  the drift and OFFER a reset. `migrate resolve` does not fix this case either — I
+  once prescribed `--rolled-back`/`--applied` for it and both are wrong (P3012 "not
+  in a failed state" / P3008 "already recorded as applied"). The only correct repair
+  is updating those rows' `checksum` values to match the files.
+  **`prisma migrate status` does NOT surface this** — it reported "Database schema is
+  up to date!" with all three drifted, so a clean status is not evidence of no drift.
+  To check, hash each `prisma/migrations/<name>/migration.sql` with SHA-256 and
+  compare to its row. The database is otherwise correct and nothing is broken at
+  runtime, so this is safe to leave alone until a `migrate dev` is actually needed.
 - **A promise in user-facing copy is a feature commitment:** the unverified-password-
   reset email said "contact CENRO Cabuyao and we will confirm your address for you"
   while no such capability existed — staff could not even see who was unverified. If
