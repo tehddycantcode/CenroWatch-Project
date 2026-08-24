@@ -32,3 +32,20 @@ repeats. (Project-wide tooling/PowerShell lessons live in the root `CLAUDE.md`.)
   binary XML stores strings as UTF-16). Don't trust an identical EAS
   "fingerprint" hash across builds as reassurance — it can validly mean the
   edit had zero effect on the native project, not that EAS is misbehaving.
+- **An interactive map IS possible on mobile now** - the old "no map, capture GPS
+  instead" note in LocationField was written for Expo Go, which cannot load custom
+  native modules. Standalone EAS builds can, so the map picker uses
+  `@maplibre/maplibre-react-native` (same MapTiler style and key as web). It will
+  NOT render in Expo Go - only in a real build.
+- **maplibre-react-native v11 renamed things; check the .d.ts before writing JSX.**
+  The component is `Map`, not `MapView`. Style prop is `mapStyle`. The pin is
+  `Marker` with `lngLat` (and it REQUIRES children). Camera takes `center`/`zoom`
+  and `maxBounds` as a FLAT `[W, S, E, N]` array - not the nested `[[SW],[NE]]`
+  pairs maplibre-gl uses on web. `onPress` gives `e.lngLat` as `[lng, lat]`;
+  the API and the rest of the app use `{latitude, longitude}`, so convert only at
+  the MapPicker boundary.
+- **The MapTiler key is NOT in the repo.** It lives in gitignored `mobile/.env` as
+  `EXPO_PUBLIC_MAPTILER_API_KEY` for local bundling, and as an EAS environment
+  variable (`eas env:list --environment preview`) so cloud builds get it. The build
+  profile must name the environment or the variable is not injected and the map
+  silently renders its "Map unavailable" fallback.
