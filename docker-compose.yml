@@ -1,66 +1,87 @@
-# CENROWATCH — full local stack (MySQL + API + web) in one command.
+# CENROWATCH - local stack (MySQL + API).
 #
-#   1. cp backend/.env.example backend/.env   # then fill in the real secrets
-#   2. cp web/.env.example     web/.env        # then add your MapTiler key
-#   3. docker compose up --build
+#   docker compose up -d          # start db + api
+#   docker compose logs -f api    # follow API logs
+#   docker compose down           # stop (data survives in the db_data volume)
 #
-# Open http://localhost:5173 (web). API is http://localhost:5000.
-# MySQL is exposed on host port 3307 (so it won't clash with a local MySQL on 3306).
+# Then run the web app with hot reload:  cd web && npm run dev   -> :5173
+# (The web container is opt-in; see the `web` service at the bottom.)
 #
-# Note: the mobile app is NOT containerized — Expo runs on your phone and still
-# needs mobile/src/config.js pointed at this PC's LAN IP.
+# After starting, ALWAYS verify with:  node scripts/preflight.mjs
+#
+# ---------------------------------------------------------------------------
+# IMPORTANT - project name is pinned to `backend`.
+# The live database lives in the Docker volume `backend_db_data`, created when
+# this stack was first run from a compose file inside the backend/ folder.
+# Compose derives volume and network names from the project name, so renaming
+# the project would silently create a NEW EMPTY database - losing every user,
+# report, and photo. `name: backend` keeps this file pointed at the real data.
+# ---------------------------------------------------------------------------
+name: backend
 
 services:
   db:
-    image: mysql:8
-    container_name: cenrowatch-db
+    image: mysql:8.0
+    container_name: cenrowatch_db
     restart: unless-stopped
-    # Match the Windows dev MySQL where the migrations were authored: table names
-    # are case-INSENSITIVE there. Linux MySQL defaults to case-sensitive, which
-    # breaks migrations that reference a table as both `complaint` and `Complaint`.
-    # (Only takes effect on a fresh data dir — hence the named volume.)
-    command: ["--lower-case-table-names=1"]
+    # NOTE: do NOT add --lower-case-table-names=1 here. This volume was
+    # initialised with the default (0 = case-sensitive), and MySQL 8 refuses to
+    # start if that flag disagrees with the existing data directory. An earlier
+    # version of this file set it as a workaround for migrations that referred
+    # to a table as both `complaint` and `Complaint`; those migrations have
+    # since been fixed to use the correct PascalCase names instead.
     environment:
-      MYSQL_ROOT_PASSWORD: cenrowatch          # local dev DB only (in-container)
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-cenrowatch_root}
       MYSQL_DATABASE: cenrowatch_db
+      MYSQL_USER: ${MYSQL_USER:-cenro}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-cenrowatch_pass}
     ports:
-      - "3307:3306"                            # host 3307 -> container 3306
+      - "3307:3306"                     # host 3307 -> container 3306
     volumes:
-      - db-data:/var/lib/mysql
+      - db_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pcenrowatch"]
-      interval: 5s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 5
 
-  backend:
+  api:
     build: ./backend
-    container_name: cenrowatch-backend
+    container_name: cenrowatch_api
     restart: unless-stopped
     depends_on:
       db:
-        condition: service_healthy             # wait until MySQL accepts connections
-    env_file:
-      - ./backend/.env                         # JWT_SECRET, EMAIL_*, GCS_*, etc.
-    environment:
-      # These OVERRIDE .env so the API talks to the `db` service, not localhost.
-      DATABASE_URL: "mysql://root:cenrowatch@db:3306/cenrowatch_db"
-      PORT: "5000"
-      CLIENT_URL: "http://localhost:5173"
+        condition: service_healthy      # wait until MySQL accepts connections
     ports:
       - "5000:5000"
     volumes:
-      - uploads:/app/uploads                   # persist local uploads across restarts
+      # Mount .env and let the app's own dotenv read it - do NOT use `env_file`.
+      # Docker's env_file parser does not strip surrounding quotes, so a line
+      # like STORAGE_DRIVER="local" arrives as the literal string "local"
+      # (quotes included) and crashes the server on boot. dotenv strips them.
+      - ./backend/.env:/app/.env:ro
+      # Report photos. These are real demo data and are gitignored - back the
+      # folder up before wiping anything.
+      - ./backend/uploads:/app/uploads
+    environment:
+      # Override .env so the API reaches the `db` service rather than localhost.
+      DATABASE_URL: "mysql://${MYSQL_USER:-cenro}:${MYSQL_PASSWORD:-cenrowatch_pass}@db:3306/cenrowatch_db"
+      PORT: "5000"
+      CLIENT_URL: "http://localhost:5173"
 
+  # Optional: the web app as a container. Day to day you want `npm run dev` in
+  # web/ instead (hot reload, and the Vite dev server is what the team uses).
+  # Start this only when you explicitly want it:
+  #     docker compose --profile web up -d
   web:
     build: ./web
-    container_name: cenrowatch-web
+    container_name: cenrowatch_web
     restart: unless-stopped
+    profiles: ["web"]
     depends_on:
-      - backend
+      - api
     ports:
       - "5173:5173"
 
 volumes:
-  db-data:
-  uploads:
+  db_data:                              # resolves to backend_db_data (see note above)
