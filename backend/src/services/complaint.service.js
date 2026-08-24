@@ -7,6 +7,7 @@ const { writeAuditLog } = require('../utils/audit');
 const { createSequential } = require('../utils/createSequential');
 const { getSlaMinutes, addMinutes } = require('../utils/sla');
 const { withActive } = require('../utils/archive');
+const { notifyReportSubmitted } = require('../utils/notify');
 
 // Returned to the owner (their own report) — includes the barangay name.
 const DETAIL_SELECT = {
@@ -102,6 +103,28 @@ async function createComplaint(userId, input, photoPath, ctx = {}, options = {})
     },
     ipAddress: ctx.ipAddress || null,
   });
+
+  // Email the resident a receipt for what they just filed. Anonymous reports
+  // store no user_id (no registered address), so they are skipped. sendMail
+  // never throws, so a mail outage cannot fail the submission.
+  if (!isAnonymous && userId) {
+    const reporter = await prisma.user.findUnique({
+      where: { user_id: userId },
+      select: { email: true, first_name: true },
+    });
+    if (reporter?.email) {
+      await notifyReportSubmitted({
+        to: reporter.email,
+        name: reporter.first_name,
+        kind: 'complaint',
+        trackingId: complaint.tracking_id,
+        type: complaint.complaint_type,
+        barangay: complaint.barangay?.name,
+        submittedAt: complaint.submitted_at,
+        slaDeadline: complaint.sla_deadline,
+      });
+    }
+  }
 
   return complaint;
 }

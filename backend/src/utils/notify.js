@@ -145,4 +145,78 @@ function escapeHtml(s = '') {
     .replace(/"/g, '&quot;');
 }
 
-module.exports = { notifyReportStatus, notifyPasswordReset, notifyPasswordResetUnavailable };
+// Report timestamps are stored in UTC; residents read them in local time.
+const formatDateTime = (d) =>
+  d
+    ? new Date(d).toLocaleString('en-PH', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Manila',
+      })
+    : '';
+
+/**
+ * Email a resident a receipt for the report they just filed. Never throws.
+ * Anonymous complaints store no user_id (R.A. 10173 / whistleblower
+ * protection) so they have no registered address — callers skip those.
+ * @param {Object} p
+ * @param {string} p.to        resident email
+ * @param {string} p.name      resident first name
+ * @param {'complaint'|'wildlife'|'request'} p.kind
+ * @param {string} p.trackingId  tracking_id (complaint/request) or reference_id (wildlife)
+ * @param {string} [p.type]      complaint_type / request_type / species_name
+ * @param {string} [p.barangay]  barangay name
+ * @param {Date}   [p.submittedAt]
+ * @param {Date}   [p.slaDeadline]
+ */
+function notifyReportSubmitted({ to, name, kind, trackingId, type, barangay, submittedAt, slaDeadline }) {
+  const label = KIND_LABEL[kind] || 'Report';
+  const subject = `[CENROWATCH] ${label} received · ${trackingId}`;
+  const url = trackingUrl(trackingId);
+
+  // Wildlife turnovers are identified by species; the other kinds by category.
+  const rows = [
+    ['Reference number', trackingId],
+    [kind === 'wildlife' ? 'Species' : 'Type', kind === 'wildlife' ? type : humanize(type)],
+    ['Barangay', barangay],
+    ['Date filed', formatDateTime(submittedAt)],
+    ['Target response by', formatDateTime(slaDeadline)],
+  ].filter(([, value]) => value);
+
+  const rowsHtml = rows
+    .map(
+      ([k, v]) =>
+        `<tr>
+           <td style="padding:6px 12px 6px 0;color:#66756e;white-space:nowrap">${escapeHtml(k)}</td>
+           <td style="padding:6px 0;color:#0f3d1f;font-weight:bold">${escapeHtml(String(v))}</td>
+         </tr>`
+    )
+    .join('');
+
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto;color:#0f3d1f">
+      <h2 style="color:#22a050;margin-bottom:4px">CENROWATCH</h2>
+      <p style="color:#66756e;margin-top:0">CENRO Cabuyao · Environmental Monitoring</p>
+      <p>Hi ${escapeHtml(name || 'there')},</p>
+      <p>We received your ${label.toLowerCase()}. Keep the reference number below — you will need it to track your report.</p>
+      <table style="margin:16px 0;border-collapse:collapse;font-size:14px">${rowsHtml}</table>
+      <p><a href="${url}" style="display:inline-block;background:#22a050;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">Track your report</a></p>
+      <p style="color:#66756e;font-size:13px">We will email you again whenever the status changes.</p>
+      <p style="color:#66756e;font-size:12px;margin-top:24px">
+        This is an automated message from CENROWATCH. Please do not reply.
+      </p>
+    </div>`;
+
+  const text = `CENROWATCH\n\nHi ${name || 'there'},\n\nWe received your ${label.toLowerCase()}.\n\n${rows
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n')}\n\nTrack your report: ${url}\n\nWe will email you again whenever the status changes.\nThis is an automated message. Please do not reply.`;
+
+  return sendMail({ to, subject, html, text });
+}
+
+module.exports = {
+  notifyReportStatus,
+  notifyReportSubmitted,
+  notifyPasswordReset,
+  notifyPasswordResetUnavailable,
+};

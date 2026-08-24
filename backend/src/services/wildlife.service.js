@@ -7,6 +7,7 @@ const { writeAuditLog } = require('../utils/audit');
 const { createSequential } = require('../utils/createSequential');
 const { getSlaMinutes, addMinutes } = require('../utils/sla');
 const { withActive } = require('../utils/archive');
+const { notifyReportSubmitted } = require('../utils/notify');
 
 const DETAIL_SELECT = {
   turnover_id: true,
@@ -102,6 +103,27 @@ async function createTurnover(userId, input, photoPath, ctx = {}) {
     },
     ipAddress: ctx.ipAddress || null,
   });
+
+  // Email the resident a receipt for what they just filed. sendMail never
+  // throws, so a mail outage cannot fail the submission.
+  if (userId) {
+    const reporter = await prisma.user.findUnique({
+      where: { user_id: userId },
+      select: { email: true, first_name: true },
+    });
+    if (reporter?.email) {
+      await notifyReportSubmitted({
+        to: reporter.email,
+        name: reporter.first_name,
+        kind: 'wildlife',
+        trackingId: turnover.reference_id,
+        type: turnover.species_name,
+        barangay: turnover.barangay?.name,
+        submittedAt: turnover.submitted_at,
+        slaDeadline: turnover.sla_deadline,
+      });
+    }
+  }
 
   return turnover;
 }
