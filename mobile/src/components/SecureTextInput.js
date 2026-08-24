@@ -21,7 +21,16 @@ export default function SecureTextInput({ style, placeholderTextColor, ...props 
   const [hidden, setHidden] = useState(true);
   return (
     <View style={styles.row}>
+      {/* autoCapitalize/autoCorrect must be set explicitly, NOT left to default.
+          Android suppresses both while secureTextEntry is on, but the eye toggle
+          turns it off - and React Native's default autoCapitalize="sentences"
+          then silently capitalises (and autocorrect can rewrite) the password in
+          plain sight, so what is submitted is not what was typed. */}
       <TextInput
+        autoCapitalize="none"
+        autoCorrect={false}
+        spellCheck={false}
+        textContentType="password"
         {...props}
         secureTextEntry={hidden}
         placeholderTextColor={placeholderTextColor ?? colors.placeholder}
