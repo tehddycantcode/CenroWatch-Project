@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `complaint` ADD COLUMN `logged_by` INTEGER NULL,
+ALTER TABLE `Complaint` ADD COLUMN `logged_by` INTEGER NULL,
     ADD COLUMN `reporter_contact` VARCHAR(120) NULL,
     ADD COLUMN `reporter_name` VARCHAR(120) NULL;
 

@@ -1,8 +1,8 @@
 -- DropForeignKey
-ALTER TABLE `complaint` DROP FOREIGN KEY `Complaint_user_id_fkey`;
+ALTER TABLE `Complaint` DROP FOREIGN KEY `Complaint_user_id_fkey`;
 
 -- AlterTable
-ALTER TABLE `complaint` ADD COLUMN `is_anonymous` BOOLEAN NOT NULL DEFAULT false,
+ALTER TABLE `Complaint` ADD COLUMN `is_anonymous` BOOLEAN NOT NULL DEFAULT false,
     MODIFY `user_id` INTEGER NULL;
 
 -- AddForeignKey
