@@ -164,6 +164,8 @@ Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
   (CENRO_Staff). These come from `seed-users.ps1`, which overwrote the older
   AdminPass123/StaffPass123 pair — those NO LONGER WORK. There is no
   juan.delacruz@example.com in this database; the residents are
-  quizanakoshi@gmail.com, zaspaholian@gmail.com and moroedward@gmail.com, whose
-  passwords are bcrypt-hashed and unrecoverable (reset one if you need to log in). Known gotcha: Express 5 req.query is read-only — coerce query params
+  quizanakoshi@gmail.com, zaspaholian@gmail.com and moroedward@gmail.com. The
+  first was reset for testing on 2026-08-24 and is now quizanakoshi@gmail.com /
+  resident123 (Resident). The other two remain bcrypt-hashed and unrecoverable -
+  reset one the same way if you need it (hashPassword from src/utils/password). Known gotcha: Express 5 req.query is read-only — coerce query params
   in services (see memory `express5-query-readonly`).
