@@ -40,7 +40,13 @@ export default function MapPicker({ value, onChange, height = 220 }) {
         attribution={false}
         compass={false}
         onPress={(e) => {
-          const [lng, lat] = e.lngLat;
+          // The payload lives under `nativeEvent`: onPress is a native
+          // BubblingEventHandler, so `e.lngLat` is undefined and destructuring it
+          // throws. In a release build that JS error is FATAL - Android kills the
+          // app with "has stopped" rather than showing a red box.
+          const lngLat = e?.nativeEvent?.lngLat;
+          if (!Array.isArray(lngLat) || lngLat.length < 2) return;
+          const [lng, lat] = lngLat;
           onChange({
             latitude: Number(lat.toFixed(6)),
             longitude: Number(lng.toFixed(6)),
@@ -56,7 +62,7 @@ export default function MapPicker({ value, onChange, height = 220 }) {
           maxBounds={CABUYAO_BOUNDS}
         />
         {has && (
-          <Marker lngLat={[value.longitude, value.latitude]} anchor={{ x: 0.5, y: 1 }}>
+          <Marker lngLat={[value.longitude, value.latitude]} anchor="bottom">
             <View style={styles.pin}>
               <View style={styles.pinHead} />
               <View style={styles.pinTail} />

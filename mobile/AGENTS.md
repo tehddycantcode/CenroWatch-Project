@@ -41,11 +41,26 @@ repeats. (Project-wide tooling/PowerShell lessons live in the root `CLAUDE.md`.)
   The component is `Map`, not `MapView`. Style prop is `mapStyle`. The pin is
   `Marker` with `lngLat` (and it REQUIRES children). Camera takes `center`/`zoom`
   and `maxBounds` as a FLAT `[W, S, E, N]` array - not the nested `[[SW],[NE]]`
-  pairs maplibre-gl uses on web. `onPress` gives `e.lngLat` as `[lng, lat]`;
-  the API and the rest of the app use `{latitude, longitude}`, so convert only at
-  the MapPicker boundary.
+  pairs maplibre-gl uses on web. `onPress` is a native
+  BubblingEventHandler, so its payload is on `e.nativeEvent.lngLat` (as
+  `[lng, lat]`) - NOT `e.lngLat`, which is undefined. The API and the rest of the
+  app use `{latitude, longitude}`, so convert only at the MapPicker boundary.
+  `anchor` is a STRING (`"bottom"`, `"center"`, ...), not a v10-style `{x, y}`
+  object - `anchorToNative` is a switch with NO default case, so an object
+  silently yields `undefined` and the pin centres on the coordinate instead of
+  resting its tip there.
 - **The MapTiler key is NOT in the repo.** It lives in gitignored `mobile/.env` as
   `EXPO_PUBLIC_MAPTILER_API_KEY` for local bundling, and as an EAS environment
   variable (`eas env:list --environment preview`) so cloud builds get it. The build
   profile must name the environment or the variable is not injected and the map
   silently renders its "Map unavailable" fallback.
+- **In a RELEASE build an unhandled JS error is FATAL and looks like a native
+  crash.** There is no red box - Android kills the process and shows
+  "<App> has stopped", so a plain TypeError is indistinguishable from a native
+  segfault. `const [lng, lat] = e.lngLat` (undefined) killed the app the instant
+  a user tapped the map, *after* the map itself had rendered perfectly, which
+  made it look like a MapLibre/GL fault. When a build "suddenly stops", suspect
+  JS first and get the real reason from `adb logcat -b crash` (that buffer
+  survives the crash until reboot; the `ReactNativeJS` lines carry the message).
+  Guessing at native causes burns 20-minute EAS builds. Destructure native event
+  payloads defensively.
