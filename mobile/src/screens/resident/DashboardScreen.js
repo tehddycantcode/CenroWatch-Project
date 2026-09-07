@@ -19,24 +19,25 @@ import StatusBadge from '../../components/StatusBadge';
 import StatusLegend from '../../components/StatusLegend';
 import NotificationBell from '../../components/NotificationBell';
 import VerifyEmailCard from '../../components/VerifyEmailCard';
+import Icon from '../../components/Icon';
 
 const DONE = ['Resolved', 'Completed', 'Released'];
 
 // Stat tiles carry their own tint so the four numbers are told apart at a
 // glance instead of reading as one green block. Matches the web dashboard.
-// Emoji per kind, for the recent-report rows. Falls back rather than throwing
+// Icon per kind, for the recent-report rows. Falls back rather than throwing
 // if a row ever arrives with a kind this build does not know about.
-const KIND_EMOJI = Object.fromEntries(REPORT_ACTIONS.map((a) => [a.kind, a.emoji]));
+const KIND_ICON = Object.fromEntries(REPORT_ACTIONS.map((a) => [a.kind, a.icon]));
 const kindChip = (kind) => ({
-  emoji: KIND_EMOJI[kind] || '📄',
-  bg: (KIND_TONES[kind] || KIND_TONES.request).bg,
+  icon: KIND_ICON[kind] || 'document-outline',
+  tone: KIND_TONES[kind] || KIND_TONES.request,
 });
 
 const STATS_TONE = {
-  'Total Reports': { emoji: '📄', bg: '#dcfce7', fg: '#15803d' },
-  Active: { emoji: '⏳', bg: '#fef3c7', fg: '#b45309' },
-  Resolved: { emoji: '✅', bg: '#e6fdf0', fg: '#0f3d1f' },
-  'Wildlife Cases': { emoji: '🦅', bg: '#ede9fe', fg: '#6d28d9' },
+  'Total Reports': { icon: 'documents-outline', bg: '#dcfce7', fg: '#15803d' },
+  Active: { icon: 'time-outline', bg: '#fef3c7', fg: '#b45309' },
+  Resolved: { icon: 'checkmark-circle-outline', bg: '#e6fdf0', fg: '#0f3d1f' },
+  'Wildlife Cases': { icon: 'paw-outline', bg: '#ede9fe', fg: '#6d28d9' },
 };
 
 function normalize(complaints, wildlife, requests) {
@@ -150,7 +151,7 @@ export default function DashboardScreen() {
               onPress={() => navigate(a.kind)}
             >
               <View style={[styles.actionChip, { backgroundColor: KIND_TONES[a.kind].bg }]}>
-                <Text style={styles.actionEmoji}>{a.emoji}</Text>
+                <Icon name={a.icon} size={22} color={KIND_TONES[a.kind].fg} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.actionTitle}>{a.title}</Text>
@@ -195,8 +196,8 @@ export default function DashboardScreen() {
                 style={({ pressed }) => [styles.listRow, i > 0 && styles.listDivider, pressed && styles.pressed]}
                 onPress={() => navigate('track', { id: r.id })}
               >
-                <View style={[styles.rowChip, { backgroundColor: kindChip(r.kind).bg }]}>
-                  <Text style={styles.rowChipEmoji}>{kindChip(r.kind).emoji}</Text>
+                <View style={[styles.rowChip, { backgroundColor: kindChip(r.kind).tone.bg }]}>
+                  <Icon name={kindChip(r.kind).icon} size={17} color={kindChip(r.kind).tone.fg} />
                 </View>
                 <View style={{ flex: 1 }}>
                   {/* Titles wrap rather than truncate: on a narrow phone the
@@ -225,7 +226,7 @@ function Stat({ label, value }) {
     <View style={styles.stat}>
       <View style={styles.statTop}>
         <View style={[styles.statChip, { backgroundColor: tone.bg }]}>
-          <Text style={styles.statChipEmoji}>{tone.emoji}</Text>
+          <Icon name={tone.icon} size={17} color={tone.fg} />
         </View>
         <Text style={[styles.statValue, { color: tone.fg }]}>{value}</Text>
       </View>
@@ -296,7 +297,6 @@ const styles = StyleSheet.create({
   },
   statTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   statChip: { width: 32, height: 32, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  statChipEmoji: { fontSize: 15 },
   statValue: { fontSize: 26, fontWeight: '800', fontVariant: ['tabular-nums'] },
   pressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
   statLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.muted, marginTop: 8 },
@@ -317,7 +317,6 @@ const styles = StyleSheet.create({
   // Tinted per kind (amber / violet / green), the same identity colors the web
   // app uses, so the type of a report reads before its text does.
   actionChip: { width: 44, height: 44, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  actionEmoji: { fontSize: 22 },
   actionTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   actionTitleTl: { fontSize: 13, fontWeight: '600', color: colors.primary, marginTop: 1 },
   actionDesc: { fontSize: 13, color: colors.muted, marginTop: 5 },
@@ -331,7 +330,6 @@ const styles = StyleSheet.create({
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   listDivider: { borderTopWidth: 1, borderTopColor: colors.border },
   rowChip: { width: 34, height: 34, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  rowChipEmoji: { fontSize: 16 },
   rowTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
   rowId: { fontSize: 12, color: colors.muted, marginTop: 2, fontVariant: ['tabular-nums'] },
   rowMeta: { fontSize: 12, color: colors.muted, fontVariant: ['tabular-nums'] },

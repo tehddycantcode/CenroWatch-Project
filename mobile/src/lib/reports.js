@@ -82,22 +82,23 @@ export const KIND_TONES = {
 // The three things a resident can file. One list, used by the dashboard cards
 // and the Report button's sheet, so the two can never offer different options.
 // `kind` doubles as the navigator screen name and as the ACTION_TL key.
+// `icon` is an Ionicons name, rendered through components/Icon.
 export const REPORT_ACTIONS = [
   {
     kind: 'complaint',
-    emoji: '🗑️',
+    icon: 'trash-outline',
     title: 'Report a Complaint',
     desc: 'Illegal dumping, burning, noise, pollution…',
   },
   {
     kind: 'wildlife',
-    emoji: '🦅',
+    icon: 'paw-outline',
     title: 'Wildlife Turnover',
     desc: 'Report or turn over rescued wildlife.',
   },
   {
     kind: 'request',
-    emoji: '🌱',
+    icon: 'leaf-outline',
     title: 'Request a Service',
     desc: 'Seedlings, hauling, creek cleaning…',
   },

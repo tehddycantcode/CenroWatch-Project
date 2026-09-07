@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
     "@maplibre/maplibre-react-native": "^11.3.7",
     "expo": "~56.0.12",
     "expo-build-properties": "~56.0.25",

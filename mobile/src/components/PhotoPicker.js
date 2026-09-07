@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
+import Icon from './Icon';
 import { colors, radius } from '../theme';
 
 // Turn a picked asset into something FormData will actually accept.
@@ -77,10 +78,12 @@ export default function PhotoPicker({ onChange }) {
 
       <View style={styles.row}>
         <Pressable style={styles.action} onPress={takePhoto}>
-          <Text style={styles.actionText}>📷 Take photo</Text>
+          <Icon name="camera-outline" size={18} color={colors.text} />
+          <Text style={styles.actionText}>Take photo</Text>
         </Pressable>
         <Pressable style={styles.action} onPress={pickFromLibrary}>
-          <Text style={styles.actionText}>🖼️ Choose photo</Text>
+          <Icon name="images-outline" size={18} color={colors.text} />
+          <Text style={styles.actionText}>Choose photo</Text>
         </Pressable>
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -106,6 +109,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10 },
   action: {
     flex: 1,
+    flexDirection: 'row',
+    gap: 7,
     height: 46,
     borderWidth: 1,
     borderColor: colors.border,

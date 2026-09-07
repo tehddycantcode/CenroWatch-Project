@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
 import { REPORT_ACTIONS, KIND_TONES } from '../lib/reports';
 import { ACTION_TL } from '../lib/tagalog';
+import Icon from './Icon';
 
 // The chooser behind the floating Report button. There are three kinds of
 // report and no way to guess which one someone wants, so the button opens this
@@ -40,7 +41,7 @@ export default function ReportSheet({ visible, onClose, onPick }) {
                 accessibilityRole="button"
               >
                 <View style={[styles.chip, { backgroundColor: tone.bg }]}>
-                  <Text style={styles.chipEmoji}>{a.emoji}</Text>
+                  <Icon name={a.icon} size={21} color={tone.fg} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle}>{a.title}</Text>
@@ -100,7 +101,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   chip: { width: 40, height: 40, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  chipEmoji: { fontSize: 20 },
   rowTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   rowTitleTl: { fontSize: 13, fontWeight: '600', color: colors.primary, marginTop: 1 },
   chevron: { fontSize: 24, color: colors.placeholder, fontWeight: '700' },
