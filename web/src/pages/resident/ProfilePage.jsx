@@ -64,7 +64,10 @@ function ProfileForm() {
         </FormField>
         <div className="sm:col-span-2 flex items-center gap-3">
           <Button type="submit" loading={saving}>Save changes</Button>
-          {msg && <span className="text-sm text-primary">{msg}</span>}
+          {/* role="status" announces this to a screen reader politely, waiting
+              for a pause. Errors use role="alert" (see components/ui/alert),
+              which interrupts - right for a failure, wrong for a confirmation. */}
+          {msg && <span role="status" className="text-sm text-primary">{msg}</span>}
         </div>
       </form>
     </Card>
@@ -120,7 +123,10 @@ function PasswordForm() {
         </FormField>
         <div className="sm:col-span-2 flex items-center gap-3">
           <Button type="submit" loading={saving}>Update password</Button>
-          {msg && <span className="text-sm text-primary">{msg}</span>}
+          {/* role="status" announces this to a screen reader politely, waiting
+              for a pause. Errors use role="alert" (see components/ui/alert),
+              which interrupts - right for a failure, wrong for a confirmation. */}
+          {msg && <span role="status" className="text-sm text-primary">{msg}</span>}
         </div>
       </form>
     </Card>
