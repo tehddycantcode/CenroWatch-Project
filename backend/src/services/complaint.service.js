@@ -1,11 +1,11 @@
 // Complaint business logic. Pattern: routes → controllers → services → prisma.
-// Every mutation writes an AuditLog; SLA deadline is stamped at submission.
+// Every mutation writes an AuditLog. The SLA deadline is NOT set here: it is
+// stamped when staff approve the complaint (see staff.complaint.service).
 
 const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
 const { createSequential } = require('../utils/createSequential');
-const { getSlaMinutes, addMinutes } = require('../utils/sla');
 const { withActive } = require('../utils/archive');
 const { notifyReportSubmitted } = require('../utils/notify');
 
@@ -65,8 +65,11 @@ async function createComplaint(userId, input, photoPath, ctx = {}, options = {})
 
   const submitted_at = new Date();
   const year = submitted_at.getFullYear();
-  const slaMinutes = await getSlaMinutes('complaint_sla_minutes', 3365);
-  const sla_deadline = addMinutes(submitted_at, slaMinutes);
+  // No deadline yet. The clock starts when CENRO ACCEPTS the complaint (the
+  // first move to Approved), not when a resident files it - see the Approved
+  // branch in staff.complaint.service.updateStatus. Stamping a deadline here
+  // and replacing it on approval would show the resident a promise on the
+  // tracking page and then move it, which is worse than showing none.
 
   const complaint = await createSequential({
     model: 'complaint',
@@ -85,7 +88,9 @@ async function createComplaint(userId, input, photoPath, ctx = {}, options = {})
       address_details: input.address_details || null,
       submitted_at,
       observed_at: input.observed_at ?? null,
-      sla_deadline,
+      // Both null until approval; see the comment in createComplaint above.
+      sla_started_at: null,
+      sla_deadline: null,
     },
     select: DETAIL_SELECT,
   });

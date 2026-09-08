@@ -5,15 +5,23 @@ import { TIMELINE_TL } from '@/lib/tagalog';
 // Canonical resident-visible step sequences per report kind. Built without an API
 // change - the report's current status is mapped onto its flow to mark progress.
 const FLOWS = {
-  complaint: ['Submitted', 'Under Review', 'In Progress', 'Resolved'],
+  // Approved is where CENRO accepts the complaint and the response clock starts,
+  // so the resident sees it as its own step rather than a silent state change.
+  complaint: ['Submitted', 'Under Review', 'Approved', 'In Progress', 'Resolved'],
   wildlife: ['Submitted', 'Under Review', 'In Progress', 'Completed'],
   request: ['Submitted', 'Under Review', 'Scheduled', 'Released'],
 };
 
+// Step names are spaced ("Under Review") but the API sends the raw enum
+// ("Under_Review"), so a plain lowercase compare never matched and every live
+// complaint fell through to index 0 - a resident whose report was In_Progress
+// saw the timeline stuck on "Submitted". Normalising underscores fixes that.
+const norm = (v) => String(v || '').toLowerCase().replace(/[\s_]+/g, ' ').trim();
+
 // Best-effort, case-insensitive index of the current status within the flow.
 function statusIndex(flow, status) {
-  const s = (status || '').toLowerCase();
-  const i = flow.findIndex((f) => f.toLowerCase() === s);
+  const s = norm(status);
+  const i = flow.findIndex((f) => norm(f) === s);
   if (i >= 0) return i;
   if (['rejected', 'closed', 'cancelled'].includes(s)) return flow.length - 1;
   return 0;

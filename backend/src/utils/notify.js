@@ -23,11 +23,26 @@ function trackingUrl(trackingId) {
  * @param {string} p.status    new status (enum value)
  * @param {string} [p.note]    optional staff note shown to the resident
  */
-function notifyReportStatus({ to, name, kind, trackingId, status, note }) {
+function notifyReportStatus({ to, name, kind, trackingId, status, note, dueDate }) {
   const label = KIND_LABEL[kind] || 'Report';
   const niceStatus = humanize(status);
   const subject = `[CENROWATCH] ${label} ${trackingId} · ${niceStatus}`;
   const url = trackingUrl(trackingId);
+
+  // Only sent when a deadline actually exists, which is the moment the report is
+  // approved. Before that there is no commitment to communicate, and quoting a
+  // date the office has not committed to would be worse than saying nothing.
+  // The working-days sentence is here because a resident who counts calendar
+  // days from this email will otherwise think CENRO is late when it is not.
+  const dueHtml = dueDate
+    ? `<p style="margin:16px 0;padding:12px 14px;background:#f1f7f3;border-radius:8px;color:#0f3d1f">
+         <strong>Target response by:</strong> ${escapeHtml(formatDateTime(dueDate))}<br/>
+         <span style="color:#66756e;font-size:13px">Requests are processed on working days. Saturdays, Sundays and holidays are not counted.</span>
+       </p>`
+    : '';
+  const dueText = dueDate
+    ? `\nTarget response by: ${formatDateTime(dueDate)}\nRequests are processed on working days. Saturdays, Sundays and holidays are not counted.\n`
+    : '';
 
   const noteHtml = note
     ? `<p style="margin:16px 0;padding:12px 14px;background:#f1f7f3;border-radius:8px;color:#0f3d1f">
@@ -42,6 +57,7 @@ function notifyReportStatus({ to, name, kind, trackingId, status, note }) {
       <p>Hi ${escapeHtml(name || 'there')},</p>
       <p>Your ${label.toLowerCase()} <strong>${trackingId}</strong> has been updated to:</p>
       <p style="font-size:18px;font-weight:bold;color:#0f3d1f">${niceStatus}</p>
+      ${dueHtml}
       ${noteHtml}
       <p><a href="${url}" style="display:inline-block;background:#22a050;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">View your report</a></p>
       <p style="color:#66756e;font-size:12px;margin-top:24px">
@@ -49,7 +65,7 @@ function notifyReportStatus({ to, name, kind, trackingId, status, note }) {
       </p>
     </div>`;
 
-  const text = `CENROWATCH\n\nHi ${name || 'there'},\n\nYour ${label.toLowerCase()} ${trackingId} has been updated to: ${niceStatus}.\n${
+  const text = `CENROWATCH\n\nHi ${name || 'there'},\n\nYour ${label.toLowerCase()} ${trackingId} has been updated to: ${niceStatus}.\n${dueText}${
     note ? `\nNote from CENRO: ${note}\n` : ''
   }\nView your report: ${url}\n\nThis is an automated message. Please do not reply.`;
 

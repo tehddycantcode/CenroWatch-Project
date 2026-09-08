@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { COMPLAINT_STATUSES, fmtDate, useSectionBase } from '@/lib/staff';
+import { COMPLAINT_STATUSES, fmtDate, useSectionBase, isBreached } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
@@ -46,7 +46,7 @@ export default function ComplaintDetailPage() {
               <div className="flex flex-col items-end gap-2">
                 <StatusBadge status={c.status} />
                 {c.is_anonymous && <span className="rounded bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-700">Anonymous</span>}
-                {c.exceeded_sla && <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">SLA past due</span>}
+                {isBreached(c) && <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">SLA past due</span>}
               </div>
             </div>
 

@@ -5,7 +5,7 @@
 const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
-const { computeExceededSla } = require('../utils/sla');
+const { computeExceededSla, getSlaMinutes, computeSlaDeadline, REQUEST_SLA_BY_TYPE } = require('../utils/sla');
 const { NOT_ARCHIVED, assertNotArchived } = require('../utils/archive');
 const { notifyReportStatus } = require('../utils/notify');
 const { notifyStatusChange } = require('./notification.service');
@@ -103,7 +103,11 @@ async function updateRequestStatus(staffId, idOrTracking, input, ctx = {}) {
   const existing = await prisma.environmentalRequest.findFirst({
     where: whereFor(idOrTracking),
     select: {
-      request_id: true, tracking_id: true, status: true, sla_deadline: true,
+      // request_type and sla_started_at are load-bearing here: the SLA budget is
+      // looked up BY TYPE, and without the type the lookup silently returns
+      // undefined and every approved request gets no deadline at all.
+      request_id: true, tracking_id: true, status: true, request_type: true,
+      sla_started_at: true, sla_deadline: true,
       scheduled_date: true, completion_date: true, approval_date: true, user_id: true,
       archived_at: true,
       user: { select: { email: true, first_name: true } },
@@ -123,13 +127,28 @@ async function updateRequestStatus(staffId, idOrTracking, input, ctx = {}) {
   const approved = newStatus === 'Approved';
   const approval_date = approved ? existing.approval_date || new Date() : existing.approval_date;
   const completedAt = isTerminal ? completion_date || new Date() : null;
-  const exceeded_sla = computeExceededSla(existing.sla_deadline, completedAt);
+
+  // The clock starts at CENRO Head approval, not submission - the Charter
+  // requires that approval before the office acts, so a submission-based clock
+  // was measuring the wrong thing. Stamped once: `existing.sla_started_at ||`
+  // stops an Approved -> Pending -> Approved round trip resetting the deadline.
+  // Types with no charter SLA stay null forever, exactly as before.
+  const sla = REQUEST_SLA_BY_TYPE[existing.request_type];
+  const startsNow = !existing.sla_started_at && approved && Boolean(sla);
+  const sla_started_at = existing.sla_started_at || (startsNow ? approval_date : null);
+  const sla_deadline = existing.sla_deadline
+    || (startsNow ? await computeSlaDeadline(sla_started_at, await getSlaMinutes(sla.key, sla.fallback)) : null);
+
+  // Judged against the effective deadline, not the pre-update one.
+  const exceeded_sla = computeExceededSla(sla_deadline, completedAt);
 
   const data = {
     status: newStatus,
     processed_by: staffId,
     scheduled_date,
     completion_date,
+    sla_started_at,
+    sla_deadline,
     exceeded_sla,
     approval_date,
     ...(approved ? { approved_by_cenro_head: true } : {}),
@@ -167,6 +186,7 @@ async function updateRequestStatus(staffId, idOrTracking, input, ctx = {}) {
       trackingId: existing.tracking_id,
       status: newStatus,
       note: input.note,
+      dueDate: startsNow ? sla_deadline : null,
     });
     await notifyStatusChange({
       userId: existing.user_id,

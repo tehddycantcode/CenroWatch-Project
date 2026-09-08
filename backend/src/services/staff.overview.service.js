@@ -5,7 +5,8 @@
 const prisma = require('../utils/prisma');
 const { NOT_ARCHIVED, withActive } = require('../utils/archive');
 
-const COMPLAINT_OPEN = ['Pending', 'Under_Review', 'In_Progress'];
+// See admin.analytics.service: omitting 'Approved' silently hides running clocks.
+const COMPLAINT_OPEN = ['Pending', 'Under_Review', 'Approved', 'In_Progress'];
 const WILDLIFE_OPEN = ['Pending_Review', 'Priority_Review', 'Under_Care'];
 const REQUEST_OPEN = ['Pending', 'Approved', 'Scheduled'];
 

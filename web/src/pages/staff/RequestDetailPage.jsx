@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { REQUEST_STATUSES, fmtDate, fmtDay, useSectionBase } from '@/lib/staff';
+import { REQUEST_STATUSES, fmtDate, fmtDay, useSectionBase, isBreached } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
@@ -42,7 +42,7 @@ export default function RequestDetailPage() {
               </div>
               <div className="flex flex-col items-end gap-2">
                 <StatusBadge status={q.status} />
-                {q.exceeded_sla && <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">SLA past due</span>}
+                {isBreached(q) && <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">SLA past due</span>}
               </div>
             </div>
 

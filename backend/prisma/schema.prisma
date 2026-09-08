@@ -21,9 +21,14 @@ enum Role {
   Resident
 }
 
+// Approved is the acknowledgement gate: the SLA clock starts there, not at
+// submission. Placed in workflow order rather than appended, so the enum reads
+// as the process it describes. Under_Review is triage BEFORE acceptance; a
+// complaint sitting there has no deadline yet.
 enum ComplaintStatus {
   Pending
   Under_Review
+  Approved
   In_Progress
   Resolved
   Rejected
@@ -227,7 +232,9 @@ model Complaint {
   conference_date      DateTime?
   commitment_signed_at DateTime?
   monitoring_date      DateTime?
-  sla_deadline         DateTime? // submitted_at + 2d 8h 5m
+  // Null until the complaint is Approved: no acknowledgement, no commitment.
+  sla_started_at       DateTime?
+  sla_deadline         DateTime? // sla_started_at + budget in WORKING minutes
   exceeded_sla         Boolean               @default(false)
   assigned_staff_role  CenroPersonRole?
 
@@ -303,7 +310,11 @@ model WildlifeTurnover {
   transport_date            DateTime?
   rescue_report_prepared    Boolean              @default(false)
   rescue_report_date        DateTime?
-  sla_deadline              DateTime? // submitted_at + 2d 5h 38m
+  // Wildlife stays submission-based: a rescued animal's clock starts when it is
+  // reported, not when staff get to it. Recorded anyway so all three models
+  // carry one uniform anchor column.
+  sla_started_at            DateTime?
+  sla_deadline              DateTime? // sla_started_at + budget in WORKING minutes
   exceeded_sla              Boolean              @default(false)
   assigned_staff_role       CenroPersonRole?
 
@@ -347,7 +358,10 @@ model EnvironmentalRequest {
   updated_at         DateTime      @updatedAt
 
   // Citizens Charter SLA tracking (Part 20.2)
-  sla_deadline           DateTime? // per request_type
+  // Null until Approved. Mirrors approval_date but kept separate on purpose:
+  // that is the CENRO Head's decision record, this is the clock anchor.
+  sla_started_at         DateTime?
+  sla_deadline           DateTime? // per request_type, in WORKING minutes
   exceeded_sla           Boolean   @default(false)
   approved_by_cenro_head Boolean   @default(false)
   approval_date          DateTime?

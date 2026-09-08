@@ -1,6 +1,6 @@
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { REQUEST_STATUSES, fmtDate, fmtRelative, useSectionBase } from '@/lib/staff';
+import { REQUEST_STATUSES, fmtDate, fmtRelative, useSectionBase, isBreached } from '@/lib/staff';
 import StaffQueue from '@/components/staff/StaffQueue';
 import { StatusBadge } from '@/components/ui/badge';
 
@@ -23,7 +23,7 @@ const columns = [
     render: (r) => (
       <span className="flex items-center gap-2">
         <StatusBadge status={r.status} />
-        {r.exceeded_sla && <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">SLA</span>}
+        {isBreached(r) && <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">SLA</span>}
       </span>
     ),
   },

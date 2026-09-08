@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { WILDLIFE_STATUSES, fmtDate, useSectionBase } from '@/lib/staff';
+import { WILDLIFE_STATUSES, fmtDate, useSectionBase, isBreached } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
@@ -45,7 +45,7 @@ export default function WildlifeDetailPage() {
               <div className="flex flex-col items-end gap-2">
                 <StatusBadge status={w.status} />
                 {w.is_endangered && <span className="rounded bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-800">Endangered</span>}
-                {w.exceeded_sla && <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">SLA past due</span>}
+                {isBreached(w) && <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">SLA past due</span>}
               </div>
             </div>
 

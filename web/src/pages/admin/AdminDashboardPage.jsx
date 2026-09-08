@@ -152,8 +152,13 @@ export default function AdminDashboardPage() {
       <Card className="p-6">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
+            {/* "Chart period", not "Period". The selector scopes THIS chart only -
+                the stat tiles, type/barangay bars and SLA cards above and below
+                are all-time figures. A bare "Period" on a dashboard reads as though
+                it filtered the whole page, which would misreport every other number
+                on the screen. */}
             <label htmlFor="range" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Period
+              Chart period
             </label>
             <Select id="range" value={preset} onChange={onPreset} className="h-9 w-44">
               {RANGE_PRESETS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
@@ -181,7 +186,7 @@ export default function AdminDashboardPage() {
         <TrendChart
           data={a.trend}
           title="Reports over time"
-          subtitle={`${fmt(tr.from)} - ${fmt(tr.to)} - ${GRAIN_LABEL[tr.granularity] || ''}`}
+          subtitle={`${fmt(tr.from)} to ${fmt(tr.to)} · ${GRAIN_LABEL[tr.granularity] || ''} · this chart only`}
         />
 
         {tr.truncated && (

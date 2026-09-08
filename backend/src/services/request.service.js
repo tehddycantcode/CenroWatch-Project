@@ -5,15 +5,8 @@ const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
 const { createSequential } = require('../utils/createSequential');
-const { getSlaMinutes, addMinutes } = require('../utils/sla');
 const { withActive } = require('../utils/archive');
 const { notifyReportSubmitted } = require('../utils/notify');
-
-// request_type -> SLA setting key + sane fallback (minutes).
-const SLA_BY_TYPE = {
-  Seedling_Distribution: { key: 'request_seedling_sla_minutes', fallback: 25 },
-  Environmental_Education: { key: 'request_env_education_sla_minutes', fallback: 187 },
-};
 
 const DETAIL_SELECT = {
   request_id: true,
@@ -61,14 +54,12 @@ async function createRequest(userId, input, documentPath, ctx = {}) {
 
   const submitted_at = new Date();
   const year = submitted_at.getFullYear();
-
-  // SLA only applies to certain request types.
-  let sla_deadline = null;
-  const sla = SLA_BY_TYPE[input.request_type];
-  if (sla) {
-    const minutes = await getSlaMinutes(sla.key, sla.fallback);
-    sla_deadline = addMinutes(submitted_at, minutes);
-  }
+  // No deadline yet. The Charter requires CENRO Head approval before the office
+  // acts on a request, so a clock started at submission was measuring the wrong
+  // thing. It now starts on the first move to Approved - see the Approved branch
+  // in staff.request.service.updateStatus. The three types with no charter SLA
+  // (Garbage_Hauling, Creek_River_Cleaning, Other_Service) stay null forever,
+  // exactly as before.
 
   const request = await createSequential({
     model: 'environmentalRequest',
@@ -84,7 +75,9 @@ async function createRequest(userId, input, documentPath, ctx = {}) {
       requested_quantity: input.requested_quantity ?? null,
       preferred_schedule: input.preferred_schedule ?? null,
       submitted_at,
-      sla_deadline,
+      // Both null until approval; see the comment in createRequest above.
+      sla_started_at: null,
+      sla_deadline: null,
     },
     select: DETAIL_SELECT,
   });

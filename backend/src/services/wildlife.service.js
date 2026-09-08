@@ -5,7 +5,7 @@ const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
 const { createSequential } = require('../utils/createSequential');
-const { getSlaMinutes, addMinutes } = require('../utils/sla');
+const { getSlaMinutes, computeSlaDeadline } = require('../utils/sla');
 const { withActive } = require('../utils/archive');
 const { notifyReportSubmitted } = require('../utils/notify');
 
@@ -62,8 +62,13 @@ async function createTurnover(userId, input, photoPath, ctx = {}) {
 
   const submitted_at = new Date();
   const year = submitted_at.getFullYear();
+  // Wildlife alone keeps a submission-based clock. There is no Approved state in
+  // WildlifeStatus and there should not be: an animal's welfare clock starts when
+  // someone reports it, and an approval gate would let a distressed animal's SLA
+  // sit un-started over a weekend - exactly the wrong incentive.
   const slaMinutes = await getSlaMinutes('wildlife_sla_minutes', 3218);
-  const sla_deadline = addMinutes(submitted_at, slaMinutes);
+  const sla_started_at = submitted_at;
+  const sla_deadline = await computeSlaDeadline(submitted_at, slaMinutes);
   const endangered = !!input.is_endangered;
 
   const turnover = await createSequential({
@@ -86,6 +91,7 @@ async function createTurnover(userId, input, photoPath, ctx = {}) {
       address_details: input.address_details || null,
       status: endangered ? 'Priority_Review' : 'Pending_Review',
       submitted_at,
+      sla_started_at,
       sla_deadline,
     },
     select: DETAIL_SELECT,

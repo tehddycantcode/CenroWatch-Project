@@ -77,6 +77,13 @@ export default function StaffDashboardPage() {
   }
 
   const allReports = overview.complaints.total + overview.wildlife.total + overview.requests.total;
+  // Reports whose clock has not started yet: complaints not past Approved, and
+  // requests still Pending. Read straight from by_status, which the overview
+  // service already returns - no backend change needed for this.
+  const awaiting =
+    (overview.complaints.by_status?.Pending || 0) +
+    (overview.complaints.by_status?.Under_Review || 0) +
+    (overview.requests.by_status?.Pending || 0);
 
   return (
     <div className="space-y-8">
@@ -98,12 +105,35 @@ export default function StaffDashboardPage() {
         </div>
       </div>
 
+      {/* "Awaiting acknowledgement" is not decoration - it closes a hole the
+          approval gate opens. A complaint sitting in Pending now has no deadline,
+          so it can never appear in "SLA past due". Without this tile the fastest
+          route to a perfect SLA record would be to never press Approve, and a
+          growing pile of unacknowledged reports would be invisible. The breach
+          tile is footnoted for the same reason: it counts only reports whose
+          clock has actually started. */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat icon={Clock} tone="amber" label="Open items" value={overview.totals.open} />
-        <Stat icon={AlertTriangle} tone="amber" label="SLA past due" value={overview.totals.breached} danger={overview.totals.breached > 0} />
+        <Stat
+          icon={Clock}
+          tone="amber"
+          label="Awaiting acknowledgement"
+          value={awaiting}
+          danger={awaiting > 0}
+        />
+        <Stat
+          icon={AlertTriangle}
+          tone="amber"
+          label="SLA past due"
+          value={overview.totals.breached}
+          danger={overview.totals.breached > 0}
+        />
         <Stat icon={FileText} tone="primary" label="All reports" value={allReports} />
         <Stat icon={ShieldAlert} tone="violet" label="Priority wildlife" value={overview.wildlife.by_status?.Priority_Review || 0} />
       </div>
+      <p className="-mt-2 text-xs text-muted-foreground">
+        The SLA clock starts when a report is approved, so &ldquo;SLA past due&rdquo; counts only reports
+        whose clock has started. Anything still awaiting acknowledgement has no deadline yet.
+      </p>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <ResourceCard kind="complaint" data={overview.complaints} />

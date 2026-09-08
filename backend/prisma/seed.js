@@ -89,10 +89,10 @@ function boundaryFeature(name, sites, i) {
 }
 
 const settings = [
-  { setting_key: 'complaint_sla_minutes', setting_value: '3365', description: 'Citizens Charter complaint SLA: 2d 8h 5m in minutes' },
-  { setting_key: 'wildlife_sla_minutes', setting_value: '3218', description: 'Citizens Charter wildlife SLA: 2d 5h 38m in minutes' },
-  { setting_key: 'request_seedling_sla_minutes', setting_value: '25', description: 'Seedling request SLA: 25 minutes' },
-  { setting_key: 'request_env_education_sla_minutes', setting_value: '187', description: 'Environmental education request SLA: 3h 7m in minutes' },
+  { setting_key: 'complaint_sla_minutes', setting_value: '3365', description: 'Complaint response budget in WORKING minutes (Mon-Fri). Clock starts on approval. 3365 = the Citizens Charter figure' },
+  { setting_key: 'wildlife_sla_minutes', setting_value: '3218', description: 'Wildlife response budget in WORKING minutes (Mon-Fri). Clock starts at submission' },
+  { setting_key: 'request_seedling_sla_minutes', setting_value: '25', description: 'Seedling request budget in WORKING minutes. Clock starts on approval' },
+  { setting_key: 'request_env_education_sla_minutes', setting_value: '187', description: 'Environmental education budget in WORKING minutes. Clock starts on approval' },
 ];
 
 async function main() {

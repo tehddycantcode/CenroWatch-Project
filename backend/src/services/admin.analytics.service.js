@@ -4,7 +4,10 @@
 const prisma = require('../utils/prisma');
 const { NOT_ARCHIVED, withActive } = require('../utils/archive');
 
-const COMPLAINT_OPEN = ['Pending', 'Under_Review', 'In_Progress'];
+// 'Approved' MUST be here. It is the state where the clock is actually running,
+// so omitting it would drop every live complaint out of the overdue query with
+// no error anywhere - the breach count would just quietly under-report.
+const COMPLAINT_OPEN = ['Pending', 'Under_Review', 'Approved', 'In_Progress'];
 const COMPLAINT_TERMINAL = ['Resolved', 'Rejected'];
 const WILDLIFE_OPEN = ['Pending_Review', 'Priority_Review', 'Under_Care'];
 const WILDLIFE_TERMINAL = ['Released', 'Transferred', 'Deceased'];

@@ -13,11 +13,14 @@
     "seed": "node prisma/seed.js",
     "create-admin": "node prisma/create-admin.js",
     "check-mail": "node scripts/check-mail.js",
-    "test": "jest"
+    "test": "jest",
+    "backfill-sla": "node scripts/backfill-sla-start.js"
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/tests/**/*.test.js"]
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
   },
   "keywords": [
     "cenrowatch",

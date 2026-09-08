@@ -10,7 +10,7 @@ export const SETTING_GROUPS = [
     id: 'sla',
     title: 'Response time targets',
     blurb:
-      'How long CENRO has to act on each kind of report. The deadline is stamped on a report when it is filed, and drives the SLA badges and the compliance figures on the dashboard.',
+      'How long CENRO has to act on each kind of report, counted in working time: the clock runs Monday to Friday and stops over the weekend. For complaints and service requests it starts when the report is APPROVED, not when it is filed; wildlife turnovers start at submission. These drive the SLA badges and the compliance figures on the dashboard.',
   },
   {
     id: 'other',
@@ -78,11 +78,14 @@ export function humanDuration(minutes) {
   return parts.join(' ');
 }
 
-// The concrete effect of the current value, so the setting is visibly live.
-export function deadlinePreview(minutes) {
-  const m = Number(minutes);
-  if (!Number.isFinite(m) || m <= 0) return null;
-  return new Date(Date.now() + m * 60000).toLocaleString();
+// REMOVED: this used to preview an absolute deadline as `Date.now() + minutes`.
+// That is now wrong - the budget is spent in working time, so a plain wall-clock
+// projection understates every deadline that crosses a weekend, sometimes by two
+// days. Re-implementing the working-time calculator here would put a second copy
+// of that logic in the frontend, and two copies of a date algorithm diverge.
+// The humanDuration string above already tells an admin what the value means.
+export function deadlinePreview() {
+  return null;
 }
 
 export const isSlaKey = (key) => key.endsWith('_minutes');

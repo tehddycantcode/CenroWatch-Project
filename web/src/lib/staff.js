@@ -14,7 +14,7 @@ export function useSectionBase() {
   return pathname.startsWith('/admin') ? '/admin' : '/staff';
 }
 
-export const COMPLAINT_STATUSES = ['Pending', 'Under_Review', 'In_Progress', 'Resolved', 'Rejected'];
+export const COMPLAINT_STATUSES = ['Pending', 'Under_Review', 'Approved', 'In_Progress', 'Resolved', 'Rejected'];
 export const WILDLIFE_STATUSES = ['Pending_Review', 'Priority_Review', 'Under_Care', 'Released', 'Transferred', 'Deceased'];
 export const REQUEST_STATUSES = ['Pending', 'Approved', 'Scheduled', 'Completed', 'Rejected'];
 
@@ -23,6 +23,19 @@ export const KIND_META = {
   wildlife: { label: 'Wildlife', plural: 'Wildlife', statuses: WILDLIFE_STATUSES, base: '/staff/wildlife' },
   request: { label: 'Service Request', plural: 'Requests', statuses: REQUEST_STATUSES, base: '/staff/requests' },
 };
+
+// Has this report actually breached its SLA?
+//
+// exceeded_sla is a CACHE: it is recomputed only when staff change a status, and
+// there is no scheduled job, so an open report that quietly sailed past its
+// deadline still reads false in the database. Trusting the stored flag alone
+// would print "on time" on a report shown as overdue elsewhere on the same
+// screen. The dashboards already compensate with a live sla_deadline < now
+// query; this puts the badges on the same footing.
+//
+// A null deadline is not a breach: the clock has not started yet.
+export const isBreached = (r) =>
+  Boolean(r?.exceeded_sla) || Boolean(r?.sla_deadline && new Date(r.sla_deadline) < new Date());
 
 export const fmtDate = (d) => (d ? new Date(d).toLocaleString() : '—');
 export const fmtDay = (d) => (d ? new Date(d).toLocaleDateString() : '—');

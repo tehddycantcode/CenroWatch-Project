@@ -2,7 +2,7 @@ const { body, query } = require('express-validator');
 const { COMPLAINT_TYPES } = require('./complaint.validators');
 
 // Status enums — mirror schema.prisma.
-const COMPLAINT_STATUSES = ['Pending', 'Under_Review', 'In_Progress', 'Resolved', 'Rejected'];
+const COMPLAINT_STATUSES = ['Pending', 'Under_Review', 'Approved', 'In_Progress', 'Resolved', 'Rejected'];
 // Citizens Charter intake channels (ComplaintReceivedVia in schema.prisma).
 const RECEIVED_VIA = ['Walk_In', 'Email', 'Phone_Call', 'Facebook_Messenger', 'Logbook_Record'];
 const WILDLIFE_STATUSES = ['Pending_Review', 'Priority_Review', 'Under_Care', 'Released', 'Transferred', 'Deceased'];

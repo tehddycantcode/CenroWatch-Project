@@ -7,7 +7,6 @@ import {
   metaFor,
   bestUnit,
   humanDuration,
-  deadlinePreview,
   isSlaKey,
 } from '@/lib/settings';
 import { Card } from '@/components/ui/card';
@@ -89,9 +88,11 @@ function SettingRow({ setting, onSaved }) {
         <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-accent/40 px-3 py-2 text-xs text-muted-foreground">
           <Clock className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
           <span className="font-medium text-foreground">{humanDuration(minutes)}</span>
-          <span>
-            a report filed now would be due {deadlinePreview(minutes)}
-          </span>
+          {/* No absolute date here any more. The clock runs in working time, so
+              "due on <date>" cannot be computed without the working-day
+              calculator, and duplicating that in the frontend would give the
+              system two copies of one date algorithm. */}
+          <span>of working time, counted Monday to Friday</span>
         </div>
       )}
     </div>
@@ -134,8 +135,9 @@ export default function AdminSettingsPage() {
       ))}
 
       <p className="text-xs text-muted-foreground">
-        Changes apply to reports filed from that point on. Reports already in the system keep the
-        deadline they were given when they were filed, so past compliance figures do not shift.
+        Changes apply to reports whose clock starts after the change. A report that already has a
+        deadline keeps it, so past compliance figures do not shift. Complaints and service requests
+        get their deadline when they are approved; wildlife turnovers get it at submission.
       </p>
     </div>
   );
