@@ -7,6 +7,7 @@ const { writeAuditLog } = require('../utils/audit');
 const { createSequential } = require('../utils/createSequential');
 const { getSlaMinutes, addMinutes } = require('../utils/sla');
 const { withActive } = require('../utils/archive');
+const { notifyReportSubmitted } = require('../utils/notify');
 
 // request_type -> SLA setting key + sane fallback (minutes).
 const SLA_BY_TYPE = {
@@ -96,6 +97,27 @@ async function createRequest(userId, input, documentPath, ctx = {}) {
     data: { tracking_id: request.tracking_id, request_type: request.request_type },
     ipAddress: ctx.ipAddress || null,
   });
+
+  // Email the resident a receipt for what they just filed. sendMail never
+  // throws, so a mail outage cannot fail the submission.
+  if (userId) {
+    const reporter = await prisma.user.findUnique({
+      where: { user_id: userId },
+      select: { email: true, first_name: true },
+    });
+    if (reporter?.email) {
+      await notifyReportSubmitted({
+        to: reporter.email,
+        name: reporter.first_name,
+        kind: 'request',
+        trackingId: request.tracking_id,
+        type: request.request_type,
+        barangay: request.barangay?.name,
+        submittedAt: request.submitted_at,
+        slaDeadline: request.sla_deadline,
+      });
+    }
+  }
 
   return request;
 }

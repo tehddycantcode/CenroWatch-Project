@@ -35,14 +35,35 @@ Researchers: Moro, Edward Justine G. | Quizana, Koshi Cyrus G. | Zaspa, Holian I
 - **Express 5** is installed (current default). Code avoids removed v4 features; no
   unnamed wildcard routes. Keep params as `/:id` (unchanged in v5).
 
-## Environment Notes (this machine)
+## Environment Notes — TWO SETUPS, CHECK WHICH ONE YOU ARE ON
+The researchers run this project differently. Neither is wrong; assuming the wrong
+one wastes an afternoon. **Detect before acting:** if `backend/node_modules` exists
+on disk, you are on the native setup; if `docker ps` shows `cenrowatch_api`, you are
+on the Docker setup.
+
+### Native setup (Edward's machine)
 - OS: Windows 11, native (NOT WSL2). Shell: PowerShell.
-- Node.js v24.17.0 (Krypton LTS) installed to `C:\Users\Penar\nodejs\...` (user-scope, no admin).
+- Node.js v24.17.0 (Krypton LTS) at `C:\Users\Penar\nodejs\...` (user-scope, no admin).
 - A fresh shell does NOT auto-inherit Node on PATH. Prefix npm/node commands with:
   `$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine')`
-- MySQL 8 IS installed and running locally (service `MySQL80`). `cenrowatch_db`
-  is migrated (`prisma/migrations/`) and seeded (18 barangays + SLA settings).
-  The `mysql` CLI is not on PATH, but Prisma connects over TCP via `DATABASE_URL`.
+- MySQL 8 runs as the local `MySQL80` service on **port 3306**; `DATABASE_URL` points
+  at `localhost:3306/cenrowatch_db`. `backend/node_modules` EXISTS — run `npm test`,
+  `npx prisma ...` and node scripts directly, no Docker involved.
+- Verified 2026-09-08: `npm test` green (34 tests), 18 barangays / 6 users / 164
+  audit logs / 4 settings present.
+
+### Docker setup (Koshi's machine)
+- Containers `cenrowatch_api` (port 5000) and `cenrowatch_db` (MySQL 8, host port
+  **3307**). Start with `docker compose up -d` from the repo root, then verify with
+  `node scripts/preflight.mjs`.
+- `backend/node_modules` does NOT exist on the host there — dependencies live inside
+  the image, so Prisma/node commands go through `docker exec cenrowatch_api ...`.
+
+### Test accounts differ per setup — verify, do not assume
+`seed-users.ps1` reset passwords in the DOCKER database only. On the native machine
+the original passwords still work (confirmed 2026-09-08 by bcrypt-comparing each
+hash). If a login fails, check which database you are pointed at before concluding
+the credentials are stale.
 
 ## Lessons Learned (avoid repeating)
 Standing rule: whenever I make a mistake, append the lesson here (and to
@@ -121,6 +142,51 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   an email, error message, or UI string tells a person that someone can do something
   for them, the thing that does it has to exist. Grep new copy for these promises.
 
+- **Verify the RUNNING system, not just the repo — use `node scripts/preflight.mjs`.**
+  On 2026-08-24 an entire afternoon went into bugs that all shared one shape: the
+  code was correct in git but dead in the environment. Three migrations had never
+  applied, email was silently disabled, and the live API container had been built
+  from a DIFFERENT project folder. Sprint plans marked all of it "complete". The
+  preflight script checks schema drift, migrations, SMTP auth, uploads, logins and
+  the mobile LAN IP; run it before every demo and before the defense.
+- **There were TWO clones of this project.** `C:\Users\quiza\Documents\CenroWatch-Project`
+  (no hyphen, 41 commits behind) vs `Cenro-Watch-Project` (hyphenated, current).
+  The running container was created by an untracked `backend/docker-compose.yml` in
+  the OLD folder and bind-mounted its uploads, so report photos lived there while
+  all code edits went to the new folder. Uploads have been copied across and the
+  stack now runs from the hyphenated repo. Do not run anything from the old folder.
+- **Compose project name is pinned to `backend` — never change it.** The live database
+  is the Docker volume `backend_db_data`. Compose derives volume names from the
+  project name, so renaming the project silently creates a NEW EMPTY database.
+- **Never load `.env` via compose `env_file:` or `docker run --env-file`.** Docker does
+  not strip surrounding quotes, so `STORAGE_DRIVER="local"` arrives as the literal
+  string `"local"` (quotes included) and crashes the server on boot. Mount the file
+  (`./backend/.env:/app/.env:ro`) and let the app's own dotenv parse it — dotenv
+  strips quotes, Docker does not.
+- **Migration SQL must use PascalCase table names** (`ALTER TABLE `Complaint``, not
+  ``complaint``). Windows MySQL is case-insensitive so a lowercase name works there,
+  but the Linux container is case-sensitive and the migration hard-fails. Three
+  migrations shipped with this bug and had silently never applied. An earlier
+  workaround set `--lower-case-table-names=1` in compose; that is now REMOVED (MySQL
+  refuses to start when it disagrees with the existing data dir) and the SQL is fixed.
+- **A Gmail App Password is 16 lowercase letters.** If `EMAIL_PASS` is anything else the
+  mailer logs `[mailer] (disabled)` or a 535/534 error and reports never email anyone.
+  `isConfigured()` returning true is NOT proof — preflight runs `transporter.verify()`
+  which authenticates against Gmail without sending anything.
+- **Vite binds IPv6 loopback (`::1`) ONLY — never health-check it on 127.0.0.1.**
+  A port probe that connects to IPv4 `127.0.0.1:5173` reports the dev server as down
+  while it is running perfectly. This made `start-cenrowatch.ps1` wait its full 90s
+  timeout and then wrongly announce that Vite had failed to start. Use
+  `Get-NetTCPConnection -LocalPort <port> -State Listen` (address-family agnostic,
+  and it does NOT need admin, unlike `Get-NetFirewallRule`), or try both `::1` and
+  `127.0.0.1`. The same bug silently defeats orphaned-Vite detection in the stop
+  script, which is the one thing that check exists to do.
+- **`start-cenrowatch` no longer runs the backend with `npm run dev`.** The backend lives
+  in Docker now and `backend/node_modules` does not exist on the host, so the old
+  launcher opened a window that died instantly and would have fought the
+  container for port 5000. The launcher now does: Docker -> `docker compose up -d`
+  -> wait for /api/health -> web dev server -> `scripts/preflight.mjs`. Double-click
+  `check-cenrowatch.bat` alone to verify a system that is already running.
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
 - Backend: Admin-only `/admin` API. `GET /admin/analytics` (Prisma groupBy + JS
@@ -152,7 +218,18 @@ Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
 - Sprint 2 (done): resident reporting backend + web/mobile resident UI + public GIS map.
 - Sprint 1 (done): auth + RBAC across backend/web/mobile; shared UI kits; Figma palette.
 - Email: live — EMAIL_USER/EMAIL_PASS (Gmail App Password) set in backend/.env.
-- Test accounts (dev): admin@cenrowatch.local / AdminPass123 (Admin);
-  staff@cenrowatch.local / StaffPass123 (CENRO_Staff); juan.delacruz@example.com /
-  Resident123. Known gotcha: Express 5 req.query is read-only — coerce query params
-  in services (see memory `express5-query-readonly`).
+- Test accounts (dev) — THE TWO DATABASES HOLD DIFFERENT ACCOUNTS. Check which
+  setup you are on (see Environment Notes) before believing either list.
+  - **Docker DB** (verified 2026-08-24 against the container): admin@cenrowatch.local
+    / Admin@1234; staff@cenrowatch.local / Staff@1234. Set by `seed-users.ps1`.
+    Residents are quizanakoshi@gmail.com (reset 2026-08-24 to `resident123`),
+    zaspaholian@gmail.com and moroedward@gmail.com — the last two are bcrypt-hashed
+    and unrecoverable; reset one with `hashPassword` from `src/utils/password` if
+    needed. There is no juan.delacruz@example.com here.
+  - **Native DB** (verified 2026-09-08 by bcrypt-comparing every stored hash):
+    admin@cenrowatch.local / AdminPass123; staff@cenrowatch.local / StaffPass123;
+    juan.delacruz@example.com / Resident123. These still work — `seed-users.ps1`
+    never touched this database. An earlier note here claimed they were dead; that
+    was true of the container only.
+- Known gotcha: Express 5 req.query is read-only — coerce query params in services
+  (see memory `express5-query-readonly`).

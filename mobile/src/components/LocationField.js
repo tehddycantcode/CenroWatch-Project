@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Location from 'expo-location';
+import MapPicker from './MapPicker';
 import { colors, radius } from '../theme';
 
-// Optional GPS location for a report. A full interactive map needs a native
-// MapLibre build (not available in Expo Go), so on mobile we capture the device's
-// current coordinates instead. Stores { latitude, longitude }.
+// Optional location for a report, pinned two ways: tap the map, or let GPS fill
+// it in. Stores { latitude, longitude }.
+//
+// The map is a native MapLibre view, so it only renders in a real build (EAS),
+// not in Expo Go. MapPicker degrades to a message if the MapTiler key is missing,
+// and "Use my location" keeps working either way - so a report can always be
+// filed with coordinates even if the map itself cannot draw.
 export default function LocationField({ value, onChange }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -35,6 +40,8 @@ export default function LocationField({ value, onChange }) {
 
   return (
     <View style={{ gap: 8 }}>
+      <MapPicker value={value} onChange={onChange} />
+
       <View style={styles.box}>
         {has ? (
           <Text style={styles.coords}>

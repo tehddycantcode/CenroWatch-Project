@@ -1,15 +1,15 @@
 -- AlterTable
-ALTER TABLE `complaint` ADD COLUMN `archive_reason` VARCHAR(255) NULL,
+ALTER TABLE `Complaint` ADD COLUMN `archive_reason` VARCHAR(255) NULL,
     ADD COLUMN `archived_at` DATETIME(3) NULL,
     ADD COLUMN `archived_by` INTEGER NULL;
 
 -- AlterTable
-ALTER TABLE `environmentalrequest` ADD COLUMN `archive_reason` VARCHAR(255) NULL,
+ALTER TABLE `EnvironmentalRequest` ADD COLUMN `archive_reason` VARCHAR(255) NULL,
     ADD COLUMN `archived_at` DATETIME(3) NULL,
     ADD COLUMN `archived_by` INTEGER NULL;
 
 -- AlterTable
-ALTER TABLE `wildlifeturnover` ADD COLUMN `archive_reason` VARCHAR(255) NULL,
+ALTER TABLE `WildlifeTurnover` ADD COLUMN `archive_reason` VARCHAR(255) NULL,
     ADD COLUMN `archived_at` DATETIME(3) NULL,
     ADD COLUMN `archived_by` INTEGER NULL;
 
