@@ -141,6 +141,31 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   while no such capability existed — staff could not even see who was unverified. If
   an email, error message, or UI string tells a person that someone can do something
   for them, the thing that does it has to exist. Grep new copy for these promises.
+- **CHECK TABLE CASING ON EVERY GENERATED MIGRATION, BEFORE APPLYING IT:** Prisma
+  reads table names back from the DATABASE, and Windows MySQL is case-insensitive,
+  so `prisma migrate dev` here emits ``ALTER TABLE `complaint` `` for a model named
+  `Complaint`. It applies fine on this machine and HARD-FAILS on the Linux
+  container ("Table 'cenrowatch_db.complaint' doesn't exist"). This is not a
+  one-off: it is what the tool does every single time on this setup. Three
+  migrations already shipped broken and silently never applied in Docker (repaired
+  in `fc6f264`); `working_days_sla` was generated with the same bug and corrected
+  before applying. Generate with `--create-only`, fix the casing, THEN apply —
+  editing a migration after it has run breaks its `_prisma_migrations` checksum.
+  `backend/tests/migrationCasing.test.js` now fails the suite if any migration
+  disagrees with the model names, so `npm test` catches it.
+- **A status enum value missing from the OPEN/TERMINAL arrays vanishes silently:**
+  the overdue query is `status IN (...OPEN) AND sla_deadline < now`, so a status
+  absent from those arrays never matches — every report in that state drops out of
+  the breach counts and SLA figures with no error. The arrays live in
+  `admin.analytics.service.js` AND `staff.overview.service.js` (two copies) plus
+  `staff.validators.js` and `web/src/lib/staff.js`.
+  `backend/tests/statusPartitions.test.js` reads the enums from `schema.prisma` and
+  fails if any value is unaccounted for, so this is caught for FUTURE statuses too.
+- **`sed -i` with `\n` does not insert real newlines in this Git Bash:** it
+  collapsed a multi-line JS insert into a single line twice. Once that line began
+  with `//`, the whole statement became a comment and `awaiting` was never defined
+  — the page would have thrown at runtime and `npm run build` did NOT catch it.
+  Use the Edit tool for multi-line code insertion, and read the result back.
 
 - **Verify the RUNNING system, not just the repo — use `node scripts/preflight.mjs`.**
   On 2026-08-24 an entire afternoon went into bugs that all shared one shape: the

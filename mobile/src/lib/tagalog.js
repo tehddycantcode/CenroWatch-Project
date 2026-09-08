@@ -40,6 +40,7 @@ export const TIMELINE_TL = {
   complaint: {
     Submitted: 'Naipasa na',
     'Under Review': 'Tinitingnan na',
+    Approved: 'Tinanggap na',
     'In Progress': 'Ginagawa na',
     Resolved: 'Naayos na',
   },

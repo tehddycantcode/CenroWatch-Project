@@ -95,4 +95,6 @@ async function getOverview() {
   };
 }
 
-module.exports = { getOverview };
+// Status partitions are exported for the coverage test: an enum value missing
+// from these arrays disappears from the open/overdue counts with no error.
+module.exports = { getOverview, COMPLAINT_OPEN, WILDLIFE_OPEN, REQUEST_OPEN };

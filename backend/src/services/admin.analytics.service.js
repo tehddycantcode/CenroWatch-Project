@@ -282,4 +282,8 @@ async function getAnalytics(filters = {}) {
 
 // resolveRange/bucketKeys/granularityFor are exported for the unit tests: they
 // are pure date logic and the cheapest part of this service to get wrong.
-module.exports = { getAnalytics, mergeSpecies, resolveRange, bucketKeys, bucketKey, granularityFor };
+module.exports = {
+  getAnalytics, mergeSpecies, resolveRange, bucketKeys, bucketKey, granularityFor,
+  // Exported for the status-coverage test - see tests/statusPartitions.test.js.
+  COMPLAINT_OPEN, COMPLAINT_TERMINAL, WILDLIFE_OPEN, WILDLIFE_TERMINAL, REQUEST_OPEN, REQUEST_TERMINAL,
+};
