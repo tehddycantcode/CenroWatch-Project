@@ -104,9 +104,22 @@ function writeAnalyticsReport(doc, a, meta = {}) {
   }
 
   // --- Trend ---
-  heading(doc, 'Reports — Last 6 Months');
+  // The window is whatever the admin selected, so the heading has to state it.
+  // A fixed "Last 6 Months" would have quietly mislabelled every other range,
+  // and a printed report is the copy that outlives the screen it came from.
+  const tr = a.trend_range || {};
+  const asDate = (iso) => (iso ? new Date(iso).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+  const period = tr.from && tr.to ? `${asDate(tr.from)} to ${asDate(tr.to)}` : 'All time';
+  const GRAIN = { day: 'Day', month: 'Month', year: 'Year' };
+
+  heading(doc, `Reports — ${period}`);
+  if (tr.truncated) {
+    doc.fontSize(9).fillColor(MUTED)
+      .text('Note: this range exceeds the export row limit, so the figures below are incomplete.', left)
+      .moveDown(0.5);
+  }
   drawRow(doc, [
-    { text: 'Month', x: left, w: 150 },
+    { text: GRAIN[tr.granularity] || 'Month', x: left, w: 150 },
     { text: 'Complaints', x: left + 150, w: 100, align: 'right' },
     { text: 'Wildlife', x: left + 250, w: 100, align: 'right' },
     { text: 'Requests', x: left + 350, w: 105, align: 'right' },

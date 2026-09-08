@@ -211,8 +211,15 @@ export const staffApi = {
 
 // Admin APIs (Admin only) — analytics, user management, audit log, settings.
 export const adminApi = {
-  analytics: () => apiFetch('/admin/analytics'),
-  downloadReport: () => downloadFile('/admin/analytics/report', `cenrowatch-analytics-${new Date().toISOString().slice(0, 10)}.pdf`),
+  // params: { range } or { startDate, endDate }. The PDF takes the SAME params
+  // so an export always matches the window on screen - exporting a six-month
+  // report from a one-month view would be worse than no export at all.
+  analytics: (params) => apiFetch(`/admin/analytics${qs(params)}`),
+  downloadReport: (params) =>
+    downloadFile(
+      `/admin/analytics/report${qs(params)}`,
+      `cenrowatch-analytics-${new Date().toISOString().slice(0, 10)}.pdf`
+    ),
   users: {
     list: (params) => apiFetch(`/admin/users${qs(params)}`),
     create: (body) => apiFetch('/admin/users', { method: 'POST', body }),

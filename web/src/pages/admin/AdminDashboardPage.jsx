@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { FileText, Users, Clock, ShieldAlert, Download } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { Card } from '@/components/ui/card';
+import { Select } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { IconChip } from '@/components/ui/icon-chip';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { Spinner } from '@/components/ui/icons';
@@ -38,21 +41,63 @@ function SlaCard({ label, sla }) {
   );
 }
 
+// Presets mirror the server's own list. "This month" rather than "Last month"
+// because the server counts the CURRENT month plus the previous n-1, so 1m is
+// month-to-date - labelling it "last month" would describe a different window.
+const RANGE_PRESETS = [
+  { value: '1m', label: 'This month' },
+  { value: '3m', label: 'Last 3 months' },
+  { value: '6m', label: 'Last 6 months' },
+  { value: '1y', label: 'Last 12 months' },
+  { value: 'all', label: 'All time' },
+  { value: 'custom', label: 'Custom range' },
+];
+
+const GRAIN_LABEL = { day: 'per day', month: 'per month', year: 'per year' };
+const todayStr = () => new Date().toLocaleDateString('en-CA'); // local ISO date
+
 export default function AdminDashboardPage() {
   const [a, setA] = useState(null);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
 
+  const [preset, setPreset] = useState('6m');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  // What is actually sent. Held separately from the inputs so a half-typed
+  // custom range never triggers a fetch.
+  const [query, setQuery] = useState({ range: '6m' });
+  const [reloading, setReloading] = useState(false);
+
   useEffect(() => {
-    adminApi.analytics().then((r) => setA(r.data.analytics)).catch((e) => setError(e.message));
-  }, []);
+    let cancelled = false;
+    setReloading(true);
+    adminApi
+      .analytics(query)
+      .then((r) => { if (!cancelled) { setA(r.data.analytics); setError(''); } })
+      .catch((e) => { if (!cancelled) setError(e.message); })
+      .finally(() => { if (!cancelled) setReloading(false); });
+    return () => { cancelled = true; };
+  }, [query]);
+
+  function onPreset(e) {
+    const v = e.target.value;
+    setPreset(v);
+    if (v !== 'custom') setQuery({ range: v }); // custom waits for both dates
+  }
+
+  function applyCustom(e) {
+    e.preventDefault();
+    if (from && to) setQuery({ startDate: from, endDate: to });
+  }
 
   async function downloadReport() {
     setDownloadError('');
     setDownloading(true);
     try {
-      await adminApi.downloadReport();
+      // Same window as the screen, so the PDF cannot disagree with the chart.
+      await adminApi.downloadReport(query);
     } catch (e) {
       setDownloadError(e.message || 'Could not generate the report.');
     } finally {
@@ -60,8 +105,14 @@ export default function AdminDashboardPage() {
     }
   }
 
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
+  // Only a first-load failure blanks the page. A failed REFETCH keeps the last
+  // good dashboard on screen with an inline error - wiping a working dashboard
+  // because one range change failed loses more than it reports.
+  if (error && !a) return <p className="text-sm text-destructive">{error}</p>;
   if (!a) return <div className="flex justify-center py-16"><Spinner className="h-7 w-7 text-primary" /></div>;
+
+  const tr = a.trend_range;
+  const fmt = (iso) => new Date(iso).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' });
 
   // All 18 barangays; BarChart caps visible rows and footnotes the zeros.
   const barangayRows = a.by_barangay.map((b) => ({ label: b.name, value: b.total }));
@@ -99,11 +150,46 @@ export default function AdminDashboardPage() {
       </div>
 
       <Card className="p-6">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="range" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Period
+            </label>
+            <Select id="range" value={preset} onChange={onPreset} className="h-9 w-44">
+              {RANGE_PRESETS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </Select>
+
+            {preset === 'custom' && (
+              <form onSubmit={applyCustom} className="flex flex-wrap items-center gap-2">
+                <Input
+                  type="date" aria-label="Start date" value={from} max={to || todayStr()}
+                  onChange={(e) => setFrom(e.target.value)} className="h-9 w-40"
+                />
+                <span className="text-sm text-muted-foreground">to</span>
+                <Input
+                  type="date" aria-label="End date" value={to} min={from} max={todayStr()}
+                  onChange={(e) => setTo(e.target.value)} className="h-9 w-40"
+                />
+                <Button type="submit" size="sm" variant="outline" disabled={!from || !to}>Apply</Button>
+              </form>
+            )}
+            {reloading && <Spinner className="h-4 w-4 text-primary" />}
+          </div>
+          {error && <span className="text-xs text-destructive">{error}</span>}
+        </div>
+
         <TrendChart
           data={a.trend}
-          title="Reports over the last 6 months"
-          subtitle="Complaints, wildlife turnovers, and service requests per month"
+          title="Reports over time"
+          subtitle={`${fmt(tr.from)} - ${fmt(tr.to)} - ${GRAIN_LABEL[tr.granularity] || ''}`}
         />
+
+        {tr.truncated && (
+          <p className="mt-3 text-xs text-amber-700">
+            This range holds more reports than the chart loads at once, so the trend below is incomplete.
+            Narrow the period for an exact count.
+          </p>
+        )}
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-3">

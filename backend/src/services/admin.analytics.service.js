@@ -11,23 +11,86 @@ const WILDLIFE_TERMINAL = ['Released', 'Transferred', 'Deceased'];
 const REQUEST_OPEN = ['Pending', 'Approved', 'Scheduled'];
 const REQUEST_TERMINAL = ['Completed', 'Rejected'];
 
-const monthKey = (d) => {
-  const dt = new Date(d);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
-};
+// Trend bucketing ─────────────────────────────────────────
+// Dates are read with LOCAL getters, matching every other date path in this
+// service. That is a deliberate hold, not an oversight: switching the buckets
+// to a fixed Manila offset here would silently reassign reports filed near
+// midnight to a different bucket and shift historical figures the office has
+// already seen. The SLA work carries its own timezone handling.
 
-function lastSixMonths() {
+const PRESETS = { '1m': 1, '3m': 3, '6m': 6, '1y': 12 };
+const DEFAULT_PRESET = '6m';
+const DAY_MS = 86_400_000;
+
+// Rows are only { submitted_at }, but "all" on a mature database is unbounded.
+// A truncated trend is reported rather than silently drawn - see getAnalytics.
+const TREND_ROW_CAP = 20_000;
+
+const pad = (n) => String(n).padStart(2, '0');
+
+function bucketKey(d, granularity) {
+  const dt = new Date(d);
+  const y = dt.getFullYear();
+  if (granularity === 'year') return `${y}`;
+  if (granularity === 'month') return `${y}-${pad(dt.getMonth() + 1)}`;
+  return `${y}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+}
+
+// Granularity is chosen from the SPAN, not the preset, so a custom range gets
+// the same treatment as an equivalent preset. Roughly: a quarter or less reads
+// per day, a few years read per month, anything longer per year.
+function granularityFor(from, to) {
+  const days = (to - from) / DAY_MS;
+  if (days <= 92) return 'day';
+  if (days <= 1096) return 'month';
+  return 'year';
+}
+
+// Every bucket in [from, to], including empty ones. The SVG trend line spaces
+// points by array index, so a gap would distort the curve rather than show one.
+function bucketKeys(from, to, granularity) {
   const out = [];
-  const now = new Date();
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  const cur = new Date(from.getFullYear(), from.getMonth(), granularity === 'day' ? from.getDate() : 1);
+  if (granularity === 'year') cur.setMonth(0, 1);
+  while (cur <= to) {
+    out.push(bucketKey(cur, granularity));
+    if (granularity === 'day') cur.setDate(cur.getDate() + 1);
+    else if (granularity === 'month') cur.setMonth(cur.getMonth() + 1);
+    else cur.setFullYear(cur.getFullYear() + 1);
   }
   return out;
 }
 
+// Express 5 req.query is read-only, so express-validator's sanitizers do not
+// persist - every value is coerced here. An unparseable or inverted custom
+// range falls back to the default preset rather than throwing: a dashboard
+// should not 500 because someone typed a bad date.
+function resolveRange(filters = {}) {
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+  const start = filters.startDate ? new Date(filters.startDate) : null;
+  const finish = filters.endDate ? new Date(filters.endDate) : null;
+  const validCustom =
+    start && finish && !Number.isNaN(+start) && !Number.isNaN(+finish) && start <= finish;
+
+  if (validCustom) {
+    const from = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const to = new Date(finish.getFullYear(), finish.getMonth(), finish.getDate(), 23, 59, 59, 999);
+    return { range: 'custom', from, to, granularity: granularityFor(from, to) };
+  }
+
+  const range = filters.range === 'all' || PRESETS[filters.range] ? filters.range : DEFAULT_PRESET;
+  if (range === 'all') return { range, from: null, to: end, granularity: null }; // resolved later
+
+  const months = PRESETS[range];
+  const from = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  return { range, from, to: end, granularity: granularityFor(from, end) };
+}
+
 const statusMap = (rows) => Object.fromEntries(rows.map((r) => [r.status, r._count._all]));
 const sum = (obj) => Object.values(obj).reduce((a, b) => a + b, 0);
+
 
 // Merge free-text wildlife species names case-insensitively (trim + lowercase),
 // displaying the most common original casing. Blank names group as "Unspecified".
@@ -66,10 +129,30 @@ async function slaFor(model, openStatuses, terminalStatuses) {
   return { closed, on_time, late: closedLate, overdue_open: overdueOpen, rate: closed > 0 ? Math.round((on_time / closed) * 100) : null };
 }
 
-async function getAnalytics() {
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5, 1);
-  sixMonthsAgo.setHours(0, 0, 0, 0);
+async function getAnalytics(filters = {}) {
+  const resolved = resolveRange(filters);
+  let { from, to, granularity } = resolved;
+
+  // "All time" has no lower bound until we ask the data where it starts. Three
+  // cheap _min aggregates beat loading rows just to find the earliest one.
+  if (from === null) {
+    const [c, w, r] = await Promise.all([
+      prisma.complaint.aggregate({ where: NOT_ARCHIVED, _min: { submitted_at: true } }),
+      prisma.wildlifeTurnover.aggregate({ where: NOT_ARCHIVED, _min: { submitted_at: true } }),
+      prisma.environmentalRequest.aggregate({ where: NOT_ARCHIVED, _min: { submitted_at: true } }),
+    ]);
+    const earliest = [c._min.submitted_at, w._min.submitted_at, r._min.submitted_at]
+      .filter(Boolean)
+      .sort((a, b) => a - b)[0];
+    // An empty database still needs a chart with an x-axis, so fall back to the
+    // default window rather than rendering nothing.
+    from = earliest
+      ? new Date(new Date(earliest).getFullYear(), new Date(earliest).getMonth(), 1)
+      : new Date(to.getFullYear(), to.getMonth() - (PRESETS[DEFAULT_PRESET] - 1), 1);
+    granularity = granularityFor(from, to);
+  }
+
+  const trendWhere = withActive({ submitted_at: { gte: from, lte: to } });
 
   const [
     usersByRole, activeUsers,
@@ -96,9 +179,9 @@ async function getAnalytics() {
     prisma.environmentalRequest.groupBy({ by: ['barangay_id'], where: NOT_ARCHIVED, _count: { _all: true } }),
     prisma.barangay.findMany({ select: { barangay_id: true, name: true, latitude: true, longitude: true, geojson_boundary: true }, orderBy: { name: 'asc' } }),
 
-    prisma.complaint.findMany({ where: withActive({ submitted_at: { gte: sixMonthsAgo } }), select: { submitted_at: true } }),
-    prisma.wildlifeTurnover.findMany({ where: withActive({ submitted_at: { gte: sixMonthsAgo } }), select: { submitted_at: true } }),
-    prisma.environmentalRequest.findMany({ where: withActive({ submitted_at: { gte: sixMonthsAgo } }), select: { submitted_at: true } }),
+    prisma.complaint.findMany({ where: trendWhere, select: { submitted_at: true }, take: TREND_ROW_CAP }),
+    prisma.wildlifeTurnover.findMany({ where: trendWhere, select: { submitted_at: true }, take: TREND_ROW_CAP }),
+    prisma.environmentalRequest.findMany({ where: trendWhere, select: { submitted_at: true }, take: TREND_ROW_CAP }),
 
     slaFor('complaint', COMPLAINT_OPEN, COMPLAINT_TERMINAL),
     slaFor('wildlifeTurnover', WILDLIFE_OPEN, WILDLIFE_TERMINAL),
@@ -138,23 +221,32 @@ async function getAnalytics() {
     return { ...b, complaints, wildlife, requests, total: complaints + wildlife + requests };
   });
 
-  // 6-month trend
-  const months = lastSixMonths();
+  // Trend over the selected range, one point per bucket.
+  const keys = bucketKeys(from, to, granularity);
   const bucket = (rows) => {
     const m = {};
     for (const row of rows) {
-      const k = monthKey(row.submitted_at);
+      const k = bucketKey(row.submitted_at, granularity);
       m[k] = (m[k] || 0) + 1;
     }
     return m;
   };
   const cb = bucket(cTrend), wb = bucket(wTrend), rb = bucket(rTrend);
-  const trend = months.map((month) => ({
+  // `month` is kept as the field name even for day and year buckets: the SVG
+  // chart, the table view and the PDF all read it, and renaming it would be a
+  // breaking change to three consumers for no gain.
+  const trend = keys.map((month) => ({
     month,
     complaints: cb[month] || 0,
     wildlife: wb[month] || 0,
     requests: rb[month] || 0,
   }));
+
+  // Say so rather than quietly drawing a short chart.
+  const truncated =
+    cTrend.length === TREND_ROW_CAP ||
+    wTrend.length === TREND_ROW_CAP ||
+    rTrend.length === TREND_ROW_CAP;
 
   // Resolution metrics (complaints)
   let avg_resolution_hours = null;
@@ -170,10 +262,21 @@ async function getAnalytics() {
     by_type,
     by_barangay,
     trend,
+    // What the trend above actually covers, so the client can label the axis
+    // and the PDF can state the window instead of implying "last 6 months".
+    trend_range: {
+      range: resolved.range,
+      granularity,
+      from: from.toISOString(),
+      to: to.toISOString(),
+      truncated,
+    },
     sla: { complaints: cSla, wildlife: wSla, requests: rSla },
     resolution: { complaints_resolved: resolvedComplaints.length, avg_resolution_hours },
     wildlife_endangered: endangeredCount,
   };
 }
 
-module.exports = { getAnalytics, mergeSpecies };
+// resolveRange/bucketKeys/granularityFor are exported for the unit tests: they
+// are pure date logic and the cheapest part of this service to get wrong.
+module.exports = { getAnalytics, mergeSpecies, resolveRange, bucketKeys, bucketKey, granularityFor };

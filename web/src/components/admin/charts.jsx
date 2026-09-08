@@ -236,11 +236,34 @@ function monotonePath(pts) {
   return d;
 }
 
-const monthDate = (m) => {
-  const [yr, mo] = m.split('-');
-  return new Date(yr, mo - 1, 1);
+// Bucket keys arrive as "YYYY", "YYYY-MM" or "YYYY-MM-DD" depending on the range
+// the admin picked. The SHAPE of the key is the granularity, so the labels work
+// it out themselves rather than needing a second prop threaded through.
+const keyParts = (k) => String(k).split('-');
+
+const monthDate = (k) => {
+  const [yr, mo, day] = keyParts(k);
+  return new Date(Number(yr), mo ? Number(mo) - 1 : 0, day ? Number(day) : 1);
 };
-const shortMonth = (m) => monthDate(m).toLocaleString('en', { month: 'short' });
+
+// Axis label: terse, because these sit 11px apart at the foot of the chart.
+const shortMonth = (k) => {
+  const n = keyParts(k).length;
+  const d = monthDate(k);
+  if (n === 1) return String(d.getFullYear());
+  if (n === 2) return d.toLocaleString('en', { month: 'short' });
+  return d.toLocaleString('en', { month: 'short', day: 'numeric' });
+};
+
+// Full label for the tooltip and the table view, where there is room. Without
+// the day part a daily range would print "March 2026" on all 31 rows.
+const longLabel = (k) => {
+  const n = keyParts(k).length;
+  const d = monthDate(k);
+  if (n === 1) return String(d.getFullYear());
+  if (n === 2) return d.toLocaleString('en', { month: 'long', year: 'numeric' });
+  return d.toLocaleString('en', { dateStyle: 'medium' });
+};
 const monthTotal = (d) => d.complaints + d.wildlife + d.requests;
 
 // ── TrendChart ──────────────────────────────────────────────
@@ -267,6 +290,8 @@ export function TrendChart({ data, title, subtitle }) {
   const areaPath = (key) => `${monotonePath(pts(key))} L ${x(last)} ${baseline} L ${x(0)} ${baseline} Z`;
 
   const ticks = [...new Set([0, Math.round(max / 2), max])];
+  // At most ~8 x-axis labels regardless of bucket count (see the axis below).
+  const labelStride = Math.max(1, Math.ceil(data.length / 8));
   const thisMonth = monthTotal(data[last]);
   const delta = data.length > 1 ? thisMonth - monthTotal(data[last - 1]) : 0;
   const DeltaIcon = delta > 0 ? ArrowUp : delta < 0 ? ArrowDown : Minus;
@@ -324,7 +349,7 @@ export function TrendChart({ data, title, subtitle }) {
           <tbody className="divide-y">
             {data.map((d) => (
               <tr key={d.month}>
-                <td className="py-2 text-foreground">{monthDate(d.month).toLocaleString('en', { month: 'long', year: 'numeric' })}</td>
+                <td className="py-2 text-foreground">{longLabel(d.month)}</td>
                 {SERIES.map((s) => (
                   <td key={s.key} className="py-2 text-right tabular-nums text-foreground">{d[s.key]}</td>
                 ))}
@@ -400,11 +425,17 @@ export function TrendChart({ data, title, subtitle }) {
                 </g>
               ))}
 
-              {data.map((d, i) => (
-                <text key={i} x={x(i)} y={H - 5} textAnchor="middle" className={i === hover ? 'fill-foreground' : 'fill-muted-foreground'} fontSize="11">
-                  {shortMonth(d.month)}
-                </text>
-              ))}
+              {/* A daily range can be 90+ points in a 560-unit viewBox, so labels
+                  are thinned to at most ~8. The final bucket is always labelled -
+                  it is the one a reader looks for first - as is whichever point
+                  is hovered, so the crosshair never points at an unnamed tick. */}
+              {data.map((d, i) =>
+                i % labelStride === 0 || i === last || i === hover ? (
+                  <text key={i} x={x(i)} y={H - 5} textAnchor="middle" className={i === hover ? 'fill-foreground' : 'fill-muted-foreground'} fontSize="11">
+                    {shortMonth(d.month)}
+                  </text>
+                ) : null
+              )}
             </svg>
 
             {/* Tooltip for the hovered month */}
@@ -418,7 +449,7 @@ export function TrendChart({ data, title, subtitle }) {
                 }
               >
                 <div className="text-xs font-medium text-foreground">
-                  {monthDate(data[hover].month).toLocaleString('en', { month: 'long', year: 'numeric' })}
+                  {longLabel(data[hover].month)}
                 </div>
                 <div className="mt-1 space-y-0.5">
                   {SERIES.map((s) => (

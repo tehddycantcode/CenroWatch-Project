@@ -9,13 +9,13 @@ const { writeAuditLog } = require('../utils/audit');
 
 // Analytics
 const analytics = asyncHandler(async (req, res) => {
-  const analytics = await analyticsService.getAnalytics();
+  const analytics = await analyticsService.getAnalytics(req.query);
   res.json({ success: true, data: { analytics } });
 });
 
 // Analytics report as a downloadable PDF.
 const analyticsReport = asyncHandler(async (req, res) => {
-  const analytics = await analyticsService.getAnalytics();
+  const analytics = await analyticsService.getAnalytics(req.query);
   const generatedAt = Date.now();
 
   await writeAuditLog({
