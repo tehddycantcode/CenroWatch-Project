@@ -2,16 +2,11 @@
 // tracking-id → report-kind mapping. Mirrors web/src/lib/reports.js and the
 // Prisma enums — keep the values in sync with the backend validators.
 
-export const COMPLAINT_TYPES = [
-  { value: 'Illegal_Dumping', label: 'Illegal Dumping' },
-  { value: 'Open_Burning', label: 'Open Burning' },
-  { value: 'Noise_Disturbance', label: 'Noise Disturbance' },
-  { value: 'Improper_Hazardous_Waste_Storage', label: 'Improper Hazardous Waste Storage' },
-  { value: 'Drainage_Blockage', label: 'Drainage Blockage' },
-  { value: 'Air_Pollution', label: 'Air Pollution' },
-  { value: 'Water_Pollution', label: 'Water Pollution' },
-  { value: 'Other', label: 'Other' },
-];
+// COMPLAINT_TYPES and REQUEST_TYPES lived here as frozen arrays, hand-synced
+// with a Prisma enum and the web copy. They are admin-managed rows now: fetch
+// them with useCategories(). ANIMAL_CONDITIONS stays hardcoded because it is
+// still a real enum describing an animal's clinical state, not a filing
+// category an office should redefine.
 
 export const ANIMAL_CONDITIONS = [
   { value: 'Healthy', label: 'Healthy' },
@@ -35,14 +30,6 @@ export const WILDLIFE_SPECIES = [
   { value: 'Reticulated Python', label: 'Reticulated Python', group: 'Reptile' },
   { value: 'Southeast Asian Box Turtle', label: 'Southeast Asian Box Turtle', group: 'Reptile' },
   { value: '__other__', label: 'Other (specify)…' },
-];
-
-export const REQUEST_TYPES = [
-  { value: 'Garbage_Hauling', label: 'Garbage Hauling' },
-  { value: 'Creek_River_Cleaning', label: 'Creek / River Cleaning' },
-  { value: 'Seedling_Distribution', label: 'Seedling Distribution' },
-  { value: 'Environmental_Education', label: 'Environmental Education' },
-  { value: 'Other_Service', label: 'Other Service' },
 ];
 
 // Human-friendly label for any enum value ("Open_Burning" -> "Open Burning").

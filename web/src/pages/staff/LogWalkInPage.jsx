@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ClipboardList, CircleCheck } from 'lucide-react';
 import { staffApi } from '@/lib/api';
-import { COMPLAINT_TYPES } from '@/lib/reports';
+import { useCategories } from '@/lib/useCategories';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
@@ -51,6 +51,12 @@ function SuccessCard({ trackingId }) {
 }
 
 export default function LogWalkInPage() {
+  // Categories come from the API, not a compiled-in array, so an Admin can
+  // add or retire one without a redeploy. categoriesError is surfaced next to
+  // the field below: an empty dropdown with no explanation would look like the
+  // form is broken rather than like the list failed to load.
+  const { complaintTypes, error: categoriesError } = useCategories();
+
   const [form, setForm] = useState({
     complaint_type: '',
     barangay_id: '',
@@ -141,10 +147,10 @@ export default function LogWalkInPage() {
         <form onSubmit={onSubmit} className="space-y-4 p-6" noValidate>
           {error && <Alert>{error}</Alert>}
 
-          <FormField id="complaint_type" label="Complaint type" error={fieldErrors.complaint_type}>
+          <FormField id="complaint_type" label="Complaint type" error={fieldErrors.complaint_type || categoriesError}>
             <Select id="complaint_type" value={form.complaint_type} onChange={set('complaint_type')}>
               <option value="">Select a type</option>
-              {COMPLAINT_TYPES.map((t) => (
+              {complaintTypes.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </Select>

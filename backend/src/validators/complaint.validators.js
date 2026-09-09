@@ -1,16 +1,21 @@
 const { body } = require('express-validator');
+const { isSelectable } = require('../services/category.service');
 
-// Mirrors the ComplaintType enum in schema.prisma.
-const COMPLAINT_TYPES = [
-  'Illegal_Dumping',
-  'Open_Burning',
-  'Noise_Disturbance',
-  'Improper_Hazardous_Waste_Storage',
-  'Drainage_Blockage',
-  'Air_Pollution',
-  'Water_Pollution',
-  'Other',
-];
+// Complaint types used to be a hardcoded array here, mirroring a Prisma enum,
+// and the two had to be kept in step by hand. They are admin-managed rows now,
+// so the check is referential: does a category with this name exist, and is it
+// still active? A retired category stays valid on the reports that already
+// reference it but cannot be chosen for a new one.
+const complaintTypeRule = body('complaint_type')
+  .trim()
+  .notEmpty().withMessage('Complaint type is required.')
+  .bail()
+  .custom(async (value) => {
+    if (!(await isSelectable('complaint', value))) {
+      throw new Error('Invalid complaint type.');
+    }
+    return true;
+  });
 
 // Fields arrive as multipart/form-data (alongside the optional photo), so
 // numeric fields are sanitized from strings here.
@@ -20,11 +25,7 @@ const createComplaintRules = [
     .bail()
     .isInt({ min: 1 }).withMessage('barangay_id must be a valid id.')
     .toInt(),
-  body('complaint_type')
-    .trim()
-    .notEmpty().withMessage('Complaint type is required.')
-    .bail()
-    .isIn(COMPLAINT_TYPES).withMessage('Invalid complaint type.'),
+  complaintTypeRule,
   body('description')
     .trim()
     .notEmpty().withMessage('Description is required.')
@@ -61,4 +62,4 @@ const createAnonymousComplaintRules = [
     .withMessage('You must acknowledge the privacy notice to submit an anonymous report.'),
 ];
 
-module.exports = { createComplaintRules, createAnonymousComplaintRules, COMPLAINT_TYPES };
+module.exports = { createComplaintRules, createAnonymousComplaintRules, complaintTypeRule };

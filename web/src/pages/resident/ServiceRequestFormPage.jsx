@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { requestApi } from '@/lib/api';
-import { REQUEST_TYPES } from '@/lib/reports';
+import { useCategories } from '@/lib/useCategories';
 import { FORM_TL } from '@/lib/tagalog';
 import { Sprout } from 'lucide-react';
 import ReportFormShell from '@/components/resident/ReportFormShell';
@@ -12,6 +12,12 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
 export default function ServiceRequestFormPage() {
+  // Categories come from the API, not a compiled-in array, so an Admin can
+  // add or retire one without a redeploy. categoriesError is surfaced next to
+  // the field below: an empty dropdown with no explanation would look like the
+  // form is broken rather than like the list failed to load.
+  const { requestTypes, error: categoriesError } = useCategories();
+
   const [form, setForm] = useState({
     request_type: '',
     barangay_id: '',
@@ -82,11 +88,11 @@ export default function ServiceRequestFormPage() {
         id="request_type"
         label="Service type"
         hint={FORM_TL.request_type}
-        error={fieldErrors.request_type}
+        error={fieldErrors.request_type || categoriesError}
       >
         <Select id="request_type" value={form.request_type} onChange={set('request_type')}>
           <option value="">Select a service</option>
-          {REQUEST_TYPES.map((t) => (
+          {requestTypes.map((t) => (
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </Select>

@@ -1,30 +1,17 @@
-// Shared report metadata: enum options (value/label), status styling, and the
-// tracking-id → report-kind mapping. Keep in sync with the Prisma enums.
+// Shared report metadata: status styling and the tracking-id -> report-kind
+// mapping. Report CATEGORIES are no longer here - see useCategories.
 
-export const COMPLAINT_TYPES = [
-  { value: 'Illegal_Dumping', label: 'Illegal Dumping' },
-  { value: 'Open_Burning', label: 'Open Burning' },
-  { value: 'Noise_Disturbance', label: 'Noise Disturbance' },
-  { value: 'Improper_Hazardous_Waste_Storage', label: 'Improper Hazardous Waste Storage' },
-  { value: 'Drainage_Blockage', label: 'Drainage Blockage' },
-  { value: 'Air_Pollution', label: 'Air Pollution' },
-  { value: 'Water_Pollution', label: 'Water Pollution' },
-  { value: 'Other', label: 'Other' },
-];
+// COMPLAINT_TYPES and REQUEST_TYPES used to be frozen arrays here, hand-synced
+// with a Prisma enum and a backend validator. They are admin-managed rows now:
+// fetch them with useCategories(). Wildlife's ANIMAL_CONDITIONS stays hardcoded
+// because it is still a real enum - it describes an animal's clinical state, not
+// an office's filing categories, and is not something an Admin should redefine.
 
 export const ANIMAL_CONDITIONS = [
   { value: 'Healthy', label: 'Healthy' },
   { value: 'Injured', label: 'Injured' },
   { value: 'Sick', label: 'Sick' },
   { value: 'Dead', label: 'Dead' },
-];
-
-export const REQUEST_TYPES = [
-  { value: 'Garbage_Hauling', label: 'Garbage Hauling' },
-  { value: 'Creek_River_Cleaning', label: 'Creek / River Cleaning' },
-  { value: 'Seedling_Distribution', label: 'Seedling Distribution' },
-  { value: 'Environmental_Education', label: 'Environmental Education' },
-  { value: 'Other_Service', label: 'Other Service' },
 ];
 
 // Human-friendly label for any enum value ("Open_Burning" -> "Open Burning").

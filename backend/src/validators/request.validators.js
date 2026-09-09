@@ -1,13 +1,17 @@
 const { body } = require('express-validator');
+const { isSelectable } = require('../services/category.service');
 
-// Mirrors the RequestType enum in schema.prisma.
-const REQUEST_TYPES = [
-  'Garbage_Hauling',
-  'Creek_River_Cleaning',
-  'Seedling_Distribution',
-  'Environmental_Education',
-  'Other_Service',
-];
+// Referential, not a hardcoded list - see the note in complaint.validators.js.
+const requestTypeRule = body('request_type')
+  .trim()
+  .notEmpty().withMessage('Request type is required.')
+  .bail()
+  .custom(async (value) => {
+    if (!(await isSelectable('request', value))) {
+      throw new Error('Invalid request type.');
+    }
+    return true;
+  });
 
 const createRequestRules = [
   body('barangay_id')
@@ -15,11 +19,7 @@ const createRequestRules = [
     .bail()
     .isInt({ min: 1 }).withMessage('barangay_id must be a valid id.')
     .toInt(),
-  body('request_type')
-    .trim()
-    .notEmpty().withMessage('Request type is required.')
-    .bail()
-    .isIn(REQUEST_TYPES).withMessage('Invalid request type.'),
+  requestTypeRule,
   body('description')
     .trim()
     .notEmpty().withMessage('Description is required.')
@@ -35,4 +35,4 @@ const createRequestRules = [
     .toDate(),
 ];
 
-module.exports = { createRequestRules, REQUEST_TYPES };
+module.exports = { createRequestRules, requestTypeRule };

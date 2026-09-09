@@ -1,5 +1,5 @@
 const { body, query } = require('express-validator');
-const { COMPLAINT_TYPES } = require('./complaint.validators');
+const { complaintTypeRule } = require('./complaint.validators');
 
 // Status enums — mirror schema.prisma.
 const COMPLAINT_STATUSES = ['Pending', 'Under_Review', 'Approved', 'In_Progress', 'Resolved', 'Rejected'];
@@ -41,7 +41,7 @@ const complaintUpdateRules = [
 // Staff logging a walk-in complaint on behalf of a resident at the office.
 // Photo is optional here (the resident may only describe the concern verbally).
 const createWalkInComplaintRules = [
-  body('complaint_type').trim().notEmpty().withMessage('Complaint type is required.').bail().isIn(COMPLAINT_TYPES).withMessage('Invalid complaint type.'),
+  complaintTypeRule,
   body('barangay_id').notEmpty().withMessage('Barangay is required.').bail().isInt({ min: 1 }).withMessage('barangay_id must be a valid id.').toInt(),
   body('description').trim().notEmpty().withMessage('Description is required.').bail().isLength({ min: 10, max: 5000 }).withMessage('Description must be 10-5000 characters.'),
   body('received_via').optional({ values: 'falsy' }).isIn(RECEIVED_VIA).withMessage('Invalid intake channel.'),

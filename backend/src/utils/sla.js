@@ -8,15 +8,12 @@
 const prisma = require('./prisma');
 const { addWorkingMinutes, DEFAULT_CALENDAR } = require('./workingTime');
 
-// request_type -> SLA setting key + sane fallback (minutes). Lives here rather
-// than in request.service.js because the clock now starts on APPROVAL, so the
-// staff service is what needs it - and a service requiring another service to
-// read a config table would be the wrong shape. The three request types absent
-// from this map have no Citizens Charter SLA and never get a deadline.
-const REQUEST_SLA_BY_TYPE = {
-  Seedling_Distribution: { key: 'request_seedling_sla_minutes', fallback: 25 },
-  Environmental_Education: { key: 'request_env_education_sla_minutes', fallback: 187 },
-};
+// REMOVED: a hardcoded `request_type -> { key, fallback }` map used to live here.
+// It keyed off literal enum values, so the moment an Admin added a request type
+// the lookup returned undefined and that type silently got no deadline at all -
+// no error, just a permanently empty SLA column. The mapping now lives on the
+// RequestType row itself (sla_setting_key / sla_fallback_minutes); read it with
+// categoryService.slaForRequestType(name).
 
 async function getSlaMinutes(settingKey, fallbackMinutes) {
   const row = await prisma.systemSetting.findUnique({ where: { setting_key: settingKey } });
@@ -69,5 +66,4 @@ function computeExceededSla(slaDeadline, completedAt = null) {
 
 module.exports = {
   getSlaMinutes, addMinutes, computeExceededSla, computeSlaDeadline, loadCalendar,
-  REQUEST_SLA_BY_TYPE,
 };

@@ -5,7 +5,8 @@
 const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
-const { computeExceededSla, getSlaMinutes, computeSlaDeadline, REQUEST_SLA_BY_TYPE } = require('../utils/sla');
+const { computeExceededSla, getSlaMinutes, computeSlaDeadline } = require('../utils/sla');
+const { slaForRequestType } = require('./category.service');
 const { NOT_ARCHIVED, assertNotArchived } = require('../utils/archive');
 const { notifyReportStatus } = require('../utils/notify');
 const { notifyStatusChange } = require('./notification.service');
@@ -133,7 +134,8 @@ async function updateRequestStatus(staffId, idOrTracking, input, ctx = {}) {
   // was measuring the wrong thing. Stamped once: `existing.sla_started_at ||`
   // stops an Approved -> Pending -> Approved round trip resetting the deadline.
   // Types with no charter SLA stay null forever, exactly as before.
-  const sla = REQUEST_SLA_BY_TYPE[existing.request_type];
+  // Read from the RequestType row, so a category an Admin adds gets its SLA.
+  const sla = await slaForRequestType(existing.request_type);
   const startsNow = !existing.sla_started_at && approved && Boolean(sla);
   const sla_started_at = existing.sla_started_at || (startsNow ? approval_date : null);
   const sla_deadline = existing.sla_deadline

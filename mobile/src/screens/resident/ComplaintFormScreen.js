@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { TextInput, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
-import { COMPLAINT_TYPES } from '../../lib/reports';
+import { useCategories } from '../../lib/useCategories';
 import { FORM_TL } from '../../lib/tagalog';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
@@ -21,6 +21,10 @@ const todayStr = () => {
 };
 
 export default function ComplaintFormScreen() {
+  // Categories come from the API, not a compiled-in array, so a new one
+  // appears on the next app launch with no store release.
+  const { complaintTypes, error: categoriesError } = useCategories();
+
   const { token } = useAuth();
   const barangays = useBarangays();
 
@@ -92,11 +96,11 @@ export default function ComplaintFormScreen() {
       <Select
         label="Complaint type"
         hint={FORM_TL.complaint_type}
-        options={COMPLAINT_TYPES}
+        options={complaintTypes}
         value={form.complaint_type}
         onChange={set('complaint_type')}
         placeholder="Select a complaint type"
-        error={fieldErrors.complaint_type}
+        error={fieldErrors.complaint_type || categoriesError}
       />
 
       <BarangayPicker

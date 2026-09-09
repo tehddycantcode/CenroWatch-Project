@@ -53,4 +53,42 @@ const updateSettingRules = [
   body('setting_value').exists().withMessage('A value is required.').bail().trim().notEmpty().withMessage('Value cannot be empty.').isLength({ max: 2000 }),
 ];
 
-module.exports = { createUserRules, updateUserRules, archiveReportRules, updateSettingRules, ROLES, ASSIGNABLE_ROLES };
+// Report categories (complaint types / request types). Shape only - uniqueness,
+// the name format and the last-active-category guard are enforced in
+// category.service, where the database can be consulted.
+const createCategoryRules = [
+  body('name').trim().notEmpty().withMessage('A name is required.').bail().isLength({ max: 100 }),
+  body('label').optional({ values: 'null' }).trim().isLength({ max: 120 }),
+  body('sort_order').optional({ values: 'null' }).isInt({ min: 0, max: 9999 }).toInt(),
+  body('sla_setting_key').optional({ values: 'null' }).trim().isLength({ max: 100 }),
+  body('sla_fallback_minutes').optional({ values: 'null' }).isInt({ min: 1 }).toInt(),
+];
+
+// Deliberately no `name`: renaming a category is not offered. See updateType.
+const updateCategoryRules = [
+  body('label').optional({ values: 'null' }).trim().isLength({ max: 120 }),
+  body('is_active').optional().isBoolean().withMessage('Invalid active flag.').toBoolean(),
+  body('sort_order').optional({ values: 'null' }).isInt({ min: 0, max: 9999 }).toInt(),
+  body('sla_setting_key').optional({ values: 'null' }).trim().isLength({ max: 100 }),
+  body('sla_fallback_minutes').optional({ values: 'null' }).isInt({ min: 1 }).toInt(),
+];
+
+// Barangays. name is required on create; update may change coordinates or retire
+// the barangay, but never its name - it is the unique key the seed upserts on.
+const createBarangayRules = [
+  body('name').trim().notEmpty().withMessage('A name is required.').bail().isLength({ max: 100 }),
+  body('latitude').optional({ values: 'null' }).isFloat({ min: -90, max: 90 }).toFloat(),
+  body('longitude').optional({ values: 'null' }).isFloat({ min: -180, max: 180 }).toFloat(),
+];
+
+const updateBarangayRules = [
+  body('latitude').optional({ values: 'null' }).isFloat({ min: -90, max: 90 }).toFloat(),
+  body('longitude').optional({ values: 'null' }).isFloat({ min: -180, max: 180 }).toFloat(),
+  body('is_active').optional().isBoolean().withMessage('Invalid active flag.').toBoolean(),
+];
+
+module.exports = {
+  createUserRules, updateUserRules, archiveReportRules, updateSettingRules,
+  createCategoryRules, updateCategoryRules, createBarangayRules, updateBarangayRules,
+  ROLES, ASSIGNABLE_ROLES,
+};

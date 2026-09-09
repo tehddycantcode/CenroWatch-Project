@@ -5,6 +5,8 @@ const auditService = require('../services/admin.audit.service');
 const settingsService = require('../services/admin.settings.service');
 const archiveService = require('../services/admin.archive.service');
 const reportService = require('../services/admin.report.service');
+const categoryService = require('../services/category.service');
+const barangayService = require('../services/barangay.service');
 const { writeAuditLog } = require('../utils/audit');
 
 // Analytics
@@ -86,6 +88,38 @@ const restoreReport = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Report restored.', data: { report } });
 });
 
+// Report categories and barangays - the lists an Admin can manage without a
+// code change. See category.service / barangay.service.
+const listCategories = asyncHandler(async (req, res) => {
+  const categories = await categoryService.listAll();
+  res.json({ success: true, data: categories });
+});
+
+const createCategory = asyncHandler(async (req, res) => {
+  const category = await categoryService.createType(req.params.kind, req.user.user_id, req.body, { ipAddress: req.ip });
+  res.status(201).json({ success: true, message: 'Category created.', data: { category } });
+});
+
+const updateCategory = asyncHandler(async (req, res) => {
+  const category = await categoryService.updateType(req.params.kind, req.user.user_id, req.params.id, req.body, { ipAddress: req.ip });
+  res.json({ success: true, message: 'Category updated.', data: { category } });
+});
+
+const listBarangays = asyncHandler(async (req, res) => {
+  const barangays = await barangayService.listAllBarangays();
+  res.json({ success: true, data: { barangays } });
+});
+
+const createBarangay = asyncHandler(async (req, res) => {
+  const barangay = await barangayService.createBarangay(req.user.user_id, req.body, { ipAddress: req.ip });
+  res.status(201).json({ success: true, message: 'Barangay created.', data: { barangay } });
+});
+
+const updateBarangay = asyncHandler(async (req, res) => {
+  const barangay = await barangayService.updateBarangay(req.user.user_id, req.params.id, req.body, { ipAddress: req.ip });
+  res.json({ success: true, message: 'Barangay updated.', data: { barangay } });
+});
+
 // Settings
 const listSettings = asyncHandler(async (req, res) => {
   const settings = await settingsService.listSettings();
@@ -101,4 +135,6 @@ module.exports = {
   analytics, analyticsReport, listUsers, createUser, updateUser, verifyUserEmail,
   listArchived, archiveReport, restoreReport,
   listAuditLogs, listSettings, updateSetting,
+  listCategories, createCategory, updateCategory,
+  listBarangays, createBarangay, updateBarangay,
 };

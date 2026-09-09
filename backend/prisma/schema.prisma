@@ -34,24 +34,16 @@ enum ComplaintStatus {
   Rejected
 }
 
-enum ComplaintType {
-  Illegal_Dumping
-  Open_Burning
-  Noise_Disturbance
-  Improper_Hazardous_Waste_Storage
-  Drainage_Blockage
-  Air_Pollution
-  Water_Pollution
-  Other
-}
+// ComplaintType and RequestType used to be enums here. They are now tables
+// (below) so an Admin can add or retire a category from the UI without a schema
+// change and a redeploy.
+//
+// The report column stays a VARCHAR holding the type NAME, with a foreign key to
+// that name rather than to a surrogate id. That is deliberate: the name is what
+// every groupBy, PDF row, badge and humanize() call in the system already reads,
+// and switching to an id would have meant rewriting 134 call sites across 37
+// files for no gain in integrity. The FK gives the same guarantee either way.
 
-enum RequestType {
-  Garbage_Hauling
-  Creek_River_Cleaning
-  Seedling_Distribution
-  Environmental_Education
-  Other_Service
-}
 
 enum RequestStatus {
   Pending
@@ -180,16 +172,66 @@ model EmailVerificationToken {
 // ============================================================
 
 model Barangay {
-  barangay_id      Int    @id @default(autoincrement())
-  name             String @unique @db.VarChar(100)
+  barangay_id      Int     @id @default(autoincrement())
+  name             String  @unique @db.VarChar(100)
   latitude         Float?
   longitude        Float?
   geojson_boundary Json? // GeoJSON Feature for the choropleth layer
+  // Retired rather than deleted: a barangay with reports against it cannot be
+  // removed without orphaning them, and boundaries are derived from the full
+  // centroid set (see seed.js), so deleting one reshapes its neighbours.
+  is_active        Boolean @default(true)
 
   users              User[]
   complaints         Complaint[]
   wildlife_turnovers WildlifeTurnover[]
   env_requests       EnvironmentalRequest[]
+}
+
+// ============================================================
+// ADMIN-MANAGED CATEGORIES
+// ============================================================
+
+// Report categories an Admin can add or retire from the UI. Both follow the same
+// shape, and both are referenced by NAME (see the note above the status enums).
+//
+// Rows are never hard-deleted: a category with reports against it must keep
+// existing or the history becomes unreadable. is_active hides it from the report
+// forms while leaving every existing report intact.
+model ComplaintType {
+  complaint_type_id Int      @id @default(autoincrement())
+  name              String   @unique @db.VarChar(100) // stored on the report
+  label             String?  @db.VarChar(120) // display override; humanize(name) otherwise
+  is_active         Boolean  @default(true)
+  sort_order        Int      @default(0)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  complaints Complaint[]
+
+  @@index([is_active])
+}
+
+model RequestType {
+  request_type_id Int      @id @default(autoincrement())
+  name            String   @unique @db.VarChar(100)
+  label           String?  @db.VarChar(120)
+  is_active       Boolean  @default(true)
+  sort_order      Int      @default(0)
+  // Which SystemSetting holds this type's Citizens Charter budget, and what to
+  // use if that row is missing. NULL means the type has no charter SLA and never
+  // gets a deadline - which is true of Garbage_Hauling, Creek_River_Cleaning and
+  // Other_Service. This replaces the hardcoded REQUEST_SLA_BY_TYPE map, which
+  // keyed off literal enum values and would have broken the moment an Admin
+  // added a type.
+  sla_setting_key      String? @db.VarChar(100)
+  sla_fallback_minutes Int?
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  requests EnvironmentalRequest[]
+
+  @@index([is_active])
 }
 
 // ============================================================
@@ -209,7 +251,7 @@ model Complaint {
   logged_by        Int?
   barangay_id      Int
   assigned_to      Int? // CENRO Staff user_id
-  complaint_type   ComplaintType
+  complaint_type   String          @db.VarChar(100) // FK -> ComplaintType.name
   description      String          @db.Text
   photo_path       String?         @db.VarChar(500) // GCS object path
   latitude         Float?
@@ -247,6 +289,10 @@ model Complaint {
 
   user           User?                    @relation("UserComplaints", fields: [user_id], references: [user_id])
   barangay       Barangay                 @relation(fields: [barangay_id], references: [barangay_id])
+  // FK to the admin-managed category table. onUpdate: Cascade so renaming a
+  // category rewrites its reports instead of failing; onDelete: Restrict so a
+  // category with history cannot be removed out from under them.
+  type           ComplaintType            @relation(fields: [complaint_type], references: [name], onUpdate: Cascade, onDelete: Restrict)
   assigned_staff User?                    @relation("AssignedStaff", fields: [assigned_to], references: [user_id])
   logged_by_staff User?                   @relation("LoggedByStaff", fields: [logged_by], references: [user_id])
   status_history ComplaintStatusHistory[]
@@ -345,7 +391,7 @@ model EnvironmentalRequest {
   user_id            Int
   barangay_id        Int
   processed_by       Int?
-  request_type       RequestType
+  request_type       String        @db.VarChar(100) // FK -> RequestType.name
   description        String        @db.Text
   document_path      String?       @db.VarChar(500)
   requested_quantity Int?
@@ -374,6 +420,7 @@ model EnvironmentalRequest {
   user      User     @relation("UserRequests", fields: [user_id], references: [user_id])
   barangay  Barangay @relation(fields: [barangay_id], references: [barangay_id])
   processor User?    @relation("ProcessedRequests", fields: [processed_by], references: [user_id])
+  type      RequestType @relation(fields: [request_type], references: [name], onUpdate: Cascade, onDelete: Restrict)
   status_history RequestStatusHistory[]
 
   @@index([tracking_id])

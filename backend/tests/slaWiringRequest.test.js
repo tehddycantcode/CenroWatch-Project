@@ -1,7 +1,7 @@
 // Request-side SLA wiring.
 //
 // The case worth pinning here is subtle: the request SLA budget is looked up BY
-// TYPE (REQUEST_SLA_BY_TYPE), so updateRequestStatus has to SELECT request_type
+// TYPE, so updateRequestStatus has to SELECT request_type
 // from the row it is updating. It did not. The lookup then returns undefined,
 // the deadline is never stamped, and every approved request silently gets no
 // deadline at all - no error, no failing test, just a permanently empty SLA
@@ -11,6 +11,9 @@ jest.mock('../src/utils/prisma', () => ({
   environmentalRequest: { findFirst: jest.fn(), update: jest.fn() },
   requestStatusHistory: { create: jest.fn() },
   systemSetting: { findUnique: jest.fn() },
+  // The SLA budget is read off the RequestType ROW now, not a hardcoded map, so
+  // the category table is part of this flow and has to be mocked with it.
+  requestType: { findUnique: jest.fn() },
   $transaction: jest.fn(),
 }));
 jest.mock('../src/utils/audit', () => ({ writeAuditLog: jest.fn() }));
@@ -42,11 +45,23 @@ function givenRequest(row) {
 
 const written = () => prisma.environmentalRequest.update.mock.calls[0][0].data;
 
+// Mirrors the seeded rows: only these two categories carry a Citizens Charter
+// budget. Driven by the queried name so a test can pick either behaviour just by
+// choosing a request_type, the same way production does.
+const SEEDED_TYPES = {
+  Seedling_Distribution: { sla_setting_key: 'request_seedling_sla_minutes', sla_fallback_minutes: 25 },
+  Environmental_Education: { sla_setting_key: 'request_env_education_sla_minutes', sla_fallback_minutes: 187 },
+  Garbage_Hauling: { sla_setting_key: null, sla_fallback_minutes: null },
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
   prisma.systemSetting.findUnique.mockResolvedValue({ setting_value: '25' });
   prisma.environmentalRequest.update.mockResolvedValue({});
   prisma.requestStatusHistory.create.mockResolvedValue({});
+  prisma.requestType.findUnique.mockImplementation(({ where }) =>
+    Promise.resolve(SEEDED_TYPES[where.name] ?? null)
+  );
   prisma.$transaction.mockImplementation((fn) => fn(prisma));
 });
 

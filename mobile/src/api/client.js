@@ -90,13 +90,19 @@ async function requestForm(path, form, token) {
   return data;
 }
 
-// The barangay list is immutable seed data (18 rows): cache the in-flight
-// promise so the register screen and the report forms share one fetch per
-// app session. A failed fetch clears the cache before rethrowing, so a
-// rejection is never cached and the next mount retries cleanly.
+// Barangays and report categories are small reference lists: cache the in-flight
+// promise so the register screen and the report forms share one fetch per app
+// session. A failed fetch clears the cache before rethrowing, so a rejection is
+// never cached and the next mount retries cleanly.
 // Consumers get the SAME resolved object: treat the result as read-only
-// (never sort/splice res.data.barangays in place; copy first).
+// (never sort/splice the array in place; copy first).
+//
+// Report categories used to be a hardcoded array in lib/reports.js, hand-synced
+// with a Prisma enum. They are admin-managed rows now, so the app picks up a new
+// category on its next launch with no rebuild and no store release - which is
+// the whole point on mobile, where shipping an update is slowest.
 let barangaysPromise = null;
+let categoriesPromise = null;
 
 export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
@@ -112,6 +118,15 @@ export const api = {
       });
     }
     return barangaysPromise;
+  },
+  categories: () => {
+    if (!categoriesPromise) {
+      categoriesPromise = request('/categories').catch((err) => {
+        categoriesPromise = null;
+        throw err;
+      });
+    }
+    return categoriesPromise;
   },
 
   // Resident report APIs — create() takes a FormData so an optional photo attaches.

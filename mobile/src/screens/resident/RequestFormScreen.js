@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { TextInput, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
-import { REQUEST_TYPES } from '../../lib/reports';
+import { useCategories } from '../../lib/useCategories';
 import { FORM_TL } from '../../lib/tagalog';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
@@ -13,6 +13,10 @@ import BarangayPicker from '../../components/BarangayPicker';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function RequestFormScreen() {
+  // Categories come from the API, not a compiled-in array, so a new one
+  // appears on the next app launch with no store release.
+  const { requestTypes, error: categoriesError } = useCategories();
+
   const { token } = useAuth();
   const barangays = useBarangays();
 
@@ -82,11 +86,11 @@ export default function RequestFormScreen() {
       <Select
         label="Service type"
         hint={FORM_TL.request_type}
-        options={REQUEST_TYPES}
+        options={requestTypes}
         value={form.request_type}
         onChange={set('request_type')}
         placeholder="Select a service"
-        error={fieldErrors.request_type}
+        error={fieldErrors.request_type || categoriesError}
       />
 
       <BarangayPicker

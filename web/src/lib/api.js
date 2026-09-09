@@ -115,13 +115,21 @@ export const authApi = {
   changeEmail: (email) => apiFetch('/auth/email', { method: 'PATCH', body: { email } }),
 };
 
-// The barangay list is immutable seed data (18 rows): cache the in-flight
-// promise so every consumer shares one fetch per session (this also dedups
-// concurrent callers). A failed fetch clears the cache before rethrowing,
-// so a rejection is never cached and the next mount retries cleanly.
+// Barangays and report categories are small, rarely-changing reference lists, so
+// the in-flight promise is cached and every consumer shares one fetch per
+// session (this also dedups concurrent callers). A failed fetch clears the cache
+// before rethrowing, so a rejection is never cached and the next mount retries.
 // Consumers get the SAME resolved object: treat the result as read-only
-// (never sort/splice res.data.barangays in place; copy first).
+// (never sort/splice the array in place; copy first).
+//
+// These are NO LONGER immutable seed data - an Admin can add or retire a
+// barangay or a category from the UI. `invalidate()` is what stops the admin
+// screen from showing a stale list right after a change it just made, and what
+// stops a retired category lingering in the report dropdowns for the rest of the
+// session. Every admin mutation below calls it.
 let barangaysPromise = null;
+let categoriesPromise = null;
+
 export const barangayApi = {
   list: () => {
     if (!barangaysPromise) {
@@ -132,6 +140,22 @@ export const barangayApi = {
     }
     return barangaysPromise;
   },
+  invalidate: () => { barangaysPromise = null; },
+};
+
+// Active complaint / request categories for the report forms. Public: the
+// response carries zero personal data (R.A. 10173).
+export const categoryApi = {
+  list: () => {
+    if (!categoriesPromise) {
+      categoriesPromise = apiFetch('/categories', { auth: false }).catch((err) => {
+        categoriesPromise = null;
+        throw err;
+      });
+    }
+    return categoriesPromise;
+  },
+  invalidate: () => { categoriesPromise = null; },
 };
 
 // Report APIs — create() takes a FormData (so an optional photo/document attaches).
@@ -227,6 +251,39 @@ export const adminApi = {
     // Vouch for an address CENRO confirmed off-system (in person, by phone).
     // Separate from update() on purpose - see markEmailVerified on the server.
     verifyEmail: (id) => apiFetch(`/admin/users/${id}/verify-email`, { method: 'PATCH' }),
+  },
+
+  // Report categories. Every mutation invalidates the PUBLIC category cache, or
+  // a category the Admin just retired would keep appearing in the report forms
+  // for the rest of the session - including in this same browser tab.
+  categories: {
+    list: () => apiFetch('/admin/categories'),
+    create: (kind, body) =>
+      apiFetch(`/admin/categories/${kind}`, { method: 'POST', body }).then((r) => {
+        categoryApi.invalidate();
+        return r;
+      }),
+    update: (kind, id, body) =>
+      apiFetch(`/admin/categories/${kind}/${id}`, { method: 'PATCH', body }).then((r) => {
+        categoryApi.invalidate();
+        return r;
+      }),
+  },
+
+  // Barangays. Same reasoning, plus these mutations re-derive every Voronoi
+  // boundary server-side, so the cached list is stale in more than one way.
+  barangays: {
+    list: () => apiFetch('/admin/barangays'),
+    create: (body) =>
+      apiFetch('/admin/barangays', { method: 'POST', body }).then((r) => {
+        barangayApi.invalidate();
+        return r;
+      }),
+    update: (id, body) =>
+      apiFetch(`/admin/barangays/${id}`, { method: 'PATCH', body }).then((r) => {
+        barangayApi.invalidate();
+        return r;
+      }),
   },
   // Soft delete: archived reports leave the working system but stay on record.
   archive: {

@@ -35,6 +35,18 @@ router.patch('/archive/:kind/:id/restore', controller.restoreReport);
 // Audit-log viewer
 router.get('/audit-logs', controller.listAuditLogs);
 
+// Report categories (complaint / request types) - admin-managed, no redeploy.
+// :kind is 'complaint' or 'request'; category.service validates it.
+router.get('/categories', controller.listCategories);
+router.post('/categories/:kind', v.createCategoryRules, validate, controller.createCategory);
+router.patch('/categories/:kind/:id', v.updateCategoryRules, validate, controller.updateCategory);
+
+// Barangays. Mutations re-derive every Voronoi boundary, not just the changed
+// row - see barangay.service.rederiveBoundaries.
+router.get('/barangays', controller.listBarangays);
+router.post('/barangays', v.createBarangayRules, validate, controller.createBarangay);
+router.patch('/barangays/:id', v.updateBarangayRules, validate, controller.updateBarangay);
+
 // System settings
 router.get('/settings', controller.listSettings);
 router.patch('/settings/:key', v.updateSettingRules, validate, controller.updateSetting);

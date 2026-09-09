@@ -35,6 +35,7 @@ import AdminUsersPage from '@/pages/admin/AdminUsersPage';
 import AdminArchivePage from '@/pages/admin/AdminArchivePage';
 import AdminAuditLogsPage from '@/pages/admin/AdminAuditLogsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
+import AdminCategoriesPage from '@/pages/admin/AdminCategoriesPage';
 import NotFound from '@/components/NotFound';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -119,6 +120,7 @@ export default function App() {
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/archive" element={<AdminArchivePage />} />
         <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+        <Route path="/admin/categories" element={<AdminCategoriesPage />} />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
       </Route>
 

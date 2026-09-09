@@ -34,8 +34,8 @@ const {
   getSlaMinutes,
   computeSlaDeadline,
   computeExceededSla,
-  REQUEST_SLA_BY_TYPE,
 } = require('../src/utils/sla');
+const { slaForRequestType } = require('../src/services/category.service');
 
 const APPLY = process.argv.includes('--apply');
 
@@ -152,7 +152,7 @@ async function backfillRequests() {
   for (const r of list) {
     const accept = r.status_history[0];
     const start = r.approval_date || accept?.changed_at || null;
-    const sla = REQUEST_SLA_BY_TYPE[r.request_type];
+    const sla = await slaForRequestType(r.request_type);
     let next = { sla_started_at: null, sla_deadline: null, exceeded_sla: false };
     let rule = 'never_approved';
 
