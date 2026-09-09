@@ -9,6 +9,15 @@ export function fileUrl(path) {
   return /^https?:\/\//.test(path) ? path : `${FILE_BASE}${path}`;
 }
 
+// Is this attachment a PDF? Must be asked of the PATH, not the whole URL: the
+// API now returns "/uploads/requests/x.pdf?e=...&s=..." (a signed, expiring
+// link) and a GCS signed URL carries an even longer query string, so a bare
+// /\.pdf$/ test silently stops matching and every PDF is handed to <Image>
+// instead of being offered as a document. Strip the query first.
+export function isPdfPath(path) {
+  return /\.pdf$/i.test(String(path || '').split('?')[0]);
+}
+
 // The app registers a callback here so an expired session (401 on a call
 // that carried a token) can sign the user out globally. See AuthContext.
 let onSessionExpired = null;

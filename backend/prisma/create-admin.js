@@ -14,10 +14,14 @@
 // Re-running with the same email updates that account's password/role (idempotent).
 
 require('dotenv').config();
-const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
-const prisma = new PrismaClient();
+// The SHARED client, not a fresh PrismaClient. src/utils/prisma.js is wrapped in
+// the field-encryption extension; a client built here would bypass it and write
+// personal fields in plaintext, with nothing to indicate it had happened. This
+// script writes none of those fields today - the point is that the next person
+// to add `contact_number` to it should not have to know that.
+const prisma = require('../src/utils/prisma');
 
 const VALID_ROLES = ['Admin', 'CENRO_Staff'];
 

@@ -118,15 +118,61 @@ if (/SMTP_OK/.test(mail.out)) {
   fail('Email (SMTP auth)', msg.slice(0, 160));
 }
 
-// -- 5. Uploads reachable (report photos) -----------------------------------
+// -- 5. Uploads: locked down AND still reachable -----------------------------
+// TWO checks, and the first one INVERTED the old test. /uploads used to be
+// express.static, so this section asserted that a bare path returned 200 - which
+// is now precisely the symptom of the hole being open again. A 200 here means
+// every complaint photo in the system is readable by anyone with the URL.
 const ls = run('docker', ['exec', API_CONTAINER, 'sh', '-c', 'find /app/uploads -type f ! -name .gitkeep | head -1']);
 const sample = (ls.out.split('\n')[0] || '').replace('/app', '');
 if (!sample) {
   warn('Uploads', 'no uploaded files found - fine on a clean install, wrong if you have demo reports');
 } else {
-  const img = await http(sample);
-  if (img.ok) pass('Uploads served', `${sample} -> HTTP ${img.status}`);
-  else fail('Uploads served', `${sample} -> HTTP ${img.status} (report photos will not render)`);
+  const bare = await http(sample);
+  if (bare.status === 200) {
+    fail('Uploads locked down', `${sample} was served with NO token - every report photo is public`);
+  } else if (bare.status === 403) {
+    pass('Uploads locked down', 'an unsigned request is refused (403)');
+  } else {
+    warn('Uploads locked down', `unsigned request returned HTTP ${bare.status}; expected 403`);
+  }
+
+  // Signed inside the container, so this tests the key the RUNNING server holds
+  // rather than whatever happens to be in the local .env.
+  const rel = sample.replace(/^\/uploads\//, '');
+  const signScript = [
+    "require('dotenv').config();",
+    "const {signPath}=require('/app/src/utils/fileToken');",
+    `console.log('SIGNED '+signPath(${JSON.stringify(rel)}));`,
+  ].join('');
+  const signed = run('docker', ['exec', API_CONTAINER, 'node', '-e', signScript]);
+  const token = (signed.out.match(/SIGNED (\S+)/) || [])[1];
+
+  if (!token) {
+    fail('Uploads served', `could not mint a signed link: ${signed.out.split('\n').pop().slice(0, 120)}`);
+  } else {
+    const img = await http(`/uploads/${token}`);
+    if (img.ok) pass('Uploads served', `signed link -> HTTP ${img.status}`);
+    else fail('Uploads served', `signed link -> HTTP ${img.status} (report photos will not render)`);
+  }
+}
+
+// -- 5b. Encryption at rest is actually switched on -------------------------
+// Without the key the app still boots and still works; it just writes personal
+// fields in plaintext. That is invisible from the outside, which is exactly why
+// it belongs in the preflight rather than in a code review.
+const cryptoScript = [
+  "require('dotenv').config();",
+  "const {isConfigured}=require('/app/src/utils/crypto.util');",
+  "console.log(isConfigured()?'KEY_OK':'KEY_MISSING');",
+].join('');
+const cryptoCheck = run('docker', ['exec', API_CONTAINER, 'node', '-e', cryptoScript]);
+if (/KEY_OK/.test(cryptoCheck.out)) {
+  pass('Encryption at rest', 'FIELD_ENCRYPTION_KEY is set - personal fields are encrypted');
+} else if (/KEY_MISSING/.test(cryptoCheck.out)) {
+  fail('Encryption at rest', 'FIELD_ENCRYPTION_KEY is NOT set - contact numbers and addresses are stored in PLAINTEXT');
+} else {
+  fail('Encryption at rest', cryptoCheck.out.split('\n').pop().slice(0, 160));
 }
 
 // -- 6. Mobile APK target still matches this machine's LAN IP ---------------

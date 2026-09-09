@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MapPin, Printer, Archive, RotateCcw } from 'lucide-react';
-import { fileUrl, adminApi } from '@/lib/api';
+import { fileUrl, isPdfPath, adminApi } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import MapView from '@/components/MapView';
 import { Button } from '@/components/ui/button';
@@ -178,7 +178,7 @@ export function ReporterCard({ user }) {
 export function Attachment({ path }) {
   const url = fileUrl(path);
   if (!url) return null;
-  const isPdf = /\.pdf$/i.test(path);
+  const isPdf = isPdfPath(path);
   return (
     <div>
       <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">Attachment</div>

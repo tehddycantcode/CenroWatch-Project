@@ -18,6 +18,15 @@ export function fileUrl(path) {
   return /^https?:\/\//.test(path) ? path : `${FILE_BASE}${path}`;
 }
 
+// Is this attachment a PDF? Must be asked of the PATH, not the whole URL: the
+// API now returns "/uploads/requests/x.pdf?e=...&s=..." (a signed, expiring
+// link) and a GCS signed URL carries an even longer query string, so a bare
+// /\.pdf$/ test silently stops matching and every PDF renders as a broken
+// <img> instead of a link. Strip the query first.
+export function isPdfPath(path) {
+  return /\.pdf$/i.test(String(path || '').split('?')[0]);
+}
+
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }

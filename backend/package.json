@@ -14,7 +14,8 @@
     "create-admin": "node prisma/create-admin.js",
     "check-mail": "node scripts/check-mail.js",
     "test": "jest",
-    "backfill-sla": "node scripts/backfill-sla-start.js"
+    "backfill-sla": "node scripts/backfill-sla-start.js",
+    "encrypt-pii": "node scripts/encrypt-pii.js"
   },
   "jest": {
     "testEnvironment": "node",

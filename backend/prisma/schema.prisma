@@ -103,7 +103,7 @@ model User {
   password_hash   String    @db.VarChar(255)
   first_name      String    @db.VarChar(100)
   last_name       String    @db.VarChar(100)
-  contact_number  String?   @db.VarChar(20)
+  contact_number  String?   @db.VarChar(255) // encrypted at rest (AES-256-GCM); sized for the envelope, not the number
   role            Role      @default(Resident)
   barangay_id     Int?
   is_active       Boolean   @default(true)
@@ -246,8 +246,8 @@ model Complaint {
   // Walk-in intake: a report a resident files in person, logged by staff. The
   // walk-in resident usually has no account, so their name/contact is captured
   // here (null for an anonymous walk-in). logged_by = the staff who recorded it.
-  reporter_name    String?         @db.VarChar(120)
-  reporter_contact String?         @db.VarChar(120)
+  reporter_name    String?         @db.VarChar(1000) // encrypted at rest
+  reporter_contact String?         @db.VarChar(1000) // encrypted at rest
   logged_by        Int?
   barangay_id      Int
   assigned_to      Int? // CENRO Staff user_id
@@ -256,7 +256,7 @@ model Complaint {
   photo_path       String?         @db.VarChar(500) // GCS object path
   latitude         Float?
   longitude        Float?
-  address_details  String?         @db.VarChar(255)
+  address_details  String?         @db.VarChar(2000) // encrypted at rest
   status           ComplaintStatus @default(Pending)
   priority         Boolean         @default(false)
   staff_notes      String?         @db.Text
@@ -338,7 +338,7 @@ model WildlifeTurnover {
   chain_of_custody_photos Json? // array of GCS paths
   latitude                Float?
   longitude               Float?
-  address_details         String?         @db.VarChar(255)
+  address_details         String?         @db.VarChar(2000) // encrypted at rest
   status                  WildlifeStatus  @default(Pending_Review)
   intake_date             DateTime?
   release_date            DateTime?

@@ -7,6 +7,8 @@
 //                      an ANONYMOUS caller can guess a credential.
 //   3. resetLimiter  — a tight cap on the password-reset pair, which send mail
 //                      and consume single-use tokens.
+//   4. fileLimiter   — covers /uploads, which is mounted outside /api/v1 and so
+//                      is not reached by apiLimiter at all.
 //
 // WHY THE AUTH CAP IS NOT MOUNTED BLANKET ON /auth ANYMORE:
 // it used to be `app.use('/api/v1/auth', authLimiter)`, which charged the
@@ -60,4 +62,17 @@ const resetLimiter = rateLimit({
   message,
 });
 
-module.exports = { apiLimiter, authLimiter, resetLimiter };
+// /uploads sits outside /api/v1 because the "/uploads/..." shape is stored in
+// photo_path and hard-coded in both clients' fileUrl helpers, so apiLimiter
+// never sees it. Without this the file route is the one unmetered endpoint in
+// the app. The cap is high because one report detail page can pull several
+// photos, and a signed link is already scoped to a single file.
+const fileLimiter = rateLimit({
+  windowMs: WINDOW_MS,
+  limit: Number(process.env.FILE_RATE_LIMIT_MAX) || 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message,
+});
+
+module.exports = { apiLimiter, authLimiter, resetLimiter, fileLimiter };

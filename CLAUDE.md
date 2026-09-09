@@ -148,8 +148,9 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   container ("Table 'cenrowatch_db.complaint' doesn't exist"). This is not a
   one-off: it is what the tool does every single time on this setup. Three
   migrations already shipped broken and silently never applied in Docker (repaired
-  in `fc6f264`); `working_days_sla` was generated with the same bug and corrected
-  before applying. Generate with `--create-only`, fix the casing, THEN apply —
+  in `fc6f264`); `working_days_sla`, `admin_managed_categories` and
+  `encrypt_personal_fields` were each generated with the same bug and corrected
+  before applying. Four for four — assume the next one is wrong too. Generate with `--create-only`, fix the casing, THEN apply —
   editing a migration after it has run breaks its `_prisma_migrations` checksum.
   `backend/tests/migrationCasing.test.js` now fails the suite if any migration
   disagrees with the model names, so `npm test` catches it.
@@ -167,6 +168,31 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   — the page would have thrown at runtime and `npm run build` did NOT catch it.
   Use the Edit tool for multi-line code insertion, and read the result back.
 
+- **Appending a query string to a stored path breaks every `$`-anchored
+  extension test.** Signing `/uploads` URLs turned `photo_path` into
+  `/uploads/x.pdf?e=...&s=...`, and `/\.pdf$/i.test(path)` in three places
+  (`web/components/staff/detail.jsx`, `web/pages/resident/TrackReportPage.jsx`,
+  `mobile/screens/resident/TrackReportScreen.js`) silently stopped matching — every
+  PDF attachment would have rendered as a broken `<img>` instead of a link. No
+  test caught it and no build caught it, and no PDF exists in the seed data, so
+  it would have first appeared the day a resident attached one. Both clients now
+  export `isPdfPath()`, which strips the query first. GCS signed URLs have the
+  same shape, so this was already latent for `STORAGE_DRIVER=gcs`.
+- **When you close a security hole, check whether `preflight.mjs` asserts the
+  hole.** Its "Uploads served" check fetched a bare `/uploads/...` path and
+  PASSED on HTTP 200 — which, after the fix, is exactly the symptom of the hole
+  being open. A verification script encodes the behaviour that was true when it
+  was written; fixing the system can invert the meaning of its assertions. That
+  check now fails on 200 and passes on 403, and separately mints a signed link to
+  prove photos still render.
+- **A script with its own `new PrismaClient()` bypasses every client extension.**
+  `src/utils/prisma.js` is wrapped in the field-encryption extension, but
+  `prisma/seed.js` and `prisma/create-admin.js` each built their own client, so
+  anything they wrote would have been stored in plaintext with nothing to show
+  for it. Neither wrote an encrypted field yet — the trap was for whoever added
+  one next. Both now import the shared client. `scripts/encrypt-pii.js` keeps a
+  raw client deliberately (it must see stored bytes to tell ciphertext from
+  plaintext) and says so.
 - **Verify the RUNNING system, not just the repo — use `node scripts/preflight.mjs`.**
   On 2026-08-24 an entire afternoon went into bugs that all shared one shape: the
   code was correct in git but dead in the environment. Three migrations had never
@@ -237,6 +263,28 @@ Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
   a DIFFERENT audit action from `EMAIL_VERIFIED`, since a staff member vouching is a
   weaker claim than the user proving it. `create-admin.js` and admin-created accounts
   stamp verified at creation (an Admin typed the address).
+- IT-expert evaluation response (branch `feature/email-otp-verification`), five
+  items, phased. Phase 4 (encryption + file access) is the last:
+  - **Uploads are no longer public.** `/uploads` was bare `express.static` — no
+    auth, no rate limit, no expiry — and because the local driver's `fileUrl()`
+    was a pass-through, the path stored in `photo_path` WAS the public URL. It is
+    now a route requiring an HMAC signature over path+expiry (1h TTL, key derived
+    from `JWT_SECRET` via HMAC for domain separation), with traversal blocked
+    before the signature check and its own `fileLimiter`. Signed URLs rather than
+    a Bearer header because `<img>` cannot send one and a JWT in a query string
+    would leak into logs and history. Same contract the GCS driver already had.
+  - **Field encryption at rest** (AES-256-GCM) on four fields verified never
+    queried: `User.contact_number`, `Complaint.reporter_name`,
+    `.reporter_contact`, `.address_details` (+ `WildlifeTurnover.address_details`).
+    Wired as a Prisma client extension in `src/utils/prisma.js`, so a new query
+    cannot forget it. `email`/`first_name`/`last_name`/`description` are
+    deliberately NOT encrypted — login and two shipped search boxes use them; the
+    extension THROWS if a where/orderBy/groupBy touches an encrypted column,
+    because that would otherwise match nothing forever with no error.
+    `npm run encrypt-pii` converted existing rows (dry-run default, idempotent).
+  - Uploads are now magic-byte sniffed, not just Content-Type checked (SVG was
+    accepted as `image/jpeg` before). `SECURITY.md` documents why bcrypt stays
+    for passwords, where SHA-256 legitimately appears, and the HTTPS requirement.
 - Sprint 3 (done): CENRO Staff interface — `/staff` queues + status workflow +
   ComplaintStatusHistory + SLA recompute + resident email (Nodemailer/Gmail,
   graceful) + StaffLayout/queues/detail web UI.

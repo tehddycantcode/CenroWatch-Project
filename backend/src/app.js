@@ -10,7 +10,6 @@ const morgan = require('morgan');
 
 const apiV1 = require('./routes');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
-const { UPLOAD_ROOT } = require('./middlewares/upload');
 const { apiLimiter } = require('./middlewares/rateLimiters');
 
 const app = express();
@@ -72,10 +71,19 @@ app.get('/api/health', (req, res) => {
 // that distinction is the thing that keeps shared-IP residents out of a 429.
 app.use('/api/v1', apiLimiter);
 
-// ── Uploaded files: served locally only under the local driver. Under the GCS
-//    driver, files live in the bucket and are reached via signed URLs instead.
+// ── Uploaded files ─────────────────────────────────────────
+// Served locally only under the local driver; under the GCS driver the files
+// live in a private bucket and are reached via V4 signed URLs instead.
+//
+// This was `express.static(UPLOAD_ROOT)` until Phase 4. That served every
+// complaint photo, wildlife photo, chain-of-custody photo and request document
+// to anybody who had the path - and since the local driver's fileUrl() was a
+// pass-through, the path stored in the database WAS that public URL. No
+// session, no expiry, no rate limit; the only obstacle was guessing 48 bits of
+// filename. The route below requires a signed, expiring token for the exact
+// file, which is the same contract the GCS driver already enforced.
 if ((process.env.STORAGE_DRIVER || 'local').toLowerCase() === 'local') {
-  app.use('/uploads', express.static(UPLOAD_ROOT));
+  app.use('/uploads', require('./routes/uploads.routes'));
 }
 
 // ── API v1 ─────────────────────────────────────────────────

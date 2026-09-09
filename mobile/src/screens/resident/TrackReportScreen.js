@@ -11,7 +11,7 @@ import {
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-import { api, fileUrl } from '../../api/client';
+import { api, fileUrl, isPdfPath } from '../../api/client';
 import { trackingKind, KIND, humanize } from '../../lib/reports';
 import { KIND_TL, COPY_TL } from '../../lib/tagalog';
 import { colors, radius } from '../../theme';
@@ -111,7 +111,7 @@ export default function TrackReportScreen({ id }) {
   }, [id, kind, token]);
 
   const mediaUrl = view ? fileUrl(view.media) : null;
-  const isPdf = view?.media && /\.pdf$/i.test(view.media);
+  const isPdf = isPdfPath(view?.media);
   const hasGeo = view?.latitude != null && view?.longitude != null;
 
   return (

@@ -3,8 +3,10 @@
 // Run AFTER a successful migration:  node prisma/seed.js
 // Idempotent: uses upsert keyed on the unique barangay name.
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// The SHARED client, not a fresh PrismaClient: src/utils/prisma.js is wrapped in
+// the field-encryption extension, and a client built here would bypass it and
+// seed personal fields in plaintext with nothing to show for it.
+const prisma = require('../src/utils/prisma');
 
 const barangays = [
   { name: 'Baclaran', latitude: 14.2561, longitude: 121.1189 },

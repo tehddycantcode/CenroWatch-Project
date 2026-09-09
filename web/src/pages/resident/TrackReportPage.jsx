@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MapPin, ArrowLeft } from 'lucide-react';
-import { complaintApi, wildlifeApi, requestApi, fileUrl } from '@/lib/api';
+import { complaintApi, wildlifeApi, requestApi, fileUrl, isPdfPath } from '@/lib/api';
 import { trackingKind, KIND, humanize } from '@/lib/reports';
 import { KIND_TL, COPY_TL } from '@/lib/tagalog';
 import { Card } from '@/components/ui/card';
@@ -110,7 +110,7 @@ export default function TrackReportPage() {
   }
 
   const mediaUrl = fileUrl(view.media);
-  const isPdf = view.media && /\.pdf$/i.test(view.media);
+  const isPdf = isPdfPath(view.media);
   const hasGeo = view.latitude != null && view.longitude != null;
 
   // Timestamps for the status timeline (only set when the source date exists).
