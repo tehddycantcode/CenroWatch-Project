@@ -168,6 +168,43 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   — the page would have thrown at runtime and `npm run build` did NOT catch it.
   Use the Edit tool for multi-line code insertion, and read the result back.
 
+- **maplibre-gl v6 BREAKS THE MAP HERE — do not upgrade past 5.x without redoing
+  this test.** v6.9.0 was attempted (it fixes a CRITICAL XSS advisory,
+  GHSA-jrc7-96c5-q579) and reverted. Two things go wrong. First, v6 is ESM-only
+  with **no default export**, so `import maplibregl from 'maplibre-gl'` fails the
+  build; `import * as maplibregl` fixes that. Second, and fatally: the map then
+  initialises, fires `style.load` and `sourcedata`, and **hangs** — `load` never
+  fires, `map.loaded()` stays false, ZERO vector tiles are requested, and **no
+  error event is emitted at all**. Reproduced in the dev server AND a production
+  build, on real hardware WebGL2 (NVIDIA GTX 1050 Ti via ANGLE/D3D11 — not a
+  software renderer), and with a minimal standalone map that does not touch our
+  component code. The v5.24.0 control on the same machine requests 6 tiles and
+  renders correctly. Suspected cause: v6's ESM worker (`maplibre-gl-worker.mjs`),
+  since tile fetching is worker-driven and everything the main thread does
+  (style, tilejson, sprites) succeeds. **A passing `npm run build` proves nothing
+  here** — the build was clean in both the broken and working states.
+  Risk assessment for staying on 5.24.0: the advisory is a `DOM.sanitize()`
+  bypass, and every string this app interpolates into `Popup.setHTML()` in
+  `MapView.jsx` and `DensityMap.jsx` already goes through `escapeHtml()` first.
+  The only unescaped values are numeric `groupBy` counts. Nothing untrusted
+  reaches MapLibre's sanitizer, so there is no exploitable path — but this is a
+  mitigation, not a fix, and it must be re-checked if anyone adds a new
+  `setHTML` call.
+- **Verify the PORT a dev server actually bound, not just that something is
+  listening.** An orphaned Vite from an earlier run still held 5173, so
+  `npm run dev` printed "Port 5173 is in use, trying another one..." and bound
+  **5174** — while every browser check pointed at 5173 and silently tested the
+  STALE server. This produced a confidently wrong conclusion about a dependency
+  upgrade that had to be thrown away. Read the dev server's own "Local:" line, or
+  pass `--strictPort` so it fails loudly instead of moving. Related: the existing
+  orphaned-Vite lesson below.
+- **`grep pattern missing-file && A || B` silently runs B.** A grep against a
+  path that does not exist exits non-zero exactly like "no match", so the `||`
+  branch fires and the absence of a FILE reads as the absence of a STRING. This
+  produced a false "the dependency is v7" claim. The same shape burned a
+  `git ls-files` check in the same session (it exits 0 with no output, so `&&`
+  fired on nothing). Test the file exists first, or capture output and test the
+  string — never infer from an exit code that has two meanings.
 - **Appending a query string to a stored path breaks every `$`-anchored
   extension test.** Signing `/uploads` URLs turned `photo_path` into
   `/uploads/x.pdf?e=...&s=...`, and `/\.pdf$/i.test(path)` in three places

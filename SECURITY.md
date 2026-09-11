@@ -185,6 +185,39 @@ where the bytes live and nothing about who can read them.
 
 ---
 
+## 3a. Known dependency advisories
+
+`npm audit` in `web/` is not clean, and the remaining entries are deliberate
+rather than unnoticed.
+
+| Package | Severity | Status |
+|---|---|---|
+| **maplibre-gl** 5.24 | **Critical** — `DOM.sanitize()` XSS bypass ([GHSA-jrc7-96c5-q579](https://github.com/advisories/GHSA-jrc7-96c5-q579)) | **Mitigated, not patched** — see below |
+| esbuild / vite 5 | Moderate/High — dev-server path traversal and request forgery | **Not applicable in production** |
+
+**maplibre-gl.** The fix is v6.9.0, a major release. It was attempted and
+reverted: v6 initialises the map, fires `style.load`, then hangs without ever
+requesting a vector tile and **without emitting an error**. Confirmed in a
+production build as well as the dev server, on hardware WebGL2, with a minimal
+standalone map — the v5 control on the same machine renders correctly. See
+`CLAUDE.md` for the full evidence.
+
+The advisory is a bypass of MapLibre's HTML sanitizer. This application does not
+depend on that sanitizer for untrusted input: every string interpolated into
+`Popup.setHTML()` in `MapView.jsx` and `DensityMap.jsx` is passed through
+`escapeHtml()` first, and the only unescaped values are numeric aggregate counts
+produced by Prisma `groupBy`. There is therefore no path by which resident-
+supplied text reaches the vulnerable code. **This is a mitigation, not a fix** —
+it must be re-verified if a new `setHTML` call is ever added, and the upgrade
+should be retried when a later v6 resolves the hang.
+
+**esbuild / vite.** All four advisories target the **development server**.
+Production serves pre-built static files with Vite not running, so the
+production deployment is unaffected. Developers should avoid running
+`npm run dev` on an untrusted network until the toolchain is upgraded.
+
+---
+
 ## 4. Transport security (HTTPS)
 
 **There is no deployment yet.** `SETUP.md` documents local development only, so
