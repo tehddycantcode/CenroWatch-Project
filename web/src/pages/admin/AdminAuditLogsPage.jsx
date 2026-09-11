@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
 import { fmtDate } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
+import { TableHead } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,15 +51,7 @@ export default function AdminAuditLogsPage() {
       ) : (
         <Card className="overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 font-medium">When</th>
-                <th className="px-4 py-3 font-medium">Actor</th>
-                <th className="px-4 py-3 font-medium">Action</th>
-                <th className="px-4 py-3 font-medium">Target</th>
-                <th className="px-4 py-3 font-medium">Details</th>
-              </tr>
-            </thead>
+            <TableHead columns={['When', 'Actor', 'Action', 'Target', 'Details']} />
             <tbody className="divide-y">
               {items.map((log) => (
                 <tr key={log.log_id} className="align-top hover:bg-accent/20">

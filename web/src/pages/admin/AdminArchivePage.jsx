@@ -6,6 +6,7 @@ import { humanize } from '@/lib/reports';
 import { fmtDay } from '@/lib/staff';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
+import { TableHead } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
@@ -108,15 +109,7 @@ function ArchivedTable({ rows, onRestore, busyKey }) {
   return (
     <Card className="overflow-hidden">
       <table className="w-full text-sm">
-        <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-          <tr>
-            <th className="px-4 py-3 font-medium">Reference</th>
-            <th className="px-4 py-3 font-medium">Report</th>
-            <th className="px-4 py-3 font-medium">Reason</th>
-            <th className="px-4 py-3 font-medium">Archived</th>
-            <th className="px-4 py-3 font-medium" />
-          </tr>
-        </thead>
+        <TableHead columns={['Reference', 'Report', 'Reason', 'Archived', '']} />
         <tbody className="divide-y">
           {rows.map((r) => {
             const key = `${r.kind}:${r.reference}`;

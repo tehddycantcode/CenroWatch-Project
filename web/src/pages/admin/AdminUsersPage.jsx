@@ -3,6 +3,7 @@ import { adminApi, barangayApi } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { ROLE_LABELS } from '@/lib/roles';
 import { Card } from '@/components/ui/card';
+import { TableHead } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -163,15 +164,7 @@ export default function AdminUsersPage() {
 
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Role</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium" />
-            </tr>
-          </thead>
+          <TableHead columns={['Name', 'Email', 'Role', 'Status', '']} />
           <tbody className="divide-y">
             {data.items.map((u) => {
               const isMe = u.user_id === me?.user_id;

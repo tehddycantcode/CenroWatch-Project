@@ -88,6 +88,101 @@ function buildView(kind, d) {
   };
 }
 
+// The report itself, once it has loaded.
+//
+// Split out of TrackReportScreen because the screen was doing two unrelated
+// jobs in one function: deciding WHICH of error / still-loading / loaded to
+// show, and then rendering the whole of the loaded case inline - six optional
+// blocks nested three levels deep inside that choice. Separating them means
+// the screen reads as the three states it actually has, and everything below
+// only ever runs with a report in hand, so none of it needs `view?.` guards.
+function ReportDetail({ view, kind }) {
+  const mediaUrl = fileUrl(view.media);
+  const isPdf = isPdfPath(view.media);
+  const hasGeo = view.latitude != null && view.longitude != null;
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHead}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.kindLine}>
+            {KIND[kind].label} · {view.id}
+          </Text>
+          <Text style={styles.title}>{view.title}</Text>
+          {KIND_TL[kind] ? <Text style={styles.titleTl}>{KIND_TL[kind]}</Text> : null}
+        </View>
+        <StatusBadge status={view.status} stage />
+      </View>
+
+      <View style={styles.rows}>
+        {view.rows.map(([label, value]) => (
+          <View key={label} style={styles.rowItem}>
+            <Text style={styles.rowLabel}>{label}</Text>
+            <Text style={styles.rowValue}>{value != null && value !== '' ? String(value) : '—'}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.block}>
+        <Text style={styles.rowLabel}>
+          Description<Text style={styles.rowLabelTl}> / {COPY_TL.description}</Text>
+        </Text>
+        <Text style={styles.description}>{view.description}</Text>
+      </View>
+
+      {hasGeo && (
+        <Text style={styles.geo}>
+          📍 {view.latitude}, {view.longitude}
+        </Text>
+      )}
+
+      {view.notes ? (
+        <View style={styles.notes}>
+          <Text style={styles.rowLabel}>
+            CENRO notes<Text style={styles.rowLabelTl}> / {COPY_TL.cenroNotes}</Text>
+          </Text>
+          <Text style={styles.notesText}>{view.notes}</Text>
+        </View>
+      ) : null}
+
+      {view.history.length > 0 ? (
+        <View style={styles.updates}>
+          <Text style={styles.rowLabel}>
+            Updates from CENRO
+            <Text style={styles.rowLabelTl}> / {COPY_TL.updatesFromCenro}</Text>
+          </Text>
+          {view.history.map((h) => (
+            <View key={h.changed_at} style={styles.update}>
+              <View style={styles.updateHead}>
+                <Text style={styles.updateStatus}>{humanize(h.new_status)}</Text>
+                <Text style={styles.updateDate}>{fmt(h.changed_at)}</Text>
+              </View>
+              <Text style={h.note ? styles.updateNote : styles.updateEmpty}>
+                {h.note || 'Status updated.'}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {mediaUrl ? (
+        <View style={styles.block}>
+          <Text style={styles.rowLabel}>
+            Attachment<Text style={styles.rowLabelTl}> / {COPY_TL.attachment}</Text>
+          </Text>
+          {isPdf ? (
+            <Pressable onPress={() => Linking.openURL(mediaUrl)} style={{ marginTop: 6 }}>
+              <Text style={styles.link}>View document (PDF)</Text>
+            </Pressable>
+          ) : (
+            <Image source={{ uri: mediaUrl }} style={styles.media} contentFit="cover" />
+          )}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export default function TrackReportScreen({ id }) {
   const { token } = useAuth();
   const { switchTab } = useResidentNav();
@@ -110,10 +205,6 @@ export default function TrackReportScreen({ id }) {
       .catch((e) => setError(e.message || 'Could not load this report.'));
   }, [id, kind, token]);
 
-  const mediaUrl = view ? fileUrl(view.media) : null;
-  const isPdf = isPdfPath(view?.media);
-  const hasGeo = view?.latitude != null && view?.longitude != null;
-
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenHeader title="Track Report" />
@@ -128,84 +219,7 @@ export default function TrackReportScreen({ id }) {
         ) : !view ? (
           <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
         ) : (
-          <View style={styles.card}>
-            <View style={styles.cardHead}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.kindLine}>
-                  {KIND[kind].label} · {view.id}
-                </Text>
-                <Text style={styles.title}>{view.title}</Text>
-                {KIND_TL[kind] ? <Text style={styles.titleTl}>{KIND_TL[kind]}</Text> : null}
-              </View>
-              <StatusBadge status={view.status} stage />
-            </View>
-
-            <View style={styles.rows}>
-              {view.rows.map(([label, value]) => (
-                <View key={label} style={styles.rowItem}>
-                  <Text style={styles.rowLabel}>{label}</Text>
-                  <Text style={styles.rowValue}>{value != null && value !== '' ? String(value) : '—'}</Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.block}>
-              <Text style={styles.rowLabel}>
-                Description<Text style={styles.rowLabelTl}> / {COPY_TL.description}</Text>
-              </Text>
-              <Text style={styles.description}>{view.description}</Text>
-            </View>
-
-            {hasGeo && (
-              <Text style={styles.geo}>
-                📍 {view.latitude}, {view.longitude}
-              </Text>
-            )}
-
-            {view.notes ? (
-              <View style={styles.notes}>
-                <Text style={styles.rowLabel}>
-                  CENRO notes<Text style={styles.rowLabelTl}> / {COPY_TL.cenroNotes}</Text>
-                </Text>
-                <Text style={styles.notesText}>{view.notes}</Text>
-              </View>
-            ) : null}
-
-            {view.history.length > 0 ? (
-              <View style={styles.updates}>
-                <Text style={styles.rowLabel}>
-                  Updates from CENRO
-                  <Text style={styles.rowLabelTl}> / {COPY_TL.updatesFromCenro}</Text>
-                </Text>
-                {view.history.map((h) => (
-                  <View key={h.changed_at} style={styles.update}>
-                    <View style={styles.updateHead}>
-                      <Text style={styles.updateStatus}>{humanize(h.new_status)}</Text>
-                      <Text style={styles.updateDate}>{fmt(h.changed_at)}</Text>
-                    </View>
-                    <Text style={h.note ? styles.updateNote : styles.updateEmpty}>
-                      {h.note || 'Status updated.'}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            ) : null}
-
-            {mediaUrl ? (
-              <View style={styles.block}>
-                <Text style={styles.rowLabel}>
-                  Attachment<Text style={styles.rowLabelTl}> / {COPY_TL.attachment}</Text>
-                </Text>
-                {isPdf ? (
-                  <Pressable onPress={() => Linking.openURL(mediaUrl)} style={{ marginTop: 6 }}>
-                    <Text style={styles.link}>View document (PDF)</Text>
-                  </Pressable>
-                ) : (
-                  <Image source={{ uri: mediaUrl }} style={styles.media} contentFit="cover" />
-                )}
-              </View>
-            ) : null}
-          </View>
+          <ReportDetail view={view} kind={kind} />
         )}
       </ScrollView>
     </SafeAreaView>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { adminApi, gisApi } from '@/lib/api';
 import DensityMap from '@/components/admin/DensityMap';
 import { Card } from '@/components/ui/card';
+import { TableHead } from '@/components/ui/table';
 import { Spinner } from '@/components/ui/icons';
 
 // Individual-report marker colors (clustered layer).
@@ -89,16 +90,7 @@ export default function AdminAnalyticsPage() {
 
       <Card className="overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">Barangay</th>
-              <th className="px-4 py-3 font-medium">Complaints</th>
-              <th className="px-4 py-3 font-medium">Wildlife</th>
-              <th className="px-4 py-3 font-medium">Requests</th>
-              <th className="px-4 py-3 font-medium">Total</th>
-              <th className="px-4 py-3 font-medium">Share</th>
-            </tr>
-          </thead>
+          <TableHead columns={['Barangay', 'Complaints', 'Wildlife', 'Requests', 'Total', 'Share']} />
           <tbody className="divide-y">
             {barangays.map((b) => (
               <tr key={b.barangay_id}>
