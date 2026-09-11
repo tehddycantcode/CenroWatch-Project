@@ -31,16 +31,23 @@ hardware: unnoticeable at a login, ruinous at scale for an attacker.
 
 ### Where SHA-256 legitimately does appear
 
-Two places, both correct, and worth naming because "where is SHA-256?" is a
+Three places, all correct, and worth naming because "where is SHA-256?" is a
 question the code should be able to answer plainly:
 
-| Location | What it hashes | Why a fast hash is right here |
-|---|---|---|
-| `auth.service.js` (password-reset tokens) | 256 bits from `crypto.randomBytes` | The input is already high-entropy and random. There is nothing to brute-force, so slowness buys nothing; the hash exists so a leaked database does not hand over live reset links. |
-| `emailVerification.service.js` (six-digit codes) | A six-digit code, compared with `timingSafeEqual` | Six digits *is* guessable — but the brake is the attempt counter on the token (spent before the comparison) and a short TTL, not the hash's speed. A slow hash would not help; a per-account attempt limit does. |
+| Location | Form | What it covers | Why this is right here |
+|---|---|---|---|
+| `auth.service.js:18` (password-reset tokens) | plain SHA-256 | 256 bits from `crypto.randomBytes` | The input is already high-entropy and random. There is nothing to brute-force, so slowness buys nothing; the hash exists so a leaked database does not hand over live reset links. |
+| `emailVerification.service.js:25` (six-digit codes) | plain SHA-256 | A six-digit code, compared with `timingSafeEqual` | Six digits *is* guessable — but the brake is the attempt counter on the token (spent before the comparison) and a short TTL, not the hash's speed. A slow hash would not help; a per-account attempt limit does. The code itself says so. |
+| `fileToken.js:54,70` (signed upload links) | **HMAC**-SHA256 | The file path and expiry, signed together | Keyed, so only the server can mint a valid link, and the signature proves the URL was not altered. Also derives the file-signing key from `JWT_SECRET` with a domain separator, so a session token and a file link stay cryptographically unrelated. |
 
-The rule both follow: hash the value when it never needs to come back, encrypt
-it when it does.
+The rule the first two follow: hash the value when it never needs to come back,
+encrypt it when it does. The third is a different job again — HMAC is not
+secrecy, it is proof of authenticity.
+
+Four primitives, four jobs, and they are not interchangeable: **bcrypt** for
+passwords (slow, because passwords are guessable), **SHA-256** for digests of
+high-entropy values, **HMAC-SHA256** to prove we issued something, and
+**AES-256-GCM** for data that has to be read back.
 
 ---
 
