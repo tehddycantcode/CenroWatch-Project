@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { api, setSessionExpiredHandler } from '../api/client';
 
@@ -90,7 +90,13 @@ export function AuthProvider({ children }) {
   // Refresh the cached user after a self-service profile edit.
   const updateUser = useCallback((next) => setUser(next), []);
 
-  const value = { user, token, loading, isAuthenticated: !!user, sessionNotice, login, register, logout, updateUser };
+  // Memoised: see the note in web/src/context/AuthContext.jsx. A fresh object
+  // literal here re-renders every useAuth() consumer on each provider render,
+  // which on mobile means the whole navigator tree.
+  const value = useMemo(
+    () => ({ user, token, loading, isAuthenticated: !!user, sessionNotice, login, register, logout, updateUser }),
+    [user, token, loading, sessionNotice, login, register, logout, updateUser]
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

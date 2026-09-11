@@ -11,6 +11,10 @@ import { Spinner } from '@/components/ui/icons';
 import { BarChart, TrendChart } from '@/components/admin/charts';
 import { CHART_COLORS } from '@/components/admin/chart-colors';
 
+// Module scope: pure, depends on nothing in the component. Declaring it inside
+// AdminDashboardPage rebuilt it on every render for no reason.
+const fmt = (iso) => new Date(iso).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' });
+
 function Stat({ icon, tone, label, value, sub }) {
   return (
     <Card className="border-t-2 border-t-brand-accent p-5">
@@ -112,7 +116,6 @@ export default function AdminDashboardPage() {
   if (!a) return <div className="flex justify-center py-16"><Spinner className="h-7 w-7 text-primary" /></div>;
 
   const tr = a.trend_range;
-  const fmt = (iso) => new Date(iso).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' });
 
   // All 18 barangays; BarChart caps visible rows and footnotes the zeros.
   const barangayRows = a.by_barangay.map((b) => ({ label: b.name, value: b.total }));

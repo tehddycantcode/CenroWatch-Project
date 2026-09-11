@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
@@ -78,13 +78,19 @@ export default function ResidentNavigator() {
     setStack([{ screen, params: {} }]);
   }, []);
 
-  const value = {
-    navigate,
-    goBack,
-    switchTab,
-    current: top.screen,
-    canGoBack: stack.length > 1,
-  };
+  // Memoised: every resident screen consumes this through useNav(), so a fresh
+  // object each render re-renders the whole stack on any navigator state change.
+  // navigate/goBack/switchTab are already useCallback'd.
+  const value = useMemo(
+    () => ({
+      navigate,
+      goBack,
+      switchTab,
+      current: top.screen,
+      canGoBack: stack.length > 1,
+    }),
+    [navigate, goBack, switchTab, top.screen, stack.length]
+  );
 
   const showTabs = TAB_ROOTS.includes(top.screen);
   const showFab = FAB_ROOTS.includes(top.screen);

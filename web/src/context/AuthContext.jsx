@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { authApi, getToken, setToken, SESSION_EXPIRED_EVENT } from '@/lib/api';
 
@@ -83,7 +83,15 @@ export function AuthProvider({ children }) {
   // Refresh the cached user after a self-service profile edit.
   const updateUser = useCallback((next) => setUser(next), []);
 
-  const value = { user, loading, isAuthenticated: !!user, login, register, logout, updateUser };
+  // Memoised because this provider wraps the whole app: a fresh object literal
+  // here is a new context value on every AuthProvider render, which re-renders
+  // every useAuth() consumer in the tree whether or not anything they read
+  // changed. The four functions are already useCallback'd, so the only real
+  // dependencies are user and loading.
+  const value = useMemo(
+    () => ({ user, loading, isAuthenticated: !!user, login, register, logout, updateUser }),
+    [user, loading, login, register, logout, updateUser]
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
