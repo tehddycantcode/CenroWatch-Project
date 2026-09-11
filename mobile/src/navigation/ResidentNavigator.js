@@ -151,6 +151,26 @@ export default function ResidentNavigator() {
   );
 }
 
+// The floating "Report" button's shadow, as one cross-platform value.
+//
+// Replaces `elevation: 6` (Android only) paired with shadowColor/Offset/Opacity/
+// Radius (iOS only) - the same effect written twice, where a change to one had
+// to be mirrored by eye in the other.
+//
+// boxShadow needs React Native 0.76+ AND the New Architecture; both hold here
+// (RN 0.85.3, Expo SDK 56, where the New Architecture is always on and cannot
+// be disabled). The colour is colors.forest (#0f3d1f) at the 0.28 the old
+// shadowOpacity applied; rgba rather than the theme constant because boxShadow
+// takes a CSS colour string, so it does not track a change to colors.forest.
+//
+// KNOWN LIMIT: outset boxShadow needs Android 9 (API 28). Expo SDK 56 still
+// supports Android 7, so on Android 7-8 this button renders flat instead of
+// raised. That is cosmetic - the button keeps its colour, its label and its
+// position - which is why no API-level fallback is kept here. If a raised
+// button on Android 8 ever matters, the fallback is `Platform.Version < 28`
+// selecting `elevation: 6` instead.
+const FAB_SHADOW = '0 4px 8px rgba(15, 61, 31, 0.28)';
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   body: { flex: 1 },
@@ -178,6 +198,11 @@ const styles = StyleSheet.create({
   // Extended (labelled) rather than a bare "+" circle. Filing a report is the
   // whole point of the app for a resident, and a written label removes the
   // guesswork for someone who does not read icon conventions.
+  //
+  // The shadow is one cross-platform boxShadow (see FAB_SHADOW) rather than the
+  // old elevation + four shadow* properties, which were two separate
+  // implementations of the same effect - Android read one, iOS read the other,
+  // and changing the look meant editing both and hoping they still matched.
   fab: {
     position: 'absolute',
     right: 18,
@@ -188,11 +213,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: radius.pill,
     backgroundColor: colors.primary,
-    elevation: 6,
-    shadowColor: colors.forest,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
-    shadowRadius: 8,
+    boxShadow: FAB_SHADOW,
   },
   fabPressed: { opacity: 0.94, transform: [{ scale: 0.96 }] },
   fabPlus: { color: colors.white, fontSize: 22, fontWeight: '700', marginTop: -2 },
