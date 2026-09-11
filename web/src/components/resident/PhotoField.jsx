@@ -4,25 +4,39 @@ import { useEffect, useRef, useState } from 'react';
 // different accept string for documents. Calls onChange(file | null).
 export default function PhotoField({ onChange, accept = 'image/*', label = 'Tap to upload a photo' }) {
   const inputRef = useRef(null);
+  const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [name, setName] = useState('');
+  const name = file?.name || '';
 
-  useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview]);
+  // The chosen file is the single source of truth; the preview URL is derived
+  // from it here so that createObjectURL and revokeObjectURL happen in ONE
+  // scope, on the SAME const. React runs this cleanup when the file changes and
+  // again on unmount, so every URL this component mints is released exactly
+  // once, by construction rather than by remembering to.
+  //
+  // Previously the URL was created in the change handler and revoked in three
+  // separate places. That worked, but it spread one object's lifetime across
+  // three functions, and a handler that fired twice before the next render
+  // would have read a stale `preview` and leaked the first URL.
+  useEffect(() => {
+    if (!file || !file.type.startsWith('image/')) {
+      setPreview(null);
+      return undefined;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
 
   function handle(e) {
-    const file = e.target.files?.[0] || null;
-    setName(file?.name || '');
-    if (preview) URL.revokeObjectURL(preview);
-    const isImage = file && file.type.startsWith('image/');
-    setPreview(isImage ? URL.createObjectURL(file) : null);
-    onChange(file);
+    const picked = e.target.files?.[0] || null;
+    setFile(picked);
+    onChange(picked);
   }
 
   function clear() {
     if (inputRef.current) inputRef.current.value = '';
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(null);
-    setName('');
+    setFile(null);
     onChange(null);
   }
 
