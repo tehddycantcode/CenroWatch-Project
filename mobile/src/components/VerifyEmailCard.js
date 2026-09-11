@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
@@ -9,6 +9,40 @@ import Button from './Button';
 
 const COOLDOWN_SECONDS = 60;
 
+// The outcome of the last request, as ONE value rather than three.
+//
+// busy/error/notice always changed together and always in the same shape: clear
+// both messages and go busy, then land on exactly one of them. Spread across
+// three useState calls that shape was a convention three separate handlers each
+// had to remember, and nothing stopped a future edit from leaving an error and a
+// success message on screen at the same time, or from leaving the buttons
+// disabled after a failure. As a reducer the transitions are the only way to
+// move, so those states cannot be reached at all.
+//
+// code / newEmail / showChange stay as useState on purpose: they are what the
+// resident is typing and whether a panel is open, which have nothing to do with
+// a request being in flight. The rule fires on a COUNT of useState calls, so
+// sweeping them in too would have silenced it without making anything clearer.
+const IDLE = { busy: false, error: '', notice: '' };
+
+// Turns a thrown API error into the message shown on the card. Module scope:
+// it depends on nothing in the component, so rebuilding it every render is
+// wasted work.
+const messageFor = (e) => e.errors?.[0]?.message || e.message;
+
+function statusReducer(state, action) {
+  switch (action.type) {
+    case 'start':
+      return { busy: true, error: '', notice: '' };
+    case 'succeeded':
+      return { busy: false, error: '', notice: action.notice || '' };
+    case 'failed':
+      return { busy: false, error: action.error, notice: '' };
+    default:
+      return state;
+  }
+}
+
 // Shown until the resident confirms their address. A card, not a gate - the
 // account works either way, so a slow mailbox never blocks a report.
 export default function VerifyEmailCard() {
@@ -16,10 +50,10 @@ export default function VerifyEmailCard() {
   const [code, setCode] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [showChange, setShowChange] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  // Kept out of the reducer: it keeps ticking for a minute after the request
+  // that started it has already finished, so it is not part of request status.
   const [cooldown, setCooldown] = useState(0);
+  const [{ busy, error, notice }, dispatch] = useReducer(statusReducer, IDLE);
 
   useEffect(() => {
     if (cooldown <= 0) return undefined;
@@ -30,50 +64,39 @@ export default function VerifyEmailCard() {
   if (!user || user.email_verified_at) return null;
 
   async function onVerify() {
-    setBusy(true);
-    setError('');
-    setNotice('');
+    dispatch({ type: 'start' });
     try {
       const res = await api.verifyEmail(code.trim(), token);
       updateUser(res.data.user);
+      dispatch({ type: 'succeeded' });
     } catch (e) {
-      setError(e.errors?.[0]?.message || e.message);
-    } finally {
-      setBusy(false);
+      dispatch({ type: 'failed', error: messageFor(e) });
     }
   }
 
   async function onResend() {
-    setBusy(true);
-    setError('');
-    setNotice('');
+    dispatch({ type: 'start' });
     try {
       await api.resendVerification(token);
-      setNotice('A new code is on its way.');
+      dispatch({ type: 'succeeded', notice: 'A new code is on its way.' });
       setCooldown(COOLDOWN_SECONDS);
     } catch (e) {
-      setError(e.errors?.[0]?.message || e.message);
-    } finally {
-      setBusy(false);
+      dispatch({ type: 'failed', error: messageFor(e) });
     }
   }
 
   async function onChangeEmail() {
-    setBusy(true);
-    setError('');
-    setNotice('');
+    dispatch({ type: 'start' });
     try {
       const res = await api.changeEmail(newEmail.trim(), token);
       updateUser(res.data.user);
       setShowChange(false);
       setNewEmail('');
       setCode('');
-      setNotice('Address updated. Check it for a new code.');
+      dispatch({ type: 'succeeded', notice: 'Address updated. Check it for a new code.' });
       setCooldown(COOLDOWN_SECONDS);
     } catch (e) {
-      setError(e.errors?.[0]?.message || e.message);
-    } finally {
-      setBusy(false);
+      dispatch({ type: 'failed', error: messageFor(e) });
     }
   }
 

@@ -45,8 +45,27 @@ function throwApiError(res, data, token) {
   throw err;
 }
 
+// Parse a JSON body, tolerating one that isn't there or isn't JSON: a 204 with
+// no content, or an HTML error page from a proxy that never reached the API.
+// The body stream can only be read ONCE, so call this at most once per response.
+async function readJson(res) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 // Thin fetch wrapper for the CENROWATCH API. Attaches the JWT when given,
 // parses JSON, and throws a normalized Error (.status, .errors) on non-2xx.
+//
+// The `res.ok` check comes BEFORE the body is read, and that order is the point.
+// `fetch` resolves for 404 and 500 exactly as happily as for 200 - it rejects
+// only when the request never completed - so this check is the only thing
+// separating a failure from a success. Reading the body first and checking
+// afterwards worked, but it made that safety depend on a later statement
+// staying where it was: move or drop it and an error payload silently becomes
+// the value handed back to a screen.
 async function request(path, { method = 'GET', body, token } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -62,15 +81,10 @@ async function request(path, { method = 'GET', body, token } = {}) {
     throw new Error(netErrorMessage(err));
   }
 
-  let data = null;
-  try {
-    data = await res.json();
-  } catch {
-    /* no/invalid JSON */
-  }
-
-  if (!res.ok) throwApiError(res, data, token);
-  return data;
+  // On failure the body is still read, deliberately - it carries the API's own
+  // message and field errors, which is what throwApiError surfaces to the user.
+  if (!res.ok) throwApiError(res, await readJson(res), token);
+  return readJson(res);
 }
 
 // Multipart variant for report submissions (optional photo/document attaches).
@@ -88,15 +102,9 @@ async function requestForm(path, form, token) {
     throw new Error(netErrorMessage(err));
   }
 
-  let data = null;
-  try {
-    data = await res.json();
-  } catch {
-    /* no/invalid JSON */
-  }
-
-  if (!res.ok) throwApiError(res, data, token);
-  return data;
+  // Status first, same as request() above - see the note there.
+  if (!res.ok) throwApiError(res, await readJson(res), token);
+  return readJson(res);
 }
 
 // Barangays and report categories are small reference lists: cache the in-flight
