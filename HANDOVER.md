@@ -157,8 +157,8 @@ and read a complete audit log of every change anyone has made.
 | Task | Where |
 |---|---|
 | Add or deactivate a staff member | Admin → Users |
-| Add or retire a complaint / request type | Admin → Categories |
-| Add or retire a barangay | Admin → Categories |
+| Add or retire a complaint / request type | Admin → Categories — but a **new request type** also needs a developer to attach a deadline to it (§11.5) |
+| Add or retire a barangay | Admin → Categories — supply its coordinates (§11.5) |
 | Change a service deadline | Admin → System Settings |
 | Confirm a resident's email address for them | Admin → Users → Verify email |
 | Review who changed what | Admin → Audit Log |
@@ -178,6 +178,12 @@ needed.
 - Rebuilding the Android app (**required** if the web address ever changes)
 - Rotating the encryption key
 - Restoring a backup
+- **Loading each year's Philippine holidays into the deadline calendar** — yearly,
+  until a holiday screen is added; see §11.2
+- Acting on a resident's request to see, correct or delete their data — §11.5
+
+The last three of these fall due on a schedule — §11 sets out when. The rest
+happen only when CENRO asks for them.
 
 ---
 
@@ -238,11 +244,18 @@ What CENRO must handle:
 
 - Confirm with your **Data Protection Officer** whether this system requires
   registration with the **National Privacy Commission**
-- Publish a privacy notice telling residents what is collected and why
+- Review the privacy notice **already built into the website and the app** (the
+  Privacy page and the registration consent screen) and confirm it matches what
+  the office actually does — see §11.2 for the yearly review
 - Have a process for residents asking to access or correct their data
 - Have a **breach response plan** — the NPC and affected individuals must be
   notified within 72 hours of discovering a qualifying breach
 - Decide how long complaint records and photos are retained
+
+The **recurring** parts of this — registration renewal, the annual
+security-incident report and keeping the Privacy Impact Assessment current — are
+in §11.2. They begin the day the first real resident report is filed, not on the
+handover date: until then the system holds only demonstration data.
 
 > This section is a practical summary, not legal advice. Confirm the specifics
 > with your Data Protection Officer or the NPC.
@@ -276,16 +289,152 @@ nobody discovers them at an inconvenient moment.
 5. **No automated escalation.** The system shows which reports are overdue; it
    does not chase anyone. Acting on the queue remains a human responsibility.
 
-6. **Report categories can be retired but not renamed.** Renaming would split one
-   category's history across two names in records already printed and archived.
+6. **Report categories and barangays can be retired but not renamed.** Renaming
+   would split one category's history across two names in records already printed
+   and archived. To change a name in practice, add the new one and retire the old
+   (§11.5).
+
+7. **Four items in §11.1 are outstanding finishing work**, not settled facts.
+   They are listed there rather than here because they are expected to be fixed
+   before sign-off.
 
 ---
 
-## 11. Acceptance
+## 11. Keeping the system running
+
+CENROWATCH does not need day-to-day maintenance. Nobody has to restart anything,
+clear anything out, or run anything weekly. Backups, the security certificates
+that put the padlock in the browser, and the system's ability to cope with busy
+periods are all handled for you.
+
+But a small number of things **expire, drift out of date, or need a decision on a
+schedule**. None of them announce themselves. This section lists everything that
+recurs, so it can go on a calendar instead of being rediscovered by accident.
+
+> This section describes the system **once it is deployed as set out in
+> `DEPLOYMENT.md`**. Until that deployment exists, none of these clocks have
+> started.
+
+### 11.1 Before sign-off — finishing work
+
+These are not ongoing tasks; they are work that must be finished before the
+office accepts the system. The **Who** column matters: the rows marked CENRO are
+the office's own to do or decide, and nobody else will do them for you.
+
+| # | What | Why it matters | Who | Done |
+|---|---|---|---|---|
+| a | **Update the server software version** | The system is packaged on a version of its server software that stopped receiving security updates in April 2026. It runs fine; it simply no longer receives fixes. This is the first instance of the recurring task in 11.4. | Developer | ☐ |
+| b | **Add a start-up check on the system's settings** | Today, if the system is set up with one wrong setting, it starts normally and then quietly saves residents' photos somewhere they are lost — or treats all of Cabuyao as a single user when limiting password guesses. The check makes it refuse to start instead, so the mistake is obvious on day one rather than discovered the day a photo is needed as evidence. Specified in `DEPLOYMENT.md` Part 0.4. | Developer | ☐ |
+| c | **Stop the automatic setup step running a second time** | The system currently re-runs its setup step every time the server starts, and that step re-applies its original values — overwriting the four service deadlines, the barangay coordinates and the category ordering if an administrator has since changed them. Only a retired category and a custom display name survive it. | Developer | ☐ |
+| d | **Clear the test reports filed during development** | The database holds reports filed while the system was being built and demonstrated. They are ordinary rows, not part of the setup step — but left in place they will be counted in the office's own statistics and printed reports. *Do not delete the barangays, categories or service deadlines: those are essential, and without them the report forms are empty.* | Developer | ☐ |
+| e | **Create a second Administrator account** | With only one, a forgotten password or a single staff transfer locks the office out of its own system. A new Administrator cannot be created from inside the app — it needs the same one-off procedure that made the first one. | Developer, at CENRO's direction | ☐ |
+| f | **Restore a database backup once, into a test copy** | See §7. While doing it, ask **how far back the backups reach** and write that answer into §7 — it decides how much history is actually recoverable. | Developer, witnessed by CENRO | ☐ |
+| g | **Raise the limit on the staff dashboard map** | It plots only the first 100 complaints and the first 100 wildlife reports — priority cases first — and does not plot service requests at all. Past those counts, older open cases quietly disappear from the map while still sitting in the queue. | Developer | ☐ |
+| h | **Decide the holiday question** | See the box in 11.2. This one decision determines whether the office needs a developer every January for the life of the system. | CENRO (office head) | ☐ |
+| i | **Settle how the Google Cloud bill will be paid** | If the office cannot hold a payment card — most LGUs cannot — agree the arrangement (invoiced billing, or through City IT or procurement) before sign-off. An unpaid bill suspends the entire system. | CENRO | ☐ |
+| j | **Point the billing alert and the uptime alert at a CENRO address** | Not a student's. This is how the office finds out about an unpaid bill or an outage. Set up as described in `DEPLOYMENT.md`. | Developer sets up; CENRO supplies the address | ☐ |
+| k | **Confirm Part 0 of `DEPLOYMENT.md` is complete** | Three further deployment defects that cannot be seen from inside the finished app: the website being served by a development server, the way photo links are signed, and the address the Android app is built against. | Developer, confirmed in writing to CENRO | ☐ |
+
+### 11.2 Every year
+
+| When | What | Who | If it is skipped |
+|---|---|---|---|
+| Before 1 January | Load the coming year's **proclaimed Philippine holidays** into the deadline calendar | Developer — see the box below | Deadlines fall on Christmas, Holy Week and Bonifacio Day, and reports read as overdue when the office was lawfully closed |
+| The registrar's renewal date | **Renew the domain name** | CENRO system owner | The website and the Android app both stop working. If the address then has to change, see §10.4. |
+| Annually | Check the **four service deadlines** still match the current Citizens Charter | CENRO admin (Admin → System Settings) | The system promises residents a turnaround the Charter no longer states |
+| Annually | Review the **privacy notice** already built into the website and the app, and re-date it if anything changed | DPO reviews the wording; a developer publishes any change — it cannot be edited from the Admin screens | Residents consent to a description of what the office does that is no longer accurate |
+| Annually | Repeat the **restore test** from 11.1f | Developer | See §7 |
+| Annually, **from the day the first real report is filed** | Confirm with your DPO whether this system requires **National Privacy Commission registration** (§9). If it does: registration renewal and the annual security-incident report. Separately, establish whether a **Privacy Impact Assessment** exists — if none has been written, producing one is a first-year task, not a renewal. | Data Protection Officer | Nothing in the software will ever mention these. A lapsed registration carries a penalty on its own, and a breach discovered without a current assessment removes the office's strongest defence. |
+
+> **The holiday question — settle this before sign-off (11.1h).**
+>
+> Service deadlines already skip Saturdays and Sundays. They do **not** yet know
+> about Philippine holidays, and holidays are proclaimed a year at a time by
+> Malacañang, so they cannot be built in permanently.
+>
+> **This is not a convenience item.** The status emails the system already sends
+> residents say, in writing: *"Requests are processed on working days. Saturdays,
+> Sundays and holidays are not counted."* Until holidays are loaded, that
+> sentence is not true. Every year it is skipped, the office is promising
+> residents something the system does not do.
+>
+> As the system stands, loading each year's dates is a **developer task requiring
+> a redeploy, every January, for the life of the system**. There is no screen for
+> it.
+>
+> **Recommendation:** before sign-off, ask the developers to add a holiday screen
+> under Admin → System Settings. It turns a permanent yearly dependency on a
+> programmer into five minutes of typing by an administrator. Confirm in writing
+> whether this falls inside the support period agreed in §8 or is a separate
+> commission.
+
+### 11.3 Every six months
+
+| What | Who | Why |
+|---|---|---|
+| **Access review** — list everyone who can sign in and confirm each person still works here and still needs that role (Admin → Users) | CENRO admin | A departed employee's login keeps working, and it shows every resident's contact number and street address. Browsing reports on screen leaves no trace, so most of that viewing is invisible. Two things **are** recorded, and they are what to look for in Admin → Audit Log: every sign-in, with the IP address, and every PDF export of a report. A dormant account that is still signing in will show there. |
+| **Brief the staff** on the queues, and especially on the **"Awaiting acknowledgement"** count | System owner | A report nobody has approved has no deadline yet, so it appears in no overdue or SLA figure. That count (§4) is the only place it shows up — staff have to know to treat it as a queue, not a statistic. |
+
+### 11.4 Every few years — dated deadlines
+
+| By when | What | Who |
+|---|---|---|
+| Roughly every 2 years | Move the server to the next supported software version — the first of these is 11.1a | Developer |
+| **1 January 2027** | Database version upgrade — after this date Google charges extra to stay on the current version | Developer |
+| **1 July 2029** | The same upgrade, now unavoidable — support for the current version ends outright | Developer |
+| Every 12–18 months | Update the Android app's build tools | Developer — left too long, the app can no longer be rebuilt at all, even for a one-word change |
+| Roughly every 3 years | **Replace the payment card on the Google Cloud billing account before it expires**, or renew whatever arrangement was agreed in 11.1i. An expired card suspends the whole system. | CENRO system owner |
+
+### 11.5 When it happens — no calendar, triggered by an event
+
+| Trigger | What must happen | Who |
+|---|---|---|
+| **A staff member transfers, resigns or changes role** | Deactivate the account **the same day** (Admin → Users). | CENRO admin |
+| **A breach is discovered or suspected** — a lost or stolen phone or laptop with an account still signed in, a shared or compromised password, resident data sent to the wrong person | Start the breach response plan (§9) **the same hour**, and deactivate the affected account. The National Privacy Commission and the affected residents must be notified **within 72 hours of discovery** — the clock starts when you find out, not when you finish investigating. | DPO, then CENRO system owner |
+| The notification mailbox's password or 2-step verification is changed | Google automatically cancels the **app password** — the separate password the system uses to send mail on the office's behalf. A new one must be generated and installed by a developer. **Nothing visible breaks:** reports keep filing normally and residents simply stop receiving email, with no error anywhere. Tell the developer the same day. | CENRO admin, then developer |
+| A resident asks to **delete** their data, or for a full copy of everything held about them | There is no button for either. (Residents can already view their own reports, and correct their own name, contact number and barangay from the Profile screen.) A developer must do it by hand. These requests carry a legal response deadline — confirm the current one with your DPO and agree the process **before** one arrives. | DPO, then developer |
+| A new service (request type) is added | The office can add the type itself (Admin → Categories), but that screen does not ask for a deadline and a developer must attach one. **Until they do, every report filed under the new type has no deadline at all** — it will never count as overdue and nothing will flag it. | CENRO admin, then developer |
+| A barangay is added or split | Add it in Admin → Categories with its **latitude and longitude**. To get those: open Google Maps, right-click the barangay hall, and click the two numbers that appear to copy them. The map areas redraw by themselves. **A barangay added without those numbers will not appear on any map**, though residents can still file reports against it. | CENRO admin |
+| A barangay is **renamed** | The system cannot rename one — the name is the key its setup step matches on. Add the new name and retire the old entry, exactly as for report categories (§10.6). Reports already filed keep the old name. | CENRO admin |
+| **The web address changes**, or the Android app changes for any other reason | See §10.4. | Developer, then CENRO |
+| The maps do not appear, but everything else works | Sign in to the MapTiler account (§1.4) and check two things: whether the free monthly map allowance has been used up, and whether the key is still permitted for your web address. Filing, queues and email are unaffected meanwhile. | CENRO system owner |
+
+### 11.6 What does *not* need attention
+
+Listed so nobody schedules work that is already handled:
+
+- **Security certificates (HTTPS)** — what puts the padlock in the browser —
+  renew themselves automatically.
+- **Database backups** run daily on their own. The only human part is the restore
+  test (11.1f, then yearly in 11.2).
+- **Existing report categories, barangays, and the values of the four service
+  deadlines** are editable from the Admin screens — see §5. Two things are not
+  self-service: nothing can be **renamed** (retire and re-add instead, §10.6),
+  and a **new** request type's deadline must be set by a developer (11.5).
+- **A permanent security warning about the map software.** If the City IT office
+  or a future developer runs an automated security scan, it will report a problem
+  with the software that draws the maps. It is known and deliberate: the newer
+  version that fixes it **breaks the maps completely** and must not be installed.
+  The risk is very low — exploiting it would require the map provider itself to
+  be compromised, and nothing a resident submits ever reaches it. The full
+  explanation is in `SECURITY.md`, section 3a, "Known dependency advisories".
+  Give that to whoever raises it.
+
+### 11.7 When there is no developer
+
+The items above marked *Developer* outlive the support period agreed in §8.
+Before that date, agree in writing who CENRO will commission for them — the
+university, a contractor, or the City IT office — and make sure they have the
+GitHub repository (§1.5).
+
+---
+
+## 12. Acceptance
 
 By signing, CENRO Cabuyao confirms that the system has been demonstrated, the
 accounts in §1 are owned by the office, the encryption key in §2 has been
-received and verified, and this document has been received.
+received and verified, the finishing work in §11.1 is complete, and this document
+has been received.
 
 | | Name | Position | Signature | Date |
 |---|---|---|---|---|
