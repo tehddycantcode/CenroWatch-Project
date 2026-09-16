@@ -4,6 +4,12 @@
     "slug": "cenrowatch",
     "scheme": "cenrowatch",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/233a9c36-8f62-4bcc-9e03-409f3f08f643"
+    },
     "orientation": "portrait",
     "icon": "./assets/cenro-logo.png",
     "userInterfaceStyle": "light",

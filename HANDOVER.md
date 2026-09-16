@@ -40,7 +40,7 @@ account is no longer involved.
 |---|---|---|---|---|
 | 1.1 | **Google Cloud project** (hosting + billing) | Runs the entire system | Service is suspended when their card expires or the account closes. Recovering a project after that is difficult and sometimes impossible. | ☐ |
 | 1.2 | **Email account** for notifications | Sends confirmation codes and status updates to residents | Residents stop receiving email the moment the password changes or the account is deleted. Also: resident personal data is flowing through a private individual's mailbox. | ☐ |
-| 1.3 | **Domain name** | The address residents and the mobile app use | Site becomes unreachable when the registration lapses. The mobile app must be rebuilt to point anywhere else. | ☐ |
+| 1.3 | **Domain name** | The address residents and the mobile app use | Site becomes unreachable when the registration lapses. The mobile app can be pointed elsewhere by an over-the-air update (§10.4), but the website cannot. | ☐ |
 | 1.4 | **MapTiler account** (map tiles) | Draws the GIS maps | Maps stop rendering; the rest of the system keeps working. | ☐ |
 | 1.5 | **GitHub repository** | The source code | CENRO cannot commission changes from anyone else without it. | ☐ |
 
@@ -283,8 +283,22 @@ nobody discovers them at an inconvenient moment.
    mail provider. If it is unavailable, the report is still filed correctly and
    visible in the system — only the email is missed. Nothing is lost.
 
-4. **The Android app must be rebuilt if the web address changes.** The address is
-   fixed inside the app when it is built and cannot be changed from within it.
+4. **Most Android app changes no longer need a reinstall, but some still do.**
+   The app can receive updates over the internet, so a developer can correct the
+   wording on a screen, fix a bug, or even point the app at a new web address
+   without anyone reinstalling anything. The fix arrives the **second** time a
+   resident opens the app.
+
+   What still requires a new app file that everyone must install: adding a new
+   phone capability (a new permission, a new device feature), changing the app's
+   icon or name, or anything that changes the app's inner workings rather than
+   its screens. There is no way to tell from the office which version a given
+   resident is running, so a change of that kind means announcing it and asking
+   people to install the new file.
+
+   **This only applies to app versions built after September 2026.** Anything
+   installed before that has no updater inside it and will never receive
+   anything.
 
 5. **No automated escalation.** The system shows which reports are overdue; it
    does not chase anyone. Acting on the queue remains a human responsibility.

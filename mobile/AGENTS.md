@@ -64,3 +64,47 @@ repeats. (Project-wide tooling/PowerShell lessons live in the root `CLAUDE.md`.)
   survives the crash until reboot; the `ReactNativeJS` lines carry the message).
   Guessing at native causes burns 20-minute EAS builds. Destructure native event
   payloads defensively.
+
+## Over-the-air updates (EAS Update)
+
+`expo-updates` is wired up, so a JS-only change reaches installed phones without
+rebuilding the APK or asking anyone to reinstall. Publish with:
+
+```
+eas update --channel preview --message "what changed" --environment preview
+```
+
+`--environment` is required on SDK 55+. The channel must match the build profile
+the APK came from (`eas.json` sets `channel: preview` and `channel: production`).
+
+**The update lands on the NEXT launch, not the current one.** `expo-updates`
+checks on startup, downloads in the background, and applies on the following
+start. So a resident sees the fix the second time they open the app. This is the
+default and it is the right trade: applying mid-session would restart the app
+under them, possibly mid-report.
+
+**`runtimeVersion` is the `fingerprint` policy, and that is load-bearing.** Expo
+hashes everything that affects the native build; an APK only accepts updates whose
+fingerprint matches its own. This makes the dangerous mistake impossible - you
+cannot push JS that calls a native module the installed APK does not contain,
+which would otherwise be a fatal crash on launch for every resident at once (see
+the release-build lesson above: there is no red box, the app just dies).
+
+The cost of that safety is the thing that will confuse someone later: **adding any
+native dependency silently cuts existing installs off from updates.** The
+fingerprint changes, so old APKs stop matching and simply stop receiving anything.
+Nothing errors. If an update "isn't arriving", check whether a native package,
+plugin, or permission changed since the APK was built - then ship a new APK.
+
+**What OTA canNOT deliver**, all requiring a fresh EAS build and redistribution:
+
+- a new native package, or any change to `plugins` in `app.json`
+- Android permissions, the app icon, the app name, or `version`
+- `usesCleartextTraffic` and anything else in the native manifest
+- `EXPO_PUBLIC_*` values, which are baked in at build time
+
+Rule of thumb: if the change is only in `src/`, OTA carries it. If it touches
+`app.json` or `package.json`, assume it needs a build.
+
+**One new APK is required before any of this works.** Builds made before
+`expo-updates` was added have no updater in them at all and will never check.
