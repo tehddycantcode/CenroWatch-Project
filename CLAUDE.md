@@ -167,6 +167,23 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   with `//`, the whole statement became a comment and `awaiting` was never defined
   — the page would have thrown at runtime and `npm run build` did NOT catch it.
   Use the Edit tool for multi-line code insertion, and read the result back.
+- **React Doctor's `effect-needs-cleanup` on `MapView.jsx:99` and
+  `DensityMap.jsx:56` is a KNOWN FALSE POSITIVE — do not "fix" it.** Both
+  effects already return `() => { map.remove(); ... }`. Verified in the
+  installed 5.24.0 source (`maplibre-gl-dev.js:73902`): `Map.remove()` is the
+  owner teardown — it aborts `_frameRequest` and `_diffStyleRequest`, destroys
+  the painter and handlers, `setStyle(null)`, disconnects the ResizeObserver,
+  loses the WebGL context and removes the canvas/control containers. Every
+  `map.on(...)` lives on that instance (`Evented._listeners`) and dies with it,
+  and a pending `load` can never fire afterwards because `load` is only fired
+  from `_render()`, which is guarded by `if (this._removed) return`. The rule's
+  own canonical recipe (react.doctor/prompts/rules/react-doctor/
+  effect-needs-cleanup.md) documents this exact shape as its false-positive
+  predicate (2): the detector descends into nested functions to find the
+  registration but only matches cleanup at the effect's top level, so it cannot
+  see that `map.remove()` releases it. Adding per-listener `.off()` calls would
+  be dead code that the recipe explicitly calls an anti-pattern. Record it as
+  **Rejected**, not fixed.
 
 - **maplibre-gl v6 BREAKS THE MAP HERE — do not upgrade past 5.x without redoing
   this test.** v6.9.0 was attempted (it fixes a CRITICAL XSS advisory,
@@ -183,13 +200,30 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   since tile fetching is worker-driven and everything the main thread does
   (style, tilejson, sprites) succeeds. **A passing `npm run build` proves nothing
   here** — the build was clean in both the broken and working states.
-  Risk assessment for staying on 5.24.0: the advisory is a `DOM.sanitize()`
-  bypass, and every string this app interpolates into `Popup.setHTML()` in
-  `MapView.jsx` and `DensityMap.jsx` already goes through `escapeHtml()` first.
-  The only unescaped values are numeric `groupBy` counts. Nothing untrusted
-  reaches MapLibre's sanitizer, so there is no exploitable path — but this is a
-  mitigation, not a fix, and it must be re-checked if anyone adds a new
-  `setHTML` call.
+  There is NO patched 5.x and there never will be: 5.24.0 is the last 5.x ever
+  published, and the advisory range is `<=6.4.0`, so the ONLY fixed version is
+  the v6 major that breaks the map. `npm audit` will keep reporting this, and
+  React Doctor's `socket/low-supply-chain-score` will keep flagging
+  `web/package.json`. That is expected — do not "fix" it by bumping the pin.
+  Risk assessment for staying on 5.24.0 (re-verified 2026-09-11 by reading
+  `node_modules/maplibre-gl/dist/maplibre-gl-dev.js`, correcting an earlier note
+  here that had the mechanism backwards): `DOM.sanitize()` has exactly ONE
+  caller in 5.24.0 — `AttributionControl._updateAttributions()` at dev-bundle
+  line 70099, which sanitizes the attribution string built from
+  `options.customAttribution` (this app passes none) plus each tile source's
+  `attribution` field from the loaded style. So the sanitizer's only input here
+  is MapTiler's `style.json` response; exploiting the advisory in THIS app means
+  compromising MapTiler, not submitting a malicious report. Low reachability.
+  **But `Popup.setHTML()` does NOT call the sanitizer at all** — it does a bare
+  `temp.innerHTML = html` and hands the fragment to `setDOMContent`. The earlier
+  note claimed `escapeHtml()` kept untrusted data away from MapLibre's
+  sanitizer; in fact the sanitizer was never in that path, which makes
+  `escapeHtml()` in `MapView.jsx` and `DensityMap.jsx` the ONLY thing standing
+  between resident-submitted report fields and stored XSS. It is load-bearing,
+  not defence in depth. Three call sites today (`MapView.jsx:147`,
+  `DensityMap.jsx:111`, `DensityMap.jsx:196`); the only unescaped values are
+  numeric `groupBy` counts. Any new `setHTML` call must escape every
+  interpolated value, or use `setDOMContent` instead.
 - **Verify the PORT a dev server actually bound, not just that something is
   listening.** An orphaned Vite from an earlier run still held 5173, so
   `npm run dev` printed "Port 5173 is in use, trying another one..." and bound
@@ -322,6 +356,37 @@ Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
   - Uploads are now magic-byte sniffed, not just Content-Type checked (SVG was
     accepted as `image/jpeg` before). `SECURITY.md` documents why bcrypt stays
     for passwords, where SHA-256 legitimately appears, and the HTTPS requirement.
+  - **The web session is an HttpOnly cookie now, NOT localStorage** (2026-09-14,
+    from a React Doctor `auth-token-in-web-storage` finding). The JWT was in
+    `localStorage`, so any XSS anywhere in the web app could read a signed-in
+    Admin's token and replay it — which is why `escapeHtml()` in `MapView.jsx` /
+    `DensityMap.jsx` was carrying so much weight. Login/register now also
+    `Set-Cookie: cenrowatch_token` (HttpOnly, SameSite=Lax, Secure only when
+    `NODE_ENV=production`, Max-Age parsed from `JWT_EXPIRES_IN`) via
+    `backend/src/utils/sessionCookie.js`; `authenticate.js` reads the cookie
+    first and falls back to `Authorization: Bearer`. **Both transports are
+    load-bearing — do not delete the Bearer path:** mobile has no cookie jar and
+    keeps its token in `expo-secure-store`, which is why login/register still
+    return `token` in the JSON body. `POST /auth/logout` (deliberately NOT behind
+    `authenticate`, so it still works on an expired token) clears the cookie.
+    Web-side: `web/src/lib/api.js` has no `getToken`/`setToken` at all and
+    authenticates purely with `credentials: 'include'`.
+    Two consequences that WILL look like bugs if you forget them:
+    (1) the client cannot see the cookie, so there is no synchronous "am I
+    signed in?" — `AuthContext` calls `authApi.session()` at boot on EVERY page
+    load, and a signed-out visitor logs a harmless `401 /auth/me` in the console
+    (twice in dev, StrictMode double-mounts). That 401 must NOT raise
+    `SESSION_EXPIRED_EVENT`, or anyone browsing the public map gets bounced to
+    `/login` — hence the `notifyOnExpiry: false` option.
+    (2) `logout()` is now **async** (only the server can clear an HttpOnly
+    cookie). Every caller must `await` it before navigating: `LoginPage.jsx`
+    redirects an authenticated user to their role home, so navigating while
+    `user` is still set flicks the person straight back to the dashboard they
+    just signed out of. All three layouts (`AdminLayout`, `ResidentLayout`,
+    `StaffLayout`) were updated.
+    Deploying web + API on different registrable domains needs
+    `SESSION_COOKIE_SAMESITE=none` (and real HTTPS), which gives up the
+    SameSite CSRF protection — it is an explicit opt-in for that reason.
 - Sprint 3 (done): CENRO Staff interface — `/staff` queues + status workflow +
   ComplaintStatusHistory + SLA recompute + resident email (Nodemailer/Gmail,
   graceful) + StaffLayout/queues/detail web UI.
