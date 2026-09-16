@@ -18,6 +18,7 @@ import { colors, radius } from '../../theme';
 import { useResidentNav } from '../../navigation/navContext';
 import ScreenHeader from '../../components/ScreenHeader';
 import StatusBadge from '../../components/StatusBadge';
+import Icon from '../../components/Icon';
 
 const fmt = (d) => (d ? new Date(d).toLocaleString() : '—');
 
@@ -131,9 +132,12 @@ function ReportDetail({ view, kind }) {
       </View>
 
       {hasGeo && (
-        <Text style={styles.geo}>
-          📍 {view.latitude}, {view.longitude}
-        </Text>
+        <View style={styles.geoRow}>
+          <Icon name="location-outline" size={15} color={colors.muted} />
+          <Text style={styles.geo}>
+            {view.latitude}, {view.longitude}
+          </Text>
+        </View>
       )}
 
       {view.notes ? (
@@ -245,7 +249,8 @@ const styles = StyleSheet.create({
 
   block: { marginTop: 6 },
   description: { fontSize: 14, color: colors.text, marginTop: 4, lineHeight: 20 },
-  geo: { fontSize: 13, color: colors.muted, marginTop: 14 },
+  geoRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 14 },
+  geo: { fontSize: 13, color: colors.muted },
 
   updates: { marginTop: 18 },
   update: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: 12, marginTop: 12 },

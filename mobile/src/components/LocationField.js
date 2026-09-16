@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Location from 'expo-location';
 import MapPicker from './MapPicker';
+import Icon from './Icon';
 import { colors, radius } from '../theme';
 
 // Optional location for a report, pinned two ways: tap the map, or let GPS fill
@@ -44,9 +45,12 @@ export default function LocationField({ value, onChange }) {
 
       <View style={styles.box}>
         {has ? (
-          <Text style={styles.coords}>
-            📍 {value.latitude.toFixed(5)}, {value.longitude.toFixed(5)}
-          </Text>
+          <View style={styles.coordRow}>
+            <Icon name="location-outline" size={16} color={colors.primary} />
+            <Text style={styles.coords}>
+              {value.latitude.toFixed(5)}, {value.longitude.toFixed(5)}
+            </Text>
+          </View>
         ) : (
           <Text style={styles.hint}>No location pinned (optional)</Text>
         )}
@@ -80,6 +84,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     justifyContent: 'center',
   },
+  coordRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   coords: { fontSize: 15, color: colors.text, fontWeight: '600' },
   hint: { fontSize: 15, color: colors.placeholder },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

@@ -47,9 +47,12 @@ const STAT_META = {
 const STRIP = { amber: 'bg-amber-400', violet: 'bg-violet-400', primary: 'bg-brand-accent', blue: 'bg-blue-400' };
 
 // Stylized in-app preview shown beside the hero (no external image).
+// motion-safe on the float: it loops forever (6s), which is exactly the kind of
+// movement that provokes nausea for a vestibular-sensitive reader. Matches how
+// the admin charts already guard their animations.
 function HeroPreview() {
   return (
-    <div className="animate-float-soft rounded-2xl border bg-background p-5 shadow-soft-lg">
+    <div className="rounded-2xl border bg-background p-5 shadow-soft-lg motion-safe:animate-float-soft">
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold text-foreground">Live overview</div>
         <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
@@ -151,7 +154,7 @@ export default function LandingPage() {
 
         <div className="container relative py-20">
           <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div className="animate-fade-up text-center lg:text-left">
+            <div className="text-center motion-safe:animate-fade-up lg:text-left">
               <span className="inline-flex items-center gap-1.5 rounded-full border bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground shadow-soft">
                 <MapPin className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                 Live · Cabuyao City Environmental System

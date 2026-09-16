@@ -12,6 +12,7 @@ import TrackReportScreen from '../screens/resident/TrackReportScreen';
 import ProfileScreen from '../screens/resident/ProfileScreen';
 import NotificationsScreen from '../screens/resident/NotificationsScreen';
 import ReportSheet from '../components/ReportSheet';
+import Icon from '../components/Icon';
 
 // Dependency-light navigation for the resident area: a small screen stack with
 // two tab roots (Dashboard, My Reports) and pushable detail/form screens. This
@@ -26,10 +27,12 @@ const TAB_ROOTS = ['dashboard', 'reports', 'profile'];
 // on top of the sign-out row.
 const FAB_ROOTS = ['dashboard', 'reports'];
 
+// Ionicons names. The active tab uses the solid variant and the rest the
+// outline, so the current tab reads even in grayscale - colour alone would not.
 const TABS = [
-  { key: 'dashboard', label: 'Home', icon: '🏠' },
-  { key: 'reports', label: 'My Reports', icon: '📋' },
-  { key: 'profile', label: 'Profile', icon: '👤' },
+  { key: 'dashboard', label: 'Home', icon: 'home-outline', iconActive: 'home' },
+  { key: 'reports', label: 'My Reports', icon: 'document-text-outline', iconActive: 'document-text' },
+  { key: 'profile', label: 'Profile', icon: 'person-outline', iconActive: 'person' },
 ];
 
 function renderScreen(entry) {
@@ -139,7 +142,11 @@ export default function ResidentNavigator() {
               const active = t.key === top.screen;
               return (
                 <Pressable key={t.key} style={styles.tab} onPress={() => switchTab(t.key)}>
-                  <Text style={[styles.tabIcon, active && { opacity: 1 }]}>{t.icon}</Text>
+                  <Icon
+                    name={active ? t.iconActive : t.icon}
+                    size={22}
+                    color={active ? colors.primary : colors.muted}
+                  />
                   <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{t.label}</Text>
                 </Pressable>
               );
@@ -191,7 +198,6 @@ const styles = StyleSheet.create({
     gap: 2,
     paddingVertical: 4,
   },
-  tabIcon: { fontSize: 20, opacity: 0.7 },
   tabLabel: { fontSize: 11, fontWeight: '600', color: colors.muted },
   tabLabelActive: { color: colors.primary, fontWeight: '800' },
 
