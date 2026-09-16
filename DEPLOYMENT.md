@@ -272,8 +272,23 @@ gcloud run jobs create cenrowatch-migrate \
 gcloud run jobs execute cenrowatch-migrate --region=REGION --wait
 ```
 
-Run the seed **once**, by hand, on first deploy only. It is idempotent, but it
-has no business running on every deployment.
+Run the seed **once**, by hand, on first deploy only — and never again against a
+live database. It is idempotent in row *count*, but it is destructive of *edits*:
+the `update` branch of every upsert re-applies the seeded value over whatever is
+in the row now.
+
+| Re-running the seed silently overwrites | Where |
+|---|---|
+| All four service deadlines (`setting_value`) | `seed.js:86-90` |
+| Every seeded barangay's latitude, longitude and boundary | `seed.js:76-79` |
+| Every complaint type's `sort_order` | `seed.js:102-105` |
+| Every request type's `sort_order`, `sla_setting_key`, `sla_fallback_minutes` | `seed.js:109-116` |
+
+Only `is_active` and `label` are spared, deliberately — so a retired category and
+a custom display name survive a re-run. **An SLA figure an Admin corrected to
+match the Citizens Charter does not.** It reverts with no error, no warning and
+no audit row, and the next anyone knows of it is a deadline that no longer
+matches the Charter. See `HANDOVER.md` §11.1c.
 
 > **Before every migration:** confirm the generated SQL uses **PascalCase** table
 > names (`ALTER TABLE \`Complaint\``). Prisma generates them lowercase on the
@@ -320,10 +335,16 @@ traffic ever justifies more instances, move the limiter to a shared store
 
 ---
 
-## Part 8 — First admin account
+## Part 8 — Administrator accounts
 
-Public registration only ever creates Residents. Create the first Admin as a
-one-off job, then **hand the password to CENRO and have them change it**:
+Public registration only ever creates Residents, and **no Administrator can be
+created from inside the running app**: `ASSIGNABLE_ROLES` in
+`backend/src/validators/admin.validators.js:9` is `['CENRO_Staff', 'Resident']`,
+so the Admin → Users screen cannot mint the role even for an existing Admin.
+This job is the only way to create one.
+
+Create the first Admin as a one-off job, then **hand the password to CENRO and
+have them change it**:
 
 ```bash
 gcloud run jobs create cenrowatch-admin \
@@ -337,6 +358,17 @@ gcloud run jobs create cenrowatch-admin \
 gcloud run jobs execute cenrowatch-admin --region=REGION --wait
 gcloud run jobs delete cenrowatch-admin --region=REGION   # don't leave a password in job config
 ```
+
+**Now do it a second time.** CENRO must hand over with **two** Administrator
+accounts (`HANDOVER.md` §11.1e) — with only one, a forgotten password or a single
+staff transfer locks the office out of its own system, and there is no
+self-service way back in. Re-run the three commands above with a different
+`NEW_USER_EMAIL` and `NEW_USER_PASSWORD`, and delete the job again afterwards.
+
+Deleting the job each time is why it is created rather than kept: the password
+lives in the job's configuration, so the job is disposable by design. Recreating
+it is the documented route to every later Administrator, not a sign something
+went wrong.
 
 ---
 

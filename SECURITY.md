@@ -220,10 +220,16 @@ production deployment is unaffected. Developers should avoid running
 
 ## 4. Transport security (HTTPS)
 
-**There is no deployment yet.** `SETUP.md` documents local development only, so
-the system currently runs over plain HTTP on localhost and a LAN address. This
-is stated rather than papered over: a self-signed certificate on a dev box would
-prove nothing.
+**Status: not deployed** (true as of 2026-09-16). `SETUP.md` documents local
+development only, so the system currently runs over plain HTTP on localhost and
+a LAN address. This is stated rather than papered over: a self-signed certificate
+on a dev box would prove nothing.
+
+`HANDOVER.md` §11 is written for the deployed system and says so at its head —
+none of the maintenance clocks it describes have started while this paragraph
+still reads *not deployed*. **Whoever performs the first deployment should update
+this paragraph**, because it is the one place in the document set that asserts no
+deployment exists, and it will otherwise quietly contradict the handover pack.
 
 Everything above protects data **at rest**. Without TLS, credentials and
 personal data are exposed **in transit**, and no amount of database encryption
