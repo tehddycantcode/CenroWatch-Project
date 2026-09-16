@@ -38,7 +38,9 @@ account is no longer involved.
 
 | # | Account | Why CENRO must own it | What happens if a student still owns it | Done |
 |---|---|---|---|---|
-| 1.1 | **Google Cloud project** (hosting + billing) | Runs the entire system | Service is suspended when their card expires or the account closes. Recovering a project after that is difficult and sometimes impossible. | ☐ |
+| 1.1 | **Server hosting account** (runs the API and the database; the paid one) | Runs the entire system | Service is suspended when their card expires or the account closes. Recovering a project after that is difficult and sometimes impossible. | ☐ |
+| 1.1b | **Website hosting account** (serves the public website) | Serves the site residents visit | The website goes down; the mobile app keeps working. Free, but still must not be a student's personal account. | ☐ |
+| 1.1c | **App build account** (builds the Android app and sends its updates) | Without it, the app cannot be rebuilt or corrected | Nobody can fix or re-release the Android app. Free at this scale. | ☐ |
 | 1.2 | **Email account** for notifications | Sends confirmation codes and status updates to residents | Residents stop receiving email the moment the password changes or the account is deleted. Also: resident personal data is flowing through a private individual's mailbox. | ☐ |
 | 1.3 | **Domain name** | The address residents and the mobile app use | Site becomes unreachable when the registration lapses. The mobile app can be pointed elsewhere by an over-the-air update (§10.4), but the website cannot. | ☐ |
 | 1.4 | **MapTiler account** (map tiles) | Draws the GIS maps | Maps stop rendering; the rest of the system keeps working. | ☐ |
@@ -106,7 +108,9 @@ encryption.
 
 | Item | Held by | Notes |
 |---|---|---|
-| Google Cloud project owner login | | Should be a CENRO account with 2-factor authentication |
+| Server hosting account login (§1.1) | | Should be a CENRO account with 2-factor authentication |
+| Website hosting account login (§1.1b) | | |
+| App build account login (§1.1c) | | Needed to release or correct the Android app |
 | Database password | | Stored in Secret Manager; write it down separately too |
 | `FIELD_ENCRYPTION_KEY` | | §2 |
 | `JWT_SECRET` | | Changing it signs everyone out; otherwise harmless |
@@ -191,10 +195,16 @@ happen only when CENRO asks for them.
 
 | What | How it is protected | Who verifies |
 |---|---|---|
-| Database | Automatic daily backup, ~02:00 Manila, with point-in-time recovery | |
-| Uploaded photos | Stored in Google Cloud Storage, replicated by Google | |
+| Database | **Not automatic — a scheduled backup must be set up.** `DEPLOYMENT.md` Part 2 | |
+| Uploaded photos | On the hosting provider's persistent disk. **Needs its own copy — a database backup does not include the photos.** | |
 | Encryption key | **Manual — §2. This is the gap.** | |
 | Source code | GitHub repository | |
+
+> **Read the first two rows again.** An earlier version of this system was planned
+> for Google Cloud, where daily database backups and replicated photo storage came
+> as standard. On the current hosting they do **not**. Both have to be arranged
+> deliberately, and until they are, the office is one mistake away from losing
+> every report it holds.
 
 > **A backup nobody has restored is a belief, not a backup.** Before signing off,
 > restore the database backup into a test instance once and confirm it works. It
@@ -267,12 +277,17 @@ handover date: until then the system holds only demonstration data.
 These are current facts about the system, not hidden defects. They are listed so
 nobody discovers them at an inconvenient moment.
 
-1. **Uploaded files rely on Google's encryption, not the application's.** Photos
-   and documents are encrypted at rest by Google Cloud Storage. The application
-   does not add its own layer. This is a deliberate decision: Google's
-   implementation is stronger than a custom one, and duplicating it would add
-   risk without adding protection. *If the system is ever moved off Google Cloud
-   onto an ordinary server, this protection is lost and must be replaced.*
+1. **Uploaded photos are not encrypted by the application.** Contact numbers and
+   addresses inside the database are (§2), but the photo and document files
+   themselves are stored as ordinary files on the hosting provider's disk,
+   protected by that provider's own disk encryption and by the fact that each
+   photo link expires after an hour and works for one file only.
+
+   An earlier plan put these files in Google Cloud Storage, whose encryption at
+   rest is stronger than anything worth building by hand. The current hosting is
+   simpler and cheaper but does not match that. **Anyone with access to the
+   hosting account can read the photo files.** Keep that account list short, and
+   treat it as the same level of access as the database itself.
 
 2. **Rate limits are counted per server instance.** Under heavy load the system
    runs several copies, each counting separately, so protection against
@@ -338,16 +353,16 @@ the office's own to do or decide, and nobody else will do them for you.
 | # | What | Why it matters | Who | Done |
 |---|---|---|---|---|
 | a | **Update the server software version** | The system is packaged on a version of its server software that stopped receiving security updates in April 2026. It runs fine; it simply no longer receives fixes. This is the first instance of the recurring task in 11.4. | Developer | ☐ |
-| b | **Add a start-up check on the system's settings** | Today, if the system is set up with one wrong setting, it starts normally and then quietly saves residents' photos somewhere they are lost — or treats all of Cabuyao as a single user when limiting password guesses. The check makes it refuse to start instead, so the mistake is obvious on day one rather than discovered the day a photo is needed as evidence. Specified in `DEPLOYMENT.md` Part 0.4. | Developer | ☐ |
+| b | **Add a start-up check on the system's settings** | Today, if the system is set up with one wrong setting, it starts normally and then quietly saves residents' photos somewhere they are lost — or treats all of Cabuyao as a single user when limiting password guesses. The check makes it refuse to start instead, so the mistake is obvious on day one rather than discovered the day a photo is needed as evidence. Specified in `DEPLOYMENT.md` Part 0b.2. | Developer | ☐ |
 | c | **Stop the automatic setup step running a second time** | The system currently re-runs its setup step every time the server starts, and that step re-applies its original values — overwriting the four service deadlines, the barangay coordinates and the category ordering if an administrator has since changed them. Only a retired category and a custom display name survive it. | Developer | ☐ |
 | d | **Clear the test reports filed during development** | The database holds reports filed while the system was being built and demonstrated. They are ordinary rows, not part of the setup step — but left in place they will be counted in the office's own statistics and printed reports. *Do not delete the barangays, categories or service deadlines: those are essential, and without them the report forms are empty.* | Developer | ☐ |
 | e | **Create a second Administrator account** | With only one, a forgotten password or a single staff transfer locks the office out of its own system. A new Administrator cannot be created from inside the app — it needs the same one-off procedure that made the first one. | Developer, at CENRO's direction | ☐ |
-| f | **Restore a database backup once, into a test copy** | See §7. While doing it, ask **how far back the backups reach** and write that answer into §7 — it decides how much history is actually recoverable. | Developer, witnessed by CENRO | ☐ |
+| f | **Set up scheduled backups of the database and the uploaded photos, then restore one into a test copy** | The current hosting does **not** back up anything for you (§7). Both have to be arranged. Then prove a restore works, and write into §7 how far back the backups reach — that decides how much history is actually recoverable. This is the single most important row in this table: without it, one mistake loses every report the office holds. | Developer, witnessed by CENRO | ☐ |
 | g | **Raise the limit on the staff dashboard map** | It plots only the first 100 complaints and the first 100 wildlife reports — priority cases first — and does not plot service requests at all. Past those counts, older open cases quietly disappear from the map while still sitting in the queue. | Developer | ☐ |
 | h | **Decide the holiday question** | See the box in 11.2. This one decision determines whether the office needs a developer every January for the life of the system. | CENRO (office head) | ☐ |
-| i | **Settle how the Google Cloud bill will be paid** | If the office cannot hold a payment card — most LGUs cannot — agree the arrangement (invoiced billing, or through City IT or procurement) before sign-off. An unpaid bill suspends the entire system. | CENRO | ☐ |
+| i | **Settle how the server hosting bill will be paid** | Roughly $5–10 a month, and it **requires a payment card** — most LGUs cannot hold one. Agree the arrangement (invoiced billing, or through City IT or procurement) before sign-off. An unpaid bill suspends the entire system. The website and app-build accounts are free and need no card. | CENRO | ☐ |
 | j | **Point the billing alert and the uptime alert at a CENRO address** | Not a student's. This is how the office finds out about an unpaid bill or an outage. Set up as described in `DEPLOYMENT.md`. | Developer sets up; CENRO supplies the address | ☐ |
-| k | **Confirm Part 0 of `DEPLOYMENT.md` is complete** | Three further deployment defects that cannot be seen from inside the finished app: the website being served by a development server, the way photo links are signed, and the address the Android app is built against. | Developer, confirmed in writing to CENRO | ☐ |
+| k | **Confirm Part 0 and 0b of `DEPLOYMENT.md` are complete** | The domain decision in Part 0 — which determines whether the system keeps a protection against a known class of web attack — plus the address the Android app is built against. Neither can be seen from inside the finished app. | Developer, confirmed in writing to CENRO | ☐ |
 
 ### 11.2 Every year
 
@@ -397,7 +412,7 @@ the office's own to do or decide, and nobody else will do them for you.
 | **1 January 2027** | Database version upgrade — after this date Google charges extra to stay on the current version | Developer |
 | **1 July 2029** | The same upgrade, now unavoidable — support for the current version ends outright | Developer |
 | Every 12–18 months | Update the Android app's build tools | Developer — left too long, the app can no longer be rebuilt at all, even for a one-word change |
-| Roughly every 3 years | **Replace the payment card on the Google Cloud billing account before it expires**, or renew whatever arrangement was agreed in 11.1i. An expired card suspends the whole system. | CENRO system owner |
+| Roughly every 3 years | **Replace the payment card on the server hosting account before it expires**, or renew whatever arrangement was agreed in 11.1i. An expired card suspends the whole system. | CENRO system owner |
 
 ### 11.5 When it happens — no calendar, triggered by an event
 
@@ -419,8 +434,9 @@ Listed so nobody schedules work that is already handled:
 
 - **Security certificates (HTTPS)** — what puts the padlock in the browser —
   renew themselves automatically.
-- **Database backups** run daily on their own. The only human part is the restore
-  test (11.1f, then yearly in 11.2).
+- ~~Database backups~~ — **this is not in this list.** On the current hosting
+  backups are not automatic; see §7 and 11.1f. It is the one thing on this page
+  that looks like it should be handled for you and is not.
 - **Existing report categories, barangays, and the values of the four service
   deadlines** are editable from the Admin screens — see §5. Two things are not
   self-service: nothing can be **renamed** (retire and re-add instead, §10.6),
