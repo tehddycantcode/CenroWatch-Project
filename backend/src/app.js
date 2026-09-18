@@ -12,6 +12,7 @@ const cookieParser = require('cookie-parser');
 const apiV1 = require('./routes');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { apiLimiter } = require('./middlewares/rateLimiters');
+const { createOriginChecker } = require('./utils/corsOrigin');
 
 const app = express();
 
@@ -33,15 +34,47 @@ if (process.env.TRUST_PROXY) {
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
 // ── CORS (only known frontends) ────────────────────────────
-const allowedOrigins = [process.env.CLIENT_URL, process.env.MOBILE_URL].filter(Boolean);
+// The rules live in utils/corsOrigin.js so they can be unit-tested without a
+// server: a browser's "origin" is scheme + host + port as ONE identity, so
+// http://localhost:5173 and http://127.0.0.1:5173 are different origins despite
+// being one machine. CLIENT_URL and MOBILE_URL each accept a comma-separated
+// list; loopback is additionally allowed outside production.
+const corsOrigin = createOriginChecker({
+  clientUrl: process.env.CLIENT_URL,
+  mobileUrl: process.env.MOBILE_URL,
+  nodeEnv: process.env.NODE_ENV,
+});
+
+// A production deployment with no configured origin cannot serve the web app at
+// all: every browser call fails CORS while curl and the mobile app (which send
+// no Origin) keep working, so it looks like "only the website is broken".
+if (process.env.NODE_ENV === 'production' && corsOrigin.allowed.length === 0) {
+  console.warn('[cors] CLIENT_URL is not set — every browser request from the web app will be refused.');
+}
+
 app.use(
   cors({
     origin(origin, callback) {
-      // allow same-origin / non-browser tools (no origin) and known frontends
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error(`CORS: origin not allowed: ${origin}`));
+      if (corsOrigin.isAllowed(origin)) return callback(null, true);
+      // 403, not 500. Without an explicit status the error handler falls through
+      // to `|| 500`, so a browser hitting the API from an origin that is merely
+      // missing from CLIENT_URL gets "Internal Server Error" - which reads as a
+      // crashed server and sends whoever is debugging to the database and the
+      // logs. It is a client-side mismatch, and the status should say so.
+      const err = new Error(`CORS: origin not allowed: ${origin}`);
+      err.status = 403;
+      return callback(err);
     },
+    // Required, not optional: the web session is an HttpOnly cookie, so the
+    // browser only attaches it when the response says credentials are allowed.
+    // With credentials the reply must name one concrete origin - `*` is refused
+    // by the browser - which is why the callback above reflects the caller's
+    // origin rather than allowing everything.
     credentials: true,
+    // Cache the preflight so a burst of writes does not send an OPTIONS before
+    // each one. cors() answers OPTIONS itself and stops, so preflights never
+    // reach the rate limiter mounted further down.
+    maxAge: 600,
   })
 );
 

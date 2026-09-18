@@ -48,3 +48,8 @@ yarn-error.log*
 Thumbs.db
 .idea/
 *.swp
+
+# Test tooling scratch output. The Playwright MCP browser writes a page snapshot
+# and a console log per navigation, so this fills up fast and belongs to a run,
+# not to the repo.
+.playwright-mcp/
