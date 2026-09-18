@@ -7,6 +7,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
 
 const apiV1 = require('./routes');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
@@ -52,6 +53,12 @@ if (process.env.NODE_ENV !== 'test') {
 // ── Body parsing ───────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ── Cookies ────────────────────────────────────────────────
+// Populates req.cookies so authenticate.js can read the web app's HttpOnly
+// session cookie. Unsigned on purpose: the value is a JWT, which already
+// carries its own signature — a cookie signature would only duplicate it.
+app.use(cookieParser());
 
 // ── Health check (no DB dependency) ────────────────────────
 app.get('/api/health', (req, res) => {

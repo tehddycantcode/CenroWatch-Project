@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { authApi, getToken, setToken, SESSION_EXPIRED_EVENT } from '@/lib/api';
+import { authApi, SESSION_EXPIRED_EVENT } from '@/lib/api';
 
 const AuthContext = createContext(null);
 
@@ -23,11 +23,12 @@ export function AuthProvider({ children }) {
 
   // Sign out when any authenticated call reports 401 (expired/invalid token).
   // The redirect and notice happen at most once: after the first event the
-  // user is null, so parallel 401s only re-clear the token, which is harmless.
-  // A stale token at boot (no user loaded yet) clears silently with no notice.
+  // user is null, so parallel 401s are ignored. The cookie itself is already
+  // gone or rejected server-side, so there is nothing for us to clear here —
+  // the boot probe opts out of this event precisely so a signed-out visitor on
+  // the public map is never bounced to /login.
   useEffect(() => {
     function onSessionExpired() {
-      setToken(null);
       if (!userRef.current) return;
       setUser(null);
       navigate('/login', {
@@ -39,19 +40,18 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
   }, [navigate]);
 
-  // On mount: if a token exists, validate it via /me.
+  // On mount: ask the server whether the HttpOnly cookie names a live session.
+  // This call is unconditional now — the cookie is invisible to JavaScript, so
+  // unlike the old localStorage check there is nothing to look at first. A 401
+  // simply means "signed out" and resolves loading like any other answer.
   useEffect(() => {
     let active = true;
     (async () => {
-      if (!getToken()) {
-        setLoading(false);
-        return;
-      }
       try {
-        const res = await authApi.me();
+        const res = await authApi.session();
         if (active) setUser(res.data.user);
       } catch {
-        setToken(null); // stale/invalid token
+        /* no session, or it expired — stay signed out */
       } finally {
         if (active) setLoading(false);
       }
@@ -61,22 +61,29 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  // login/register authenticate by Set-Cookie on the response; the token in the
+  // body is the mobile app's copy and is deliberately ignored here.
   const login = useCallback(async (credentials) => {
     const res = await authApi.login(credentials);
-    setToken(res.data.token);
     setUser(res.data.user);
     return res.data.user;
   }, []);
 
   const register = useCallback(async (payload) => {
     const res = await authApi.register(payload);
-    setToken(res.data.token);
     setUser(res.data.user);
     return res.data.user;
   }, []);
 
-  const logout = useCallback(() => {
-    setToken(null);
+  // Only the server can clear an HttpOnly cookie, so sign-out is now a request.
+  // The local state is cleared either way: a user who clicked "sign out" must
+  // end up signed out in the UI even if that request fails.
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      /* offline or server down — clear the UI regardless */
+    }
     setUser(null);
   }, []);
 

@@ -1,19 +1,32 @@
-// Authentication middleware. Verifies the Bearer JWT, loads the user from the
-// DB (so deactivated accounts are rejected immediately), and attaches a safe
-// user object to req.user — never the password hash.
+// Authentication middleware. Verifies the JWT, loads the user from the DB (so
+// deactivated accounts are rejected immediately), and attaches a safe user
+// object to req.user — never the password hash.
+//
+// TWO CLIENTS, TWO TRANSPORTS. The web app is authenticated by the HttpOnly
+// `cenrowatch_token` cookie, which JavaScript cannot read and therefore cannot
+// leak to an XSS. The mobile app has no cookie jar to rely on: it keeps its
+// token in the OS keychain and sends `Authorization: Bearer ...`. Both are the
+// same signed JWT, so the cookie is simply preferred when present.
 
 const prisma = require('../utils/prisma');
 const { verifyToken } = require('../utils/jwt');
+const { SESSION_COOKIE_NAME } = require('../utils/sessionCookie');
+
+function readToken(req) {
+  const fromCookie = req.cookies?.[SESSION_COOKIE_NAME];
+  if (fromCookie) return fromCookie;
+  const [scheme, bearer] = (req.headers.authorization || '').split(' ');
+  return scheme === 'Bearer' && bearer ? bearer : null;
+}
 
 async function authenticate(req, res, next) {
   try {
-    const header = req.headers.authorization || '';
-    const [scheme, token] = header.split(' ');
+    const token = readToken(req);
 
-    if (scheme !== 'Bearer' || !token) {
+    if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Missing or malformed Authorization header.',
+        message: 'Not signed in.',
       });
     }
 

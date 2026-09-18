@@ -3,9 +3,15 @@
 const asyncHandler = require('../utils/asyncHandler');
 const authService = require('../services/auth.service');
 const verificationService = require('../services/emailVerification.service');
+const { setSessionCookie, clearSessionCookie } = require('../utils/sessionCookie');
 
+// register/login hand the same JWT to both clients: the web app receives it as
+// an HttpOnly cookie it can never read (so an XSS cannot steal the session),
+// while `token` stays in the body for the mobile app, which has no cookie jar
+// and sends it back as a Bearer header. See utils/sessionCookie.js.
 const register = asyncHandler(async (req, res) => {
   const { user, token } = await authService.register(req.body, { ipAddress: req.ip });
+  setSessionCookie(res, token);
   res.status(201).json({
     success: true,
     message: 'Registration successful.',
@@ -15,11 +21,21 @@ const register = asyncHandler(async (req, res) => {
 
 const login = asyncHandler(async (req, res) => {
   const { user, token } = await authService.login(req.body, { ipAddress: req.ip });
+  setSessionCookie(res, token);
   res.status(200).json({
     success: true,
     message: 'Login successful.',
     data: { user, token },
   });
+});
+
+// Deliberately NOT behind `authenticate`: signing out has to work even when the
+// token has already expired or been revoked, and a 401 here would strand the
+// cookie in the browser. Clearing your own cookie mutates no data, so there is
+// nothing to audit. Mobile signs out by deleting its keychain entry.
+const logout = asyncHandler(async (req, res) => {
+  clearSessionCookie(res);
+  res.status(200).json({ success: true, message: 'Signed out.' });
 });
 
 // Requires `authenticate` — req.user is set there.
@@ -72,4 +88,4 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: 'Your password has been reset. You can now sign in.' });
 });
 
-module.exports = { register, login, me, updateMe, changePassword, forgotPassword, resetPassword, verifyEmail, resendVerification, changeEmail };
+module.exports = { register, login, logout, me, updateMe, changePassword, forgotPassword, resetPassword, verifyEmail, resendVerification, changeEmail };

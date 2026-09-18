@@ -29,6 +29,10 @@ router.post('/login', authLimiter, loginRules, validate, authController.login);
 router.post('/forgot-password', resetLimiter, forgotPasswordRules, validate, authController.forgotPassword);
 router.post('/reset-password', resetLimiter, resetPasswordRules, validate, authController.resetPassword);
 
+// Clears the web session cookie. No `authenticate` and no strict cap: it must
+// still work once the token has expired, and it guesses at no credential.
+router.post('/logout', authController.logout);
+
 // Authenticated — the token already proves who is calling. Global cap only.
 router.get('/me', authenticate, authController.me);
 router.patch('/me', authenticate, updateProfileRules, validate, authController.updateMe);

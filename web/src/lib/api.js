@@ -1,9 +1,19 @@
-// Tiny fetch wrapper around the CENROWATCH API. Attaches the JWT, parses JSON,
-// and throws a normalized Error (with .status and .errors) on non-2xx.
-// Supports FormData bodies (multipart) for photo/document uploads.
+// Tiny fetch wrapper around the CENROWATCH API. Parses JSON and throws a
+// normalized Error (with .status and .errors) on non-2xx. Supports FormData
+// bodies (multipart) for photo/document uploads.
+//
+// THE SESSION IS A COOKIE, NOT A VARIABLE. The server issues the JWT as an
+// HttpOnly `cenrowatch_token` cookie, so this file never sees, stores, or
+// attaches the token — `credentials: 'include'` is what authenticates a call.
+// That is deliberate: a token in localStorage is readable by any script on the
+// page, so one XSS anywhere in the app could lift a signed-in Admin's session.
+// HttpOnly puts it out of JavaScript's reach entirely.
+//
+// The consequence to remember: the client cannot inspect the cookie, so there
+// is no synchronous "am I signed in?" answer. Only the server knows, and
+// AuthContext asks it once at boot via authApi.session().
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
-const TOKEN_KEY = 'cenrowatch_token';
 
 // Fired (on window) when an authenticated call comes back 401, i.e. the JWT
 // expired or was revoked. AuthContext listens and signs the user out once.
@@ -27,23 +37,17 @@ export function isPdfPath(path) {
   return /\.pdf$/i.test(String(path || '').split('?')[0]);
 }
 
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token) {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  else localStorage.removeItem(TOKEN_KEY);
-}
-
-export async function apiFetch(path, { method = 'GET', body, auth = true, headers = {} } = {}) {
+// `notifyOnExpiry: false` suppresses the session-expired broadcast for calls
+// where a 401 is an expected answer rather than a lost session — the boot
+// probe (nobody is signed in yet) and sign-out.
+export async function apiFetch(
+  path,
+  { method = 'GET', body, auth = true, headers = {}, notifyOnExpiry = true } = {}
+) {
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   const finalHeaders = { ...headers };
   // Let the browser set multipart boundaries; only set JSON header otherwise.
   if (!isForm && body) finalHeaders['Content-Type'] = 'application/json';
-
-  const token = getToken();
-  if (auth && token) finalHeaders.Authorization = `Bearer ${token}`;
 
   let res;
   try {
@@ -51,6 +55,12 @@ export async function apiFetch(path, { method = 'GET', body, auth = true, header
       method,
       headers: finalHeaders,
       body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
+      // Sends the HttpOnly session cookie. The API is a different origin than
+      // the web app (:5000 vs :5173), so without this the cookie is omitted and
+      // every authenticated call 401s. The server's CORS allowlist is exact
+      // (CLIENT_URL / MOBILE_URL) with credentials:true, which is what makes
+      // sending credentials cross-origin safe.
+      credentials: 'include',
     });
   } catch {
     throw new Error('Cannot reach the server. Is the backend running?');
@@ -67,7 +77,7 @@ export async function apiFetch(path, { method = 'GET', body, auth = true, header
     // Expired/invalid session: tell the app so it can sign out once, then
     // throw as usual so callers' own error handling still runs. Requests
     // with auth:false (login, register, public GIS) can never trigger this.
-    if (res.status === 401 && auth && token) {
+    if (res.status === 401 && auth && notifyOnExpiry) {
       window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
     }
     const err = new Error(data?.message || `Request failed (${res.status})`);
@@ -80,15 +90,14 @@ export async function apiFetch(path, { method = 'GET', body, auth = true, header
 
 // Download an authenticated binary response (e.g. a PDF) and save it as a file.
 export async function downloadFile(path, filename) {
-  const token = getToken();
   let res;
   try {
-    res = await fetch(`${BASE}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    res = await fetch(`${BASE}${path}`, { credentials: 'include' });
   } catch {
     throw new Error('Cannot reach the server. Is the backend running?');
   }
   if (!res.ok) {
-    if (res.status === 401 && token) {
+    if (res.status === 401) {
       window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
     }
     let msg = `Download failed (${res.status})`;
@@ -114,7 +123,13 @@ export async function downloadFile(path, filename) {
 export const authApi = {
   register: (payload) => apiFetch('/auth/register', { method: 'POST', body: payload, auth: false }),
   login: (payload) => apiFetch('/auth/login', { method: 'POST', body: payload, auth: false }),
+  // Clears the HttpOnly cookie server-side — the browser will not let us do it.
+  logout: () => apiFetch('/auth/logout', { method: 'POST', auth: false }),
   me: () => apiFetch('/auth/me'),
+  // Boot probe: "is there a session cookie, and is it still good?". A 401 is
+  // the ordinary answer for a signed-out visitor, so it must not be broadcast
+  // as an expired session (that would redirect people browsing the public map).
+  session: () => apiFetch('/auth/me', { notifyOnExpiry: false }),
   updateProfile: (payload) => apiFetch('/auth/me', { method: 'PATCH', body: payload }),
   changePassword: (payload) => apiFetch('/auth/change-password', { method: 'POST', body: payload }),
   forgotPassword: (email) => apiFetch('/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),
