@@ -84,12 +84,21 @@ export default {
           '0%,100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-6px)' },
         },
+        // Bar chart grow-in. Scales from the left rather than animating width,
+        // so the bar is already at its final size in the DOM on the first paint
+        // and reduced-motion users never see an empty plot.
+        'bar-grow': {
+          from: { transform: 'scaleX(0)' },
+          to: { transform: 'scaleX(1)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'fade-up': 'fade-up 0.5s ease-out both',
         'float-soft': 'float-soft 6s ease-in-out infinite',
+        // `both` holds scaleX(0) through the per-bar stagger delay.
+        'bar-grow': 'bar-grow 500ms cubic-bezier(0.4, 0, 0.2, 1) both',
       },
     },
   },

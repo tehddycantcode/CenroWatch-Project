@@ -10,7 +10,13 @@ import { Button } from '@/components/ui/button';
 // resource-specific inputs (e.g. resolution notes, transfer destination,
 // scheduled date) shown only for the relevant target status.
 export default function StatusUpdateForm({ statuses, current, extraFields = [], onSubmit }) {
-  const [status, setStatus] = useState(current);
+  // Hold only the staff member's pending choice; the displayed value is derived
+  // from `current` whenever they have not picked one. The three detail pages all
+  // refetch the record while this form stays mounted (its own save, the archive
+  // control, `onChanged={load}`), so a copy captured at mount would go stale and
+  // re-submit an outdated status over whatever the record actually holds now.
+  const [picked, setPicked] = useState(null);
+  const status = picked ?? current;
   const [note, setNote] = useState('');
   const [extra, setExtra] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -33,6 +39,8 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
       await onSubmit(payload);
       setOk(true);
       setNote('');
+      // Fall back to the record again so the select shows the refetched status.
+      setPicked(null);
     } catch (err) {
       setError(err.message || 'Update failed.');
     } finally {
@@ -43,7 +51,7 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
   return (
     <form onSubmit={submit} className="space-y-4">
       <FormField id="status" label="Update status">
-        <Select id="status" value={status} onChange={(e) => setStatus(e.target.value)}>
+        <Select id="status" value={status} onChange={(e) => setPicked(e.target.value)}>
           {statuses.map((s) => (
             <option key={s} value={s}>{humanize(s)}</option>
           ))}

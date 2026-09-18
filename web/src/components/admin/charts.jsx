@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ArrowDown, ArrowUp, BarChart3, LineChart, Minus, Table2 } from 'lucide-react';
 import { humanize } from '@/lib/reports';
 import { cn } from '@/lib/utils';
@@ -51,8 +51,6 @@ export function BarChart({
 }) {
   const [hover, setHover] = useState(null); // hovered row index
   const [view, setView] = useState('chart'); // 'chart' | 'table'
-  const [entered, setEntered] = useState(false); // bars grow in from 0 on mount
-  useEffect(() => { setEntered(true); }, []);
 
   const sorted = (data || []).toSorted((a, b) => b.value - a.value);
   const nonzero = sorted.filter((d) => d.value > 0);
@@ -146,12 +144,16 @@ export function BarChart({
                 <div className="w-40 shrink-0 truncate text-sm text-foreground">{format(d.label)}</div>
                 <div className="h-4 flex-1 py-[3px]">
                   <div
-                    className="h-full rounded-r-[4px] motion-safe:transition-[width,opacity] motion-safe:[transition-duration:500ms,150ms]"
+                    className="h-full origin-left rounded-r-[4px] motion-safe:animate-bar-grow motion-safe:transition-[width,opacity] motion-safe:[transition-duration:500ms,150ms]"
                     style={{
-                      width: entered ? `${Math.max((d.value / top) * 100, 2.5)}%` : 0,
+                      width: `${Math.max((d.value / top) * 100, 2.5)}%`,
                       backgroundColor: color,
                       opacity: hover == null ? 0.9 : hover === i ? 1 : 0.35,
-                      // Width grows in staggered on mount; hover dims stay instant.
+                      // Bars grow in staggered on mount via scaleX, so the bar is
+                      // already at its final width on the first paint. The width
+                      // transition then carries later data changes (range filter);
+                      // hover dims stay instant.
+                      animationDelay: `${i * 40}ms`,
                       transitionDelay: `${i * 40}ms, 0ms`,
                     }}
                   />
