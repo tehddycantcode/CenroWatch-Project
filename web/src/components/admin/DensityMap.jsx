@@ -210,6 +210,11 @@ export default function DensityMap({ boundaries = EMPTY_BOUNDARIES, markers = EM
     });
 
     return () => {
+      // map.remove() is MapLibre's owner teardown - it removes the controls,
+      // destroys the painter/handlers, unsets the style and drops the WebGL
+      // context. Every map.on(...) above (including the ones registered inside
+      // the load handler) is stored on this instance (Evented._listeners), so
+      // they go with it; none needs its own .off().
       map.remove();
       mapRef.current = null;
     };

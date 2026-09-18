@@ -121,6 +121,10 @@ export default function MapView({
     }
     mapRef.current = map;
     return () => {
+      // map.remove() is MapLibre's owner teardown - it removes the controls,
+      // destroys the painter/handlers, unsets the style and drops the WebGL
+      // context. The map.on(...) handlers above are stored on this instance
+      // (Evented._listeners), so they go with it; none needs its own .off().
       map.remove();
       mapRef.current = null;
     };
