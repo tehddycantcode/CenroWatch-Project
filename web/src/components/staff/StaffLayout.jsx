@@ -1,16 +1,18 @@
 import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
+import { LayoutGrid, Trash2, Bird, ClipboardList, PenSquare, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { ROLE_LABELS } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 import { CenroLogo } from '@/components/ui/cenro-logo';
 import { BackButton } from '@/components/ui/back-button';
+import { MobileNav } from '@/components/ui/mobile-nav';
 
 const navItems = [
-  { to: '/staff/dashboard', label: 'Dashboard', end: true },
-  { to: '/staff/complaints', label: 'Complaints' },
-  { to: '/staff/wildlife', label: 'Wildlife' },
-  { to: '/staff/requests', label: 'Requests' },
-  { to: '/staff/log-walkin', label: 'Log Walk-in' },
+  { to: '/staff/dashboard', label: 'Dashboard', end: true, icon: LayoutGrid },
+  { to: '/staff/complaints', label: 'Complaints', icon: Trash2 },
+  { to: '/staff/wildlife', label: 'Wildlife', icon: Bird },
+  { to: '/staff/requests', label: 'Requests', icon: ClipboardList },
+  { to: '/staff/log-walkin', label: 'Log Walk-in', icon: PenSquare },
 ];
 
 export default function StaffLayout() {
@@ -31,7 +33,10 @@ export default function StaffLayout() {
             <BackButton fallback="/staff/dashboard" />
             <Link to="/staff/dashboard" className="flex items-center gap-2.5">
               <CenroLogo />
-              <span className="whitespace-nowrap text-lg font-bold tracking-tight">
+              {/* Seal only on phones. The wordmark is ~170px, which together
+                  with "Log out" and the menu toggle pushed this header past a
+                  320px screen and into horizontal scroll. */}
+              <span className="hidden whitespace-nowrap text-lg font-bold tracking-tight sm:inline">
                 CENROWATCH <span className="text-muted-foreground">· Staff</span>
               </span>
             </Link>
@@ -60,13 +65,24 @@ export default function StaffLayout() {
               <div className="text-sm font-medium leading-tight">{user?.first_name} {user?.last_name}</div>
               <div className="text-xs text-muted-foreground">{ROLE_LABELS[user?.role] || 'CENRO Staff'}</div>
             </div>
+            {/* Icon-only on phones, for the same width reason as the wordmark. */}
             <button
               type="button"
               onClick={onLogout}
-              className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+              aria-label="Log out"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md border transition-[background-color,scale] hover:bg-accent active:scale-[0.96] sm:h-auto sm:w-auto sm:px-3 sm:py-1.5"
             >
-              Log out
+              <LogOut className="h-4 w-4 sm:hidden" aria-hidden="true" />
+              <span className="hidden text-sm font-medium sm:inline">Log out</span>
             </button>
+            <MobileNav id="staff-nav" items={navItems}>
+              <div className="text-sm font-medium leading-tight">
+                {user?.first_name} {user?.last_name}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {ROLE_LABELS[user?.role] || 'CENRO Staff'}
+              </div>
+            </MobileNav>
           </div>
         </div>
       </header>

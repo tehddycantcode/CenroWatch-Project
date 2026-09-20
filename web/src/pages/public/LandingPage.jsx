@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   MapPin, FileText, CircleCheck, Bird, Trash2, Sprout,
-  ClipboardList, Search,
+  ClipboardList, Search, LogIn, LayoutGrid,
 } from 'lucide-react';
 import { gisApi } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -10,6 +10,7 @@ import { roleHome } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { CenroLogo } from '@/components/ui/cenro-logo';
+import { MobileNav } from '@/components/ui/mobile-nav';
 import { IconChip } from '@/components/ui/icon-chip';
 import { StatusBadge } from '@/components/ui/badge';
 import { cardHover } from '@/components/ui/card';
@@ -116,6 +117,30 @@ export default function LandingPage() {
       .catch(() => {}); // leave the placeholders if the API is unreachable
   }, []);
 
+  // Mirrors the inline nav above it, including the same Login rule: the link is
+  // withheld while the session is still resolving so it cannot flash for a
+  // visitor who turns out to be signed in.
+  //
+  // Dashboard leads the list when there is a session to go back to, as it does
+  // in PublicHeader. This page has its OWN header rather than sharing that
+  // component, so without this the menu here was the only one on the site with
+  // no way back into the app - the green button was the sole route, and a
+  // resident who opened the menu looking for it did not find it. Role-aware: an
+  // Admin gets /admin/dashboard, not a resident's.
+  //
+  // Dashboard and Login are mutually exclusive: unlike PublicHeader, this nav
+  // carries its own Login entry, so showing both would put two items pointing at
+  // /login in one short menu.
+  const publicNavItems = [
+    ...(!loading && isAuthenticated
+      ? [{ to: roleHome(user.role), label: 'Dashboard', icon: LayoutGrid }]
+      : []),
+    { to: '/map', label: 'Heat Map', icon: MapPin },
+    { to: '/feed', label: 'Reports', icon: FileText },
+    { to: '/wildlife', label: 'Wildlife', icon: Bird },
+    ...(!loading && !isAuthenticated ? [{ to: '/login', label: 'Login', icon: LogIn }] : []),
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <div className="accent-bar-top" />
@@ -137,12 +162,17 @@ export default function LandingPage() {
               <Link to="/login" className="transition-colors hover:text-foreground">Login</Link>
             )}
           </nav>
-          <Link
-            to={isAuthenticated ? roleHome(user.role) : '/register'}
-            className={buttonVariants({ size: 'sm' })}
-          >
-            {isAuthenticated ? 'My Dashboard' : 'Report Now'}
-          </Link>
+          <div className="flex items-center gap-1 sm:gap-0">
+            <Link
+              to={isAuthenticated ? roleHome(user.role) : '/register'}
+              className={buttonVariants({ size: 'sm' })}
+            >
+              {isAuthenticated ? 'My Dashboard' : 'Report Now'}
+            </Link>
+            {/* Phone only. Above 640px the inline nav above is what shows, so a
+                tablet and a desktop never see this control. */}
+            <MobileNav id="public-nav" items={publicNavItems} />
+          </div>
         </div>
       </header>
 

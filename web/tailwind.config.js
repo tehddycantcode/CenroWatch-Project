@@ -67,6 +67,13 @@ export default {
         'soft-md': '0 2px 4px rgba(15,61,31,0.05), 0 6px 16px rgba(15,61,31,0.08)',
         'soft-lg': '0 8px 30px rgba(15,61,31,0.10)',
       },
+      transitionTimingFunction: {
+        // Fast out, settle in - the curve the phone nav's panel, backdrop and
+        // icon cross-fade all share, so the whole gesture reads as one motion.
+        // Named here rather than written inline: `ease-[cubic-bezier(...)]` is
+        // ambiguous to Tailwind's parser and warns on every build.
+        'swift-out': 'cubic-bezier(0.2, 0, 0, 1)',
+      },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },
@@ -91,6 +98,22 @@ export default {
           from: { transform: 'scaleX(0)' },
           to: { transform: 'scaleX(1)' },
         },
+        // Phone nav panel. It drops from under the header, so it enters from
+        // slightly above rather than below.
+        'nav-panel-in': {
+          from: { opacity: '0', transform: 'translateY(-8px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        // The exit is deliberately shorter and travels less than the enter: a
+        // dismissal should get out of the way, not perform.
+        'nav-panel-out': {
+          from: { opacity: '1', transform: 'translateY(0)' },
+          to: { opacity: '0', transform: 'translateY(-6px)' },
+        },
+        'nav-item-in': {
+          from: { opacity: '0', transform: 'translateY(6px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -99,6 +122,12 @@ export default {
         'float-soft': 'float-soft 6s ease-in-out infinite',
         // `both` holds scaleX(0) through the per-bar stagger delay.
         'bar-grow': 'bar-grow 500ms cubic-bezier(0.4, 0, 0.2, 1) both',
+        'nav-panel-in': 'nav-panel-in 180ms cubic-bezier(0.2, 0, 0, 1) both',
+        // Must stay in step with EXIT_MS in components/ui/mobile-nav.jsx, which
+        // is how long the panel is kept mounted after it is dismissed.
+        'nav-panel-out': 'nav-panel-out 150ms cubic-bezier(0.2, 0, 0, 1) both',
+        // `both` holds the item invisible through its stagger delay.
+        'nav-item-in': 'nav-item-in 200ms cubic-bezier(0.2, 0, 0, 1) both',
       },
     },
   },
