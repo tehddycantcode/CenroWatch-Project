@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { humanize } from '@/lib/reports';
+import { cn } from '@/lib/utils';
 
 const KEY = import.meta.env.VITE_MAPTILER_API_KEY;
 const STYLE = `https://api.maptiler.com/maps/streets-v2/style.json?key=${KEY}`;
@@ -95,9 +96,17 @@ export default function MapView({
     onPickRef.current = onPick;
   }, [onPick]);
 
+  // A style that never loads leaves an empty container, and an empty container
+  // looks exactly like a map of nowhere - no error, no spinner, just white.
+  // That is worth a message rather than a guess: see the `error` handler below.
+  const [styleError, setStyleError] = useState(null);
+  const styleLoaded = useRef(false);
+
   // Init once.
   useEffect(() => {
     if (!KEY || !containerRef.current) return;
+    styleLoaded.current = false;
+    setStyleError(null);
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: STYLE,
@@ -107,6 +116,31 @@ export default function MapView({
       minZoom: MIN_ZOOM,
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+    map.on('load', () => {
+      styleLoaded.current = true;
+    });
+
+    // MapLibre reports network failures here instead of throwing, and with no
+    // handler at all it logs to the console and renders nothing - which is how
+    // a rejected API key turns into a blank white rectangle.
+    //
+    // Only a failure BEFORE the style loads is fatal: after that the map is
+    // usable and a missing tile is a gap, not a dead map, so covering it with
+    // an overlay would be worse than the gap. A 401/403 here is almost always
+    // the key's allowed-origins list rather than a wrong key - MapTiler
+    // rejects per origin, so the same key works on localhost and is refused on
+    // a LAN address or a new production domain until that origin is added.
+    map.on('error', (e) => {
+      if (styleLoaded.current) return;
+      const status = e?.error?.status;
+      setStyleError(
+        status === 401 || status === 403
+          ? 'The map provider refused this website (HTTP ' + status + '). Add this exact address to the allowed origins of the MapTiler key, then reload.'
+          : 'The map could not be loaded. Check the network connection and that the MapTiler key is valid.'
+      );
+    });
+
     if (picker) {
       map.on('click', (e) => {
         onPickRef.current?.(Number(e.lngLat.lat.toFixed(6)), Number(e.lngLat.lng.toFixed(6)));
@@ -205,5 +239,20 @@ export default function MapView({
       </div>
     );
   }
-  return <div ref={containerRef} className={className} />;
+  // The wrapper carries the caller's sizing/positioning classes and the map
+  // container fills it, so the overlay has something to position against.
+  // `className` comes last so a caller passing `absolute inset-0` still wins
+  // over the default `relative`.
+  return (
+    <div className={cn('relative', className)}>
+      <div ref={containerRef} className="h-full w-full" />
+      {styleError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/95 p-6">
+          <p className="max-w-sm text-balance text-center text-sm text-muted-foreground">
+            {styleError}
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }
