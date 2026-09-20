@@ -206,8 +206,14 @@ async function resetPassword(token, password, ctx = {}) {
   }
 
   const password_hash = await hashPassword(password);
+  // Same reasoning as changePassword, and more urgent here: someone completing a
+  // reset has usually lost control of the account, so any session already open
+  // on another device is the one that has to end.
   await prisma.$transaction([
-    prisma.user.update({ where: { user_id: record.user_id }, data: { password_hash } }),
+    prisma.user.update({
+      where: { user_id: record.user_id },
+      data: { password_hash, password_changed_at: new Date() },
+    }),
     prisma.passwordResetToken.update({ where: { id: record.id }, data: { used_at: new Date() } }),
     prisma.passwordResetToken.deleteMany({ where: { user_id: record.user_id, used_at: null } }),
   ]);
@@ -272,7 +278,14 @@ async function changePassword(userId, currentPassword, newPassword, ctx = {}) {
   if (!ok) throw new HttpError(400, 'Your current password is incorrect.');
 
   const password_hash = await hashPassword(newPassword);
-  await prisma.user.update({ where: { user_id: userId }, data: { password_hash } });
+  // password_changed_at is what ends the sessions on other devices. A JWT is
+  // stateless, so without this the phone keeps working on its old token for the
+  // rest of JWT_EXPIRES_IN - which makes "change my password" a no-op against
+  // exactly the person it is meant to lock out. authenticate() refuses any token
+  // issued before this instant; see the comment there for the second-precision
+  // detail that stops it logging out the device doing the changing.
+  const password_changed_at = new Date();
+  await prisma.user.update({ where: { user_id: userId }, data: { password_hash, password_changed_at } });
   // Any outstanding reset links are no longer needed.
   await prisma.passwordResetToken.deleteMany({ where: { user_id: userId, used_at: null } });
 
@@ -285,7 +298,11 @@ async function changePassword(userId, currentPassword, newPassword, ctx = {}) {
     ipAddress: ctx.ipAddress || null,
   });
 
-  return { ok: true };
+  // A replacement token for the device that made the change, so the one session
+  // we know belongs to the real owner is not collateral damage of signing every
+  // other session out. The caller hands it back as a cookie (web) and in the
+  // body (mobile), the same pair login uses.
+  return { ok: true, token: tokenFor(user) };
 }
 
 module.exports = {

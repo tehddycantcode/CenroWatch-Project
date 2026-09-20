@@ -96,9 +96,12 @@ function PasswordForm() {
     }
     setSaving(true);
     try {
+      // No token handling here, unlike mobile: the server refreshes the HttpOnly
+      // session cookie on this response, so this tab stays signed in by itself.
+      // Every OTHER session, phone included, is signed out by the change.
       await authApi.changePassword({ current_password: form.current_password, new_password: form.new_password });
       setForm({ current_password: '', new_password: '', confirm: '' });
-      setMsg('Password changed.');
+      setMsg('Password changed. Your other devices have been signed out.');
     } catch (err) {
       setError(err.message || 'Could not change your password.');
     } finally {

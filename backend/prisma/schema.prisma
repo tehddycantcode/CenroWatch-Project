@@ -110,6 +110,13 @@ model User {
   privacy_consent Boolean   @default(false)
   consent_date    DateTime?
   email_verified_at DateTime?
+  // When this account's password last changed. A JWT issued before this instant
+  // is refused by authenticate(), which is what makes "change my password"
+  // actually end the sessions on other devices - a stateless JWT is otherwise
+  // valid for its full JWT_EXPIRES_IN no matter what happens to the password.
+  // Null means "never changed since the column was added", which cannot
+  // invalidate anything, so existing sessions survive the migration.
+  password_changed_at DateTime?
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
 

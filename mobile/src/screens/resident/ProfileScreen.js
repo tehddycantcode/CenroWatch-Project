@@ -82,7 +82,7 @@ function ProfileSection() {
 }
 
 function PasswordSection() {
-  const { token } = useAuth();
+  const { token, updateToken } = useAuth();
   const [form, setForm] = useState({ current_password: '', new_password: '', confirm: '' });
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
@@ -103,9 +103,17 @@ function PasswordSection() {
     }
     setSaving(true);
     try {
-      await api.changePassword({ current_password: form.current_password, new_password: form.new_password }, token);
+      const res = await api.changePassword(
+        { current_password: form.current_password, new_password: form.new_password },
+        token
+      );
+      // The change just invalidated every token issued before it, including the
+      // one this request used. Store the replacement the server sent back or the
+      // next screen this phone opens gets a 401 and signs the resident out of
+      // their own password change.
+      await updateToken(res.data?.token);
       setForm({ current_password: '', new_password: '', confirm: '' });
-      setMsg('Password changed.');
+      setMsg('Password changed. Your other devices have been signed out.');
     } catch (e) {
       setError(e.message || 'Could not change your password.');
     } finally {

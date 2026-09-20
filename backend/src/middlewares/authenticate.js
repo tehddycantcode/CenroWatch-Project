@@ -47,12 +47,39 @@ async function authenticate(req, res, next) {
         role: true,
         barangay_id: true,
         is_active: true,
+        password_changed_at: true,
       },
     });
 
     if (!user || !user.is_active) {
       return res.status(401).json({ success: false, message: 'Account not found or deactivated.' });
     }
+
+    // A JWT carries no link to the password it was issued under, so changing a
+    // password would otherwise leave every other device signed in for the rest
+    // of JWT_EXPIRES_IN - the phone keeps working for up to a week after the
+    // owner locks the account down. Refusing tokens older than the change is
+    // what turns "change my password" into "sign my other devices out".
+    //
+    // COMPARE IN WHOLE SECONDS. `iat` is a UNIX timestamp in SECONDS, while
+    // password_changed_at keeps milliseconds. Comparing them directly rejects
+    // the replacement token too: it is minted microseconds AFTER the change, but
+    // its iat truncates down to the start of that second, so it looks older than
+    // the change and the user is signed out of the device they just used. Taking
+    // the floor of both and rejecting only when the change is in a LATER second
+    // leaves a sub-second window in which a token survives, which is the right
+    // trade against logging someone out of their own session.
+    if (user.password_changed_at) {
+      const changedAtSec = Math.floor(user.password_changed_at.getTime() / 1000);
+      if (changedAtSec > (payload.iat ?? 0)) {
+        return res.status(401).json({
+          success: false,
+          message: 'Your password was changed. Please sign in again.',
+        });
+      }
+    }
+
+    delete user.password_changed_at; // never needed downstream; keep req.user lean
 
     req.user = user;
     return next();

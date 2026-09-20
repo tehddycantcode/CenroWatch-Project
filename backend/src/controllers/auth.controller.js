@@ -49,9 +49,24 @@ const updateMe = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: 'Profile updated.', data: { user } });
 });
 
+// Changing a password signs out every OTHER device (authenticate refuses tokens
+// issued before User.password_changed_at). This device keeps its session via a
+// replacement token - refreshed in the cookie for web, returned in the body for
+// mobile, exactly as login does - so the person changing their own password is
+// not the one it locks out.
 const changePassword = asyncHandler(async (req, res) => {
-  await authService.changePassword(req.user.user_id, req.body.current_password, req.body.new_password, { ipAddress: req.ip });
-  res.status(200).json({ success: true, message: 'Your password has been changed.' });
+  const { token } = await authService.changePassword(
+    req.user.user_id,
+    req.body.current_password,
+    req.body.new_password,
+    { ipAddress: req.ip }
+  );
+  setSessionCookie(res, token);
+  res.status(200).json({
+    success: true,
+    message: 'Your password has been changed. Any other devices have been signed out.',
+    data: { token },
+  });
 });
 
 // All three require `authenticate`: the soft gate means the resident is

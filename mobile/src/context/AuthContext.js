@@ -90,12 +90,26 @@ export function AuthProvider({ children }) {
   // Refresh the cached user after a self-service profile edit.
   const updateUser = useCallback((next) => setUser(next), []);
 
+  // Swap in a replacement token without disturbing the signed-in user.
+  //
+  // Changing a password signs out every session issued before the change, this
+  // one included. The server hands back a fresh token for the device that made
+  // the change; storing it here is what keeps THIS phone signed in. Skip it and
+  // the resident is bounced to the login screen by their own password change -
+  // on the very next request, with "Your password was changed. Please sign in
+  // again.", which reads like a failure rather than the thing they just did.
+  const updateToken = useCallback(async (tk) => {
+    if (!tk) return;
+    await SecureStore.setItemAsync(TOKEN_KEY, tk);
+    setToken(tk);
+  }, []);
+
   // Memoised: see the note in web/src/context/AuthContext.jsx. A fresh object
   // literal here re-renders every useAuth() consumer on each provider render,
   // which on mobile means the whole navigator tree.
   const value = useMemo(
-    () => ({ user, token, loading, isAuthenticated: !!user, sessionNotice, login, register, logout, updateUser }),
-    [user, token, loading, sessionNotice, login, register, logout, updateUser]
+    () => ({ user, token, loading, isAuthenticated: !!user, sessionNotice, login, register, logout, updateUser, updateToken }),
+    [user, token, loading, sessionNotice, login, register, logout, updateUser, updateToken]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
