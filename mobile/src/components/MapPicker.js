@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
 import { colors, radius } from '../theme';
 
 // Tap-to-pin map for report locations. Mirrors the web MapView so both apps
@@ -8,6 +7,36 @@ import { colors, radius } from '../theme';
 // This needs a native build (EAS), not Expo Go. Coordinates are [lng, lat] here
 // - MapLibre's order - while the API and the rest of the app use {latitude,
 // longitude}, so convert at this boundary and nowhere else.
+
+// THE MAP LIBRARY IS REQUIRED LAZILY, AND THAT IS NOT A STYLE CHOICE.
+// `import { Map, Camera, Marker } from '@maplibre/maplibre-react-native'` runs
+// TurboModuleRegistry.getEnforcing('MLRNCameraModule') while the module is being
+// evaluated, and getEnforcing THROWS when the native module is not compiled into
+// the running binary. Expo Go does not ship third-party native modules, so it
+// always throws there.
+//
+// As a static import that throw landed during bundle evaluation, before React
+// rendered anything: ResidentNavigator imports every screen eagerly, so
+// ComplaintFormScreen -> LocationField -> MapPicker -> maplibre was pulled in at
+// startup and the WHOLE APP died on a "runtime not ready" red screen. The
+// render-time guard below never got to run, so a missing map took down filing a
+// report, My Reports, Profile and sign-in with it.
+//
+// Requiring inside a function keeps the module in the bundle (Metro still sees a
+// static string) but defers evaluation to the moment a map is actually rendered,
+// where a failure can be caught and degraded into a message.
+let nativeMap;
+function loadNativeMap() {
+  if (nativeMap === undefined) {
+    try {
+      nativeMap = require('@maplibre/maplibre-react-native');
+    } catch {
+      nativeMap = null; // no native module in this runtime (Expo Go)
+    }
+  }
+  return nativeMap;
+}
+
 const KEY = process.env.EXPO_PUBLIC_MAPTILER_API_KEY;
 const STYLE = `https://api.maptiler.com/maps/streets-v2/style.json?key=${KEY}`;
 
@@ -21,6 +50,20 @@ const DEFAULT_ZOOM = 12.5;
 export default function MapPicker({ value, onChange, height = 220 }) {
   const has = value?.latitude != null && value?.longitude != null;
 
+  // Checked before the key: in Expo Go BOTH are missing, and "build the app" is
+  // the useful instruction there - setting the key would change nothing.
+  const lib = loadNativeMap();
+  if (!lib) {
+    return (
+      <View style={[styles.fallback, { height }]}>
+        <Text style={styles.fallbackText}>
+          The map needs a development build - Expo Go cannot load it.
+          {'\n'}Use &quot;Use my location&quot; below to pin the spot.
+        </Text>
+      </View>
+    );
+  }
+
   if (!KEY) {
     return (
       <View style={[styles.fallback, { height }]}>
@@ -30,6 +73,8 @@ export default function MapPicker({ value, onChange, height = 220 }) {
       </View>
     );
   }
+
+  const { Map, Camera, Marker } = lib;
 
   return (
     <View style={[styles.wrap, { height }]}>
