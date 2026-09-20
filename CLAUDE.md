@@ -315,6 +315,20 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   container for port 5000. The launcher now does: Docker -> `docker compose up -d`
   -> wait for /api/health -> web dev server -> `scripts/preflight.mjs`. Double-click
   `check-cenrowatch.bat` alone to verify a system that is already running.
+- **A test credential that stops working is not automatically "drift" — ASK BEFORE
+  RESETTING A PASSWORD.** On 2026-09-18 `juan.delacruz@example.com / Resident123`
+  returned 401. This file documents that pair, and an older lesson records that a
+  rate-limited test once left this exact account modified, so I read it as drift
+  and reset the hash back to the documented value. It was not drift: the user had
+  deliberately changed that password, and the reset destroyed their change. They
+  found out when the mobile app rejected the password they had just set.
+  A password is the one field where "restore it to what the docs say" is
+  destructive rather than corrective — the previous value is unrecoverable from
+  the hash, so if the change was intentional it can only be recovered by asking
+  the person what they set. **Check `User.updated_at` first:** a timestamp near
+  now means somebody changed it on purpose and the answer is to ask, not to
+  overwrite. Restoring *rows* from seed data is safe; restoring a *credential* is
+  not, and the distinction is worth the one question it costs.
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
 - Backend: Admin-only `/admin` API. `GET /admin/analytics` (Prisma groupBy + JS
