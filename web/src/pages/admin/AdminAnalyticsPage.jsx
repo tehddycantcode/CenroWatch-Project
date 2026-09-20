@@ -70,8 +70,12 @@ export default function AdminAnalyticsPage() {
             </div>
           </div>
 
+          {/* bottom-8, not bottom-3: MapLibre pins its attribution bar to the
+              same bottom-right corner, and at bottom-3 it covered the fourth
+              legend row ("Endangered"). Raising z-index instead would hide the
+              MapTiler/OSM attribution, which the licence requires stay visible. */}
           {/* Marker colors */}
-          <div className="absolute bottom-3 right-3 rounded-lg border bg-background/95 p-3 text-xs shadow-md">
+          <div className="absolute bottom-8 right-3 rounded-lg border bg-background/95 p-3 text-xs shadow-md">
             <div className="mb-1.5 font-semibold">Markers</div>
             <ul className="space-y-1">
               {markerLegend.map((l) => (
