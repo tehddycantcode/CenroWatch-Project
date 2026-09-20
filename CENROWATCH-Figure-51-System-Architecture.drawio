@@ -1,0 +1,92 @@
+<mxfile host="app.diagrams.net" agent="CENROWATCH" version="24.7.17">
+  <diagram name="Figure 51 - System Architecture" id="cenrowatch-arch">
+    <mxGraphModel dx="900" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="720" pageHeight="960" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="CENROWATCH: SYSTEM ARCHITECTURE (THREE-TIER)" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1F4E2C;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="680" height="28" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier1" value="1. PRESENTATION LAYER" style="swimlane;whiteSpace=wrap;html=1;startSize=28;fillColor=#FAFAFA;strokeColor=#6E6E6E;fontSize=14;fontStyle=1;align=left;spacingLeft=12;fontColor=#333333;swimlaneFillColor=#FAFAFA;" vertex="1" parent="1">
+          <mxGeometry x="55" y="58" width="430" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="tier2" value="2. APPLICATION LAYER" style="swimlane;whiteSpace=wrap;html=1;startSize=28;fillColor=#FAFAFA;strokeColor=#6E6E6E;fontSize=14;fontStyle=1;align=left;spacingLeft=12;fontColor=#333333;swimlaneFillColor=#FAFAFA;" vertex="1" parent="1">
+          <mxGeometry x="55" y="305" width="430" height="185" as="geometry" />
+        </mxCell>
+        <mxCell id="tier3" value="3. DATA LAYER" style="swimlane;whiteSpace=wrap;html=1;startSize=28;fillColor=#FAFAFA;strokeColor=#6E6E6E;fontSize=14;fontStyle=1;align=left;spacingLeft=12;fontColor=#333333;swimlaneFillColor=#FAFAFA;" vertex="1" parent="1">
+          <mxGeometry x="55" y="545" width="430" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="extlabel" value="EXTERNAL SERVICES" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#6E6E6E;" vertex="1" parent="1">
+          <mxGeometry x="500" y="60" width="190" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="webportal" value="&lt;b&gt;Web Portal&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;React + Vite&lt;br&gt;Staff &amp;#183; Administrators &amp;#183; Residents&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=15;verticalAlign=middle;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="98" width="380" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="mobileapp" value="&lt;b&gt;Mobile Application&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;React Native + Expo&lt;br&gt;Residents&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=15;verticalAlign=middle;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="178" width="380" height="68" as="geometry" />
+        </mxCell>
+
+        <mxCell id="expressapi" value="&lt;b&gt;Node.js + Express.js REST API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;JWT Authentication &amp;#183; Role-Based Access Control&lt;br&gt;Validation &amp;#183; Tracking IDs &amp;#183; Audit Logging&lt;br&gt;multer Uploads &amp;#183; bcrypt Hashing&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=15;verticalAlign=middle;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="343" width="380" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="prisma" value="&lt;b&gt;Prisma ORM&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=13;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="95" y="450" width="150" height="32" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mysql" value="&lt;b&gt;MySQL 8&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;Users &amp;#183; Complaints&lt;br&gt;Wildlife Turnovers&lt;br&gt;Requests &amp;#183; Barangays&lt;br&gt;Audit Logs &amp;#183; Settings&lt;/font&gt;" style="shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=12;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=14;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="585" width="180" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="filestore" value="&lt;b&gt;File Storage&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;Report photos&lt;br&gt;Chain-of-custody photos&lt;br&gt;Supporting documents&lt;br&gt;&lt;i&gt;Signed, expiring URLs&lt;/i&gt;&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=14;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="280" y="585" width="180" height="145" as="geometry" />
+        </mxCell>
+
+        <mxCell id="maptiler" value="&lt;b&gt;MapTiler Cloud&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;Base map tiles&lt;br&gt;rendered client-side&lt;br&gt;by MapLibre&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=14;verticalAlign=middle;dashed=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="92" width="190" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="gmail" value="&lt;b&gt;Gmail SMTP&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;via Nodemailer&lt;br&gt;Email notifications&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=14;verticalAlign=middle;dashed=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="352" width="190" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="notes" value="&lt;b&gt;NOTES&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;1.&amp;nbsp; Arrows show the direction of each call; responses return along the same path.&lt;br&gt;2.&amp;nbsp; Map tiles are requested &lt;b&gt;directly by the client applications&lt;/b&gt; and do not pass through the Express API.&lt;br&gt;3.&amp;nbsp; Role-based access control is enforced at the Application Layer, not in either client.&lt;br&gt;4.&amp;nbsp; Dashed boxes are external services reached over HTTPS.&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9E9E9E;dashed=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;spacingRight=8;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="55" y="785" width="635" height="105" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a1" value="HTTPS / REST&lt;br&gt;JWT cookie" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.158;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#333333;fontSize=12;labelBackgroundColor=#FFFFFF;verticalAlign=middle;" edge="1" parent="1" source="webportal" target="expressapi">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="33" y="132" />
+              <mxPoint x="33" y="322" />
+              <mxPoint x="140" y="322" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a2" value="HTTPS / REST&lt;br&gt;JWT Bearer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#333333;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="mobileapp" target="expressapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="Prisma Client" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.237;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#333333;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="expressapi" target="prisma">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="TCP/IP 3306" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#333333;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="prisma" target="mysql">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" value="multer write&lt;br&gt;signed read" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.763;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#333333;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="expressapi" target="filestore">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a6" value="SMTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.55;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#9673A6;fontSize=12;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="expressapi" target="gmail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a7" value="HTTPS tiles" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.35;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#9673A6;fontSize=12;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="webportal" target="maptiler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a8" value="HTTPS tiles" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.85;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#9673A6;fontSize=12;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1" source="mobileapp" target="maptiler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
