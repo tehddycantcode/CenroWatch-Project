@@ -7,6 +7,7 @@ import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
 import BarangayPicker from '../../components/BarangayPicker';
 import SecureTextInput from '../../components/SecureTextInput';
+import HeaderMenu from '../../components/HeaderMenu';
 
 function Btn({ label, onPress, loading, disabled }) {
   return (
@@ -152,14 +153,13 @@ function Field({ label, hint, children }) {
 }
 
 export default function ProfileScreen() {
-  const { logout } = useAuth();
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Account</Text>
-        <Pressable onPress={logout} hitSlop={8}>
-          <Text style={styles.logout}>Log out</Text>
-        </Pressable>
+        {/* Log out moved into the menu so it sits in the same place on every
+            screen instead of being a bare text button only here and on Home. */}
+        <HeaderMenu />
       </View>
       <ScrollView contentContainerStyle={styles.scroll}>
         <ProfileSection />
@@ -180,7 +180,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   headerTitle: { color: colors.white, fontSize: 18, fontWeight: '800' },
-  logout: { color: colors.light, fontSize: 13, fontWeight: '700' },
 
   scroll: { padding: 20, paddingBottom: 32, gap: 16 },
   card: {

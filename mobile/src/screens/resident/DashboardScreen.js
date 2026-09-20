@@ -18,6 +18,7 @@ import { useResidentNav } from '../../navigation/navContext';
 import StatusBadge from '../../components/StatusBadge';
 import StatusLegend from '../../components/StatusLegend';
 import NotificationBell from '../../components/NotificationBell';
+import HeaderMenu from '../../components/HeaderMenu';
 import VerifyEmailCard from '../../components/VerifyEmailCard';
 import Icon from '../../components/Icon';
 
@@ -49,7 +50,7 @@ function normalize(complaints, wildlife, requests) {
 }
 
 export default function DashboardScreen() {
-  const { user, token, logout } = useAuth();
+  const { user, token } = useAuth();
   const { navigate } = useResidentNav();
   const [items, setItems] = useState(null);
   const [wildlifeCount, setWildlifeCount] = useState(0);
@@ -96,13 +97,13 @@ export default function DashboardScreen() {
           </View>
           <Text style={styles.brand}>CENROWATCH</Text>
         </View>
-        {/* The bell lives on Home only. My Reports and Profile share
-            ScreenHeader with the report forms, where a bell would be noise. */}
+        {/* The bell stays here on Home, where the unread count is worth showing
+            at a glance. "Log out" moved into the menu: it was a text button
+            competing with the brand for width, and it is now in the same place
+            on every screen rather than only on this one. */}
         <View style={styles.headerActions}>
           <NotificationBell />
-          <Pressable onPress={logout} hitSlop={8}>
-            <Text style={styles.logout}>Log out</Text>
-          </Pressable>
+          <HeaderMenu />
         </View>
       </View>
 
@@ -251,7 +252,6 @@ const styles = StyleSheet.create({
   brandTileText: { color: colors.primary, fontWeight: '800', fontSize: 12 },
   brand: { color: colors.white, fontSize: 17, fontWeight: '800', letterSpacing: 0.5 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  logout: { color: colors.light, fontSize: 13, fontWeight: '700' },
 
   // The floating Report button sits ~68px tall over the bottom of this list,
   // so the last row needs room to scroll clear of it.

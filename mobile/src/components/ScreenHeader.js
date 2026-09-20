@@ -2,9 +2,16 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { colors } from '../theme';
 import { useResidentNav } from '../navigation/navContext';
 import { LogoMark } from './Brand';
+import HeaderMenu from './HeaderMenu';
 
 // Forest-green top bar for resident screens. Shows a back chevron when there's
 // somewhere to go back to; otherwise the CW brand mark.
+//
+// The menu replaces what used to be an empty spacer holding the title centred.
+// Every screen using this bar - My Reports, Notifications, Track and the report
+// forms - previously had no way to reach notifications or sign out without
+// going back to the dashboard first, because those controls live only in the
+// dashboard's own header.
 export default function ScreenHeader({ title }) {
   const { goBack, canGoBack } = useResidentNav();
   return (
@@ -19,7 +26,7 @@ export default function ScreenHeader({ title }) {
       <Text style={styles.title} numberOfLines={1}>
         {title}
       </Text>
-      <View style={styles.spacer} />
+      <HeaderMenu />
     </View>
   );
 }
