@@ -1,0 +1,21 @@
+# Migration files are checked out with LF on every platform, deliberately.
+#
+# Prisma records a SHA-256 of each migration.sql in _prisma_migrations and
+# compares it on every run. That hash is taken over the file's BYTES, so line
+# endings are part of it. With core.autocrlf=true and no rule here, Windows
+# checkouts get CRLF while Linux gets LF, and the two platforms therefore
+# compute DIFFERENT checksums for a file neither of them edited.
+#
+# What that looked like in practice: four migrations were recorded with their LF
+# hash, Git later rewrote the working copy to CRLF, and Prisma began reporting
+# them as modified after they were applied. No SQL had changed - all thirteen
+# files matched either the LF or the CRLF form of their stored hash exactly.
+# `prisma migrate status` does NOT surface this; it reported "Database schema is
+# up to date!" throughout. The damage is that `migrate dev` responds to the
+# mismatch by offering to reset the database, and `migrate deploy` refuses to
+# run at all.
+#
+# Pinning eol=lf makes the bytes identical on Edward's Windows checkout and in
+# Koshi's Linux container, so a migration applied on one machine verifies on the
+# other.
+*.sql text eol=lf
