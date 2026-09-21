@@ -31,19 +31,27 @@ function maxAgeMs() {
 // deployment). Deploying them on genuinely different registrable domains needs
 // SESSION_COOKIE_SAMESITE=none, which REQUIRES https (Secure) and gives up that
 // CSRF protection — hence the explicit opt-in rather than a silent default.
-function options() {
+function options({ remember = true } = {}) {
   const sameSite = (process.env.SESSION_COOKIE_SAMESITE || 'lax').toLowerCase();
-  return {
+  const base = {
     httpOnly: true,                                    // unreadable from JavaScript
     secure: process.env.NODE_ENV === 'production' || sameSite === 'none',
     sameSite,
-    maxAge: maxAgeMs(),
     path: '/',
   };
+  // No maxAge at all when "remember me" was declined. A cookie with no expiry
+  // is a SESSION cookie: the browser drops it when the window closes, which is
+  // the behaviour someone signing in on a shared machine is asking for. Setting
+  // maxAge: 0 would not do this - it would delete the cookie immediately.
+  //
+  // This half only covers the browser. The token is separately signed with a
+  // short life (see utils/jwt.js), because a token copied off that machine
+  // outlives the cookie jar it came from.
+  return remember ? { ...base, maxAge: maxAgeMs() } : base;
 }
 
-function setSessionCookie(res, token) {
-  res.cookie(NAME, token, options());
+function setSessionCookie(res, token, remember = true) {
+  res.cookie(NAME, token, options({ remember: remember !== false }));
 }
 
 // Same attributes minus maxAge — a browser only drops a cookie when the

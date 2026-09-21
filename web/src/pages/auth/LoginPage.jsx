@@ -14,7 +14,11 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [form, setForm] = useState({ email: '', password: '' });
+  // Unchecked by default, and that default is the whole feature. Defaulting it
+  // on would mean almost nobody ever unticks it, and a resident signing in at a
+  // barangay hall or an internet cafe would leave a week-long session behind on
+  // a machine they do not own.
+  const [form, setForm] = useState({ email: '', password: '', remember: false });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -89,7 +93,17 @@ export default function LoginPage() {
           />
         </FormField>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-3">
+          <label htmlFor="remember" className="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground">
+            <input
+              id="remember"
+              type="checkbox"
+              className="h-4 w-4 cursor-pointer rounded border-input accent-primary"
+              checked={form.remember}
+              onChange={(e) => setForm((f) => ({ ...f, remember: e.target.checked }))}
+            />
+            Keep me signed in
+          </label>
           <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
             Forgot password?
           </Link>

@@ -19,9 +19,13 @@ const register = asyncHandler(async (req, res) => {
   });
 });
 
+// `remember` is the only place the choice is made. Absent means remembered, so
+// a client that does not send the field - the installed mobile build, for one -
+// keeps the behaviour it has always had instead of being cut to 12 hours.
 const login = asyncHandler(async (req, res) => {
+  const remember = req.body.remember !== false;
   const { user, token } = await authService.login(req.body, { ipAddress: req.ip });
-  setSessionCookie(res, token);
+  setSessionCookie(res, token, remember);
   res.status(200).json({
     success: true,
     message: 'Login successful.',
@@ -55,13 +59,16 @@ const updateMe = asyncHandler(async (req, res) => {
 // mobile, exactly as login does - so the person changing their own password is
 // not the one it locks out.
 const changePassword = asyncHandler(async (req, res) => {
+  // Carried over from the session making this request, never defaulted - see
+  // the note on tokenFor in auth.service.
+  const remember = req.session?.remember !== false;
   const { token } = await authService.changePassword(
     req.user.user_id,
     req.body.current_password,
     req.body.new_password,
-    { ipAddress: req.ip }
+    { ipAddress: req.ip, remember }
   );
-  setSessionCookie(res, token);
+  setSessionCookie(res, token, remember);
   res.status(200).json({
     success: true,
     message: 'Your password has been changed. Any other devices have been signed out.',

@@ -56,8 +56,23 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const persist = useCallback(async (tk, usr) => {
-    await SecureStore.setItemAsync(TOKEN_KEY, tk);
+  // Whether THIS session asked to be kept. A ref rather than state because
+  // nothing renders from it and updateToken has to read the current value
+  // without re-subscribing to it.
+  const rememberedRef = useRef(true);
+
+  const persist = useCallback(async (tk, usr, remember = true) => {
+    rememberedRef.current = remember !== false;
+    if (rememberedRef.current) {
+      await SecureStore.setItemAsync(TOKEN_KEY, tk);
+    } else {
+      // Declined: the token lives in memory for this run of the app only, so
+      // closing it signs out. The delete matters as much as skipping the write
+      // - a previous kept session may have left a token in the keychain, and
+      // leaving it there would silently restore a session the person has just
+      // asked not to keep.
+      await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
+    }
     setToken(tk);
     setUser(usr);
     setSessionNotice('');
@@ -66,7 +81,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(
     async (credentials) => {
       const res = await api.login(credentials);
-      await persist(res.data.token, res.data.user);
+      await persist(res.data.token, res.data.user, credentials.remember);
       return res.data.user;
     },
     [persist]
@@ -98,9 +113,13 @@ export function AuthProvider({ children }) {
   // the resident is bounced to the login screen by their own password change -
   // on the very next request, with "Your password was changed. Please sign in
   // again.", which reads like a failure rather than the thing they just did.
+  //
+  // Only written to the keychain if this session asked to be kept. Writing it
+  // unconditionally would turn "change my password" into the one action that
+  // quietly converts a deliberately temporary session into a stored one.
   const updateToken = useCallback(async (tk) => {
     if (!tk) return;
-    await SecureStore.setItemAsync(TOKEN_KEY, tk);
+    if (rememberedRef.current) await SecureStore.setItemAsync(TOKEN_KEY, tk);
     setToken(tk);
   }, []);
 

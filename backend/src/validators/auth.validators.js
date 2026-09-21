@@ -46,6 +46,12 @@ const loginRules = [
     .isEmail().withMessage('A valid email is required.')
     .normalizeEmail(),
   body('password').notEmpty().withMessage('Password is required.'),
+  // Optional on purpose: a client that omits it keeps the long-lived session it
+  // has always had. Sanitised rather than validated, so a string "false" from a
+  // form post is not read as the truthy string it technically is.
+  body('remember')
+    .optional()
+    .customSanitizer((v) => !(v === false || v === 'false' || v === 0 || v === '0')),
 ];
 
 const forgotPasswordRules = [

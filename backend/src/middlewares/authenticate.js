@@ -82,6 +82,11 @@ async function authenticate(req, res, next) {
     delete user.password_changed_at; // never needed downstream; keep req.user lean
 
     req.user = user;
+    // Properties of the SESSION rather than the person, kept separate from
+    // req.user for that reason. changePassword re-issues a token and needs to
+    // know what was chosen at login; a token minted before this claim existed
+    // has no `rem`, which reads as remembered so live sessions are unaffected.
+    req.session = { remember: payload.rem !== false };
     return next();
   } catch (err) {
     return next(err);

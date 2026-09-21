@@ -21,12 +21,16 @@ export default function LoginScreen({ onNavigate }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Off by default, matching the web form. Left on, almost nobody would ever
+  // turn it off, and a phone handed round or lent out would keep a week-long
+  // session in the keychain.
+  const [remember, setRemember] = useState(false);
 
   async function onSubmit() {
     setError('');
     setSubmitting(true);
     try {
-      await login({ email: email.trim(), password });
+      await login({ email: email.trim(), password, remember });
       // On success, RootNavigator swaps to the authenticated stack automatically.
     } catch (err) {
       setError(err.message || 'Unable to sign in.');
@@ -84,6 +88,23 @@ export default function LoginScreen({ onNavigate }) {
                 secureTextEntry
               />
 
+              {/* A Pressable row rather than a bare Switch: the whole row is the
+                  target, which is a far easier tap than a 20px box, and the
+                  label reads as part of the control instead of beside it. */}
+              <Pressable
+                onPress={() => setRemember((v) => !v)}
+                hitSlop={6}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: remember }}
+                accessibilityLabel="Keep me signed in"
+                style={styles.rememberRow}
+              >
+                <View style={[styles.checkbox, remember && styles.checkboxOn]}>
+                  {remember ? <Text style={styles.checkboxTick}>✓</Text> : null}
+                </View>
+                <Text style={styles.rememberText}>Keep me signed in</Text>
+              </Pressable>
+
               <Button title="Sign In" onPress={onSubmit} loading={submitting} />
 
               <View style={styles.footer}>
@@ -116,6 +137,19 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 28, paddingTop: 28 },
   title: { fontSize: 26, fontWeight: '800', color: colors.text },
   subtitle: { fontSize: 14, color: colors.muted, marginTop: 4 },
+  rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  checkboxTick: { color: colors.white, fontSize: 13, fontWeight: '800', lineHeight: 16 },
+  rememberText: { fontSize: 13, color: colors.muted },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 6 },
   footerText: { fontSize: 13, color: colors.muted },
   link: { fontSize: 13, color: colors.primary, fontWeight: '700' },

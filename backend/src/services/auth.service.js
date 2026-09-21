@@ -33,8 +33,21 @@ const PUBLIC_USER_FIELDS = {
   created_at: true,
 };
 
-function tokenFor(user) {
-  return signToken({ sub: user.user_id, role: user.role, email: user.email });
+// The "remember me" choice travels IN the token, as `rem`.
+//
+// Three places mint a session - register, login and changePassword - and only
+// login is told what the person chose. Without the claim, changePassword would
+// re-issue a default session and silently upgrade someone who deliberately
+// declined "remember me" on a shared computer to a week-long persistent one.
+// Carrying the choice in the token means every re-issue can preserve it without
+// the client having to send it again.
+//
+// Absent means remembered, deliberately: tokens minted before this existed have
+// no claim, and treating them as declined would sign out every live session the
+// moment this deploys.
+function tokenFor(user, remember = true) {
+  const rem = remember !== false;
+  return signToken({ sub: user.user_id, role: user.role, email: user.email, rem }, { remember: rem });
 }
 
 /**
@@ -97,7 +110,7 @@ async function register(input, ctx = {}) {
  * "wrong password" so the endpoint does not reveal which emails are registered.
  */
 async function login(input, ctx = {}) {
-  const { email, password } = input;
+  const { email, password, remember } = input;
 
   const user = await prisma.user.findUnique({ where: { email } });
   const ok = user && (await verifyPassword(password, user.password_hash));
@@ -120,7 +133,7 @@ async function login(input, ctx = {}) {
 
   // Strip the hash before returning.
   const { password_hash, ...safeUser } = user;
-  return { user: safeUser, token: tokenFor(user) };
+  return { user: safeUser, token: tokenFor(user, remember) };
 }
 
 /**
@@ -302,7 +315,12 @@ async function changePassword(userId, currentPassword, newPassword, ctx = {}) {
   // we know belongs to the real owner is not collateral damage of signing every
   // other session out. The caller hands it back as a cookie (web) and in the
   // body (mobile), the same pair login uses.
-  return { ok: true, token: tokenFor(user) };
+  //
+  // ctx.remember comes from the `rem` claim on the session making this request,
+  // NOT from a default. Re-issuing a default session here would take somebody
+  // who declined "remember me" on a shared computer and hand them a week-long
+  // persistent one for the crime of changing their password.
+  return { ok: true, token: tokenFor(user, ctx.remember) };
 }
 
 module.exports = {
