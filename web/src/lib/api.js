@@ -13,7 +13,22 @@
 // is no synchronous "am I signed in?" answer. Only the server knows, and
 // AuthContext asks it once at boot via authApi.session().
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+// The fallback is environment-aware, and that is not a nicety.
+//
+// It used to be `|| 'http://localhost:5000/api/v1'` unconditionally. Every env
+// file here is gitignored - only .env.example is committed - so a fresh clone
+// has no VITE_API_URL at all, the fallback fired, and `npm run build` cheerfully
+// baked localhost:5000 into the production bundle with no warning. The deployed
+// site would then ask each VISITOR'S OWN MACHINE for the API and fail on every
+// call, with nothing in the build output pointing at why.
+//
+// A relative base is the right production default rather than merely a safer
+// one: the session is an HttpOnly SameSite=Lax cookie, which requires the app
+// and the API to be same-site, so they are served from one origin behind a
+// proxy (see backend/src/utils/sessionCookie.js). Setting VITE_API_URL still
+// overrides this for anyone who splits them.
+const BASE = import.meta.env.VITE_API_URL
+  || (import.meta.env.DEV ? 'http://localhost:5000/api/v1' : '/api/v1');
 
 // Fired (on window) when an authenticated call comes back 401, i.e. the JWT
 // expired or was revoked. AuthContext listens and signs the user out once.
