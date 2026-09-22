@@ -49,8 +49,25 @@ const archiveReportRules = [
     .isLength({ max: 255 }).withMessage('Reason must be 255 characters or fewer.'),
 ];
 
+// The office coordinates are the one pair that may be blanked: an empty value is
+// how an Admin switches the "distance from the office" line off again. Every
+// other setting drives a calculation that has no sensible empty state - an empty
+// SLA budget would silently stop producing deadlines - so they keep the
+// not-empty rule. The range check on a non-empty coordinate lives in
+// admin.settings.service.js, where the key is already being inspected.
+const CLEARABLE_SETTINGS = ['cenro_office_lat', 'cenro_office_lng'];
+
 const updateSettingRules = [
-  body('setting_value').exists().withMessage('A value is required.').bail().trim().notEmpty().withMessage('Value cannot be empty.').isLength({ max: 2000 }),
+  body('setting_value')
+    .exists().withMessage('A value is required.').bail()
+    .trim()
+    .custom((value, { req }) => {
+      if (value === '' && !CLEARABLE_SETTINGS.includes(req.params.key)) {
+        throw new Error('Value cannot be empty.');
+      }
+      return true;
+    })
+    .isLength({ max: 2000 }),
 ];
 
 // Report categories (complaint types / request types). Shape only - uniqueness,

@@ -40,6 +40,11 @@ const settings = [
   { setting_key: 'wildlife_sla_minutes', setting_value: '3218', description: 'Wildlife response budget in WORKING minutes (Mon-Fri). Clock starts at submission' },
   { setting_key: 'request_seedling_sla_minutes', setting_value: '25', description: 'Seedling request budget in WORKING minutes. Clock starts on approval' },
   { setting_key: 'request_env_education_sla_minutes', setting_value: '187', description: 'Environmental education budget in WORKING minutes. Clock starts on approval' },
+  // Point A for the distance line on the staff report detail page. Inside Cabuyao
+  // City Hall. Clear either value to switch that line off; an Admin can correct
+  // both from the Settings page without a deploy.
+  { setting_key: 'cenro_office_lat', setting_value: '14.271764542862766', description: 'Latitude of the CENRO Cabuyao office. Used to measure how far a report is from the office' },
+  { setting_key: 'cenro_office_lng', setting_value: '121.12434099651512', description: 'Longitude of the CENRO Cabuyao office. Used to measure how far a report is from the office' },
 ];
 
 // The eight complaint categories that were the ComplaintType enum. `label` is

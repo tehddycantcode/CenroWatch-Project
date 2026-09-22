@@ -17,6 +17,7 @@ const custodyUpload = diskUpload('custody');
 const complaintUpload = diskUpload('complaints');
 
 const overview = require('../controllers/staff.overview.controller');
+const office = require('../controllers/staff.office.controller');
 const complaints = require('../controllers/staff.complaint.controller');
 const wildlife = require('../controllers/staff.wildlife.controller');
 const requests = require('../controllers/staff.request.controller');
@@ -26,6 +27,11 @@ router.use(authenticate, authorize('CENRO_Staff', 'Admin'));
 
 // Dashboard
 router.get('/overview', overview.getOverview);
+
+// Where the CENRO office is, so a report's detail view can say how far away it
+// is. Read-only, no personal data; the settings themselves stay Admin-only
+// under /admin/settings.
+router.get('/office-location', office.getOfficeLocation);
 
 // Complaints
 router.get('/complaints', v.listQueryRules, validate, complaints.list);

@@ -4,6 +4,7 @@
 const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
+const { LAT_KEY, LNG_KEY } = require('./officeLocation.service');
 
 function listSettings() {
   return prisma.systemSetting.findMany({ orderBy: { setting_key: 'asc' } });
@@ -17,6 +18,22 @@ async function updateSetting(adminId, key, value, ctx = {}) {
   if (key.endsWith('_minutes')) {
     const n = Number(value);
     if (!Number.isInteger(n) || n <= 0) throw new HttpError(422, 'This setting must be a positive whole number of minutes.');
+  }
+
+  // The office coordinates are typed into a text box and then become map
+  // geometry, so a slip has to be refused here. 141 instead of 14.1 does not
+  // fail anywhere downstream - it silently moves the office to the Arctic and
+  // makes every distance on every report wrong. An empty value is allowed: that
+  // is how an Admin clears the office and switches the distance line back off.
+  if (key === LAT_KEY || key === LNG_KEY) {
+    const raw = String(value).trim();
+    if (raw !== '') {
+      const n = Number(raw);
+      const limit = key === LAT_KEY ? 90 : 180;
+      if (!Number.isFinite(n) || n < -limit || n > limit) {
+        throw new HttpError(422, `This setting must be a number between -${limit} and ${limit}.`);
+      }
+    }
   }
 
   const setting = await prisma.systemSetting.update({

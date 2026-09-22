@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { MapPin, Printer, Archive, RotateCcw } from 'lucide-react';
+import { MapPin, Printer, Archive, RotateCcw, Navigation } from 'lucide-react';
 import { fileUrl, isPdfPath, adminApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
+import { distanceKm, formatDistance, directionsUrl } from '@/lib/geo';
+import { useOfficeLocation } from '@/lib/useOfficeLocation';
 import { useAuth } from '@/context/AuthContext';
 import MapView from '@/components/MapView';
 import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/icons';
 
@@ -44,7 +47,17 @@ export function PrintReportButton({ download, id }) {
 // (single marker, camera centered on it). Renders nothing without geo/address;
 // requests never have coordinates, so only complaint/wildlife pages use this.
 export function LocationBlock({ marker, address }) {
+  const office = useOfficeLocation();
   const hasGeo = marker?.latitude != null && marker?.longitude != null;
+
+  // The office end of the line. Absent until an Admin fills in both coordinates
+  // on the Settings page, and absent for a report with no pin - in either case
+  // the map below simply shows the pin alone, as it always did.
+  const to = hasGeo ? { lat: marker.latitude, lng: marker.longitude } : null;
+  const route = office && to ? { from: office, to } : null;
+  const distance = route ? formatDistance(distanceKm(office, to)) : null;
+  const directions = route ? directionsUrl(office, to) : null;
+
   if (!hasGeo && !address) return null;
   return (
     <div className="mt-6">
@@ -57,8 +70,30 @@ export function LocationBlock({ marker, address }) {
             <span className="tabular-nums">{marker.latitude}, {marker.longitude}</span>
           </div>
           <div className="mt-3 overflow-hidden rounded-lg img-outline">
-            <MapView markers={[marker]} fitToMarkers className="h-64 w-full" />
+            <MapView markers={[marker]} route={route} fitToMarkers className="h-64 w-full" />
           </div>
+          {route && (
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+              {/* "Straight line" is not a disclaimer for its own sake: the drive
+                  is always longer, and a staff member planning a visit around
+                  this number should know which one it is. */}
+              <span className="text-xs text-muted-foreground">
+                <span className="tabular-nums">{distance}</span> from the CENRO office in a straight line
+              </span>
+              {/* noreferrer as well as noopener: the destination is a report's
+                  exact location, and the referrer would otherwise carry this
+                  page's URL to Google. */}
+              <a
+                href={directions}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+              >
+                <Navigation className="h-4 w-4" aria-hidden="true" />
+                Directions
+              </a>
+            </div>
+          )}
         </>
       )}
     </div>

@@ -257,6 +257,9 @@ function staffResource(name) {
 
 export const staffApi = {
   overview: () => apiFetch('/staff/overview'),
+  // { office: { lat, lng } } or { office: null } when an Admin has not set the
+  // CENRO coordinates yet. Null is a normal answer, not an error.
+  officeLocation: () => apiFetch('/staff/office-location'),
   complaints: {
     ...staffResource('complaints'),
     // Log a walk-in complaint on behalf of a resident. `form` is a FormData

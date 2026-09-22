@@ -74,6 +74,22 @@ const EMPTY_MARKERS = [];
  * - Heatmap mode: pass `heatmap` to render complaint density instead of pins.
  * - Picker mode: pass `picker`, `value` ({latitude, longitude}) and `onPick(lat,lng)`.
  */
+// A straight office-to-report line, or null. Deliberately NOT a road route:
+// drawing one needs a routing service, and this exists to answer "where is this,
+// and how far out are we" - which a straight line and a distance answer without
+// a third-party dependency that can rate-limit or go down mid-demo. The
+// "Directions" button beside it hands the actual navigation to a maps app.
+function routePoints(route) {
+  const from = route?.from;
+  const to = route?.to;
+  if (from?.lat == null || from?.lng == null) return null;
+  if (to?.lat == null || to?.lng == null) return null;
+  return { from, to };
+}
+
+const ROUTE_SOURCE = 'office-route';
+const ROUTE_LAYER = 'office-route-line';
+
 export default function MapView({
   markers = EMPTY_MARKERS,
   heatmap = false,
@@ -83,12 +99,14 @@ export default function MapView({
   center = CABUYAO,
   zoom = 12,
   fitToMarkers = false,
+  route = null,
   className = 'h-full w-full',
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markerObjs = useRef([]);
   const pickMarker = useRef(null);
+  const officeMarker = useRef(null);
   const heatReady = useRef(false);
   const heatData = useRef({ type: 'FeatureCollection', features: [] });
   const onPickRef = useRef(onPick);
@@ -198,7 +216,11 @@ export default function MapView({
 
     // Frame the camera around the pins (e.g. the staff dashboard map) instead
     // of relying on the default center/zoom to happen to show them.
-    if (fitToMarkers) {
+    //
+    // With a route, the framing has to include the office too, so the route
+    // effect below owns it - otherwise this eases to zoom 14 on the report and
+    // the other end of the line sits off-screen.
+    if (fitToMarkers && !routePoints(route)) {
       const placed = markers.filter((m) => m.latitude != null && m.longitude != null);
       if (placed.length === 1) {
         map.easeTo({ center: [placed[0].longitude, placed[0].latitude], zoom: 14, duration: 400 });
@@ -208,7 +230,84 @@ export default function MapView({
         map.fitBounds(bounds, { padding: 56, maxZoom: 15, duration: 400 });
       }
     }
-  }, [markers, picker, heatmap, fitToMarkers]);
+  }, [markers, picker, heatmap, fitToMarkers, route]);
+
+  // Office -> report line, plus a pin on the office end.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return undefined;
+    const points = routePoints(route);
+
+    const clear = (m) => {
+      if (m.getLayer(ROUTE_LAYER)) m.removeLayer(ROUTE_LAYER);
+      if (m.getSource(ROUTE_SOURCE)) m.removeSource(ROUTE_SOURCE);
+      if (officeMarker.current) {
+        officeMarker.current.remove();
+        officeMarker.current = null;
+      }
+    };
+
+    const draw = () => {
+      // The map can be torn down while this waits for `load`.
+      const m = mapRef.current;
+      if (!m) return;
+      if (!points) {
+        clear(m);
+        return;
+      }
+      const { from, to } = points;
+      const data = {
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: [[from.lng, from.lat], [to.lng, to.lat]] },
+      };
+      const src = m.getSource(ROUTE_SOURCE);
+      if (src) {
+        src.setData(data);
+      } else {
+        m.addSource(ROUTE_SOURCE, { type: 'geojson', data });
+        m.addLayer({
+          id: ROUTE_LAYER,
+          type: 'line',
+          source: ROUTE_SOURCE,
+          // Dashed, so it reads as "distance between these two points" rather
+          // than a road you are meant to follow - which it is not.
+          paint: {
+            'line-color': '#0f766e',
+            'line-width': 3,
+            'line-opacity': 0.85,
+            'line-dasharray': [2, 1.5],
+          },
+        });
+      }
+      if (officeMarker.current) {
+        officeMarker.current.setLngLat([from.lng, from.lat]);
+      } else {
+        officeMarker.current = new maplibregl.Marker({ color: '#0f766e' })
+          .setLngLat([from.lng, from.lat])
+          .addTo(m);
+      }
+      if (fitToMarkers) {
+        const bounds = new maplibregl.LngLatBounds();
+        bounds.extend([from.lng, from.lat]);
+        bounds.extend([to.lng, to.lat]);
+        markers.forEach((mk) => {
+          if (mk.latitude != null && mk.longitude != null) bounds.extend([mk.longitude, mk.latitude]);
+        });
+        map.fitBounds(bounds, { padding: 56, maxZoom: 15, duration: 400 });
+      }
+    };
+
+    // A layer cannot be added before the style exists. Draw now if it is
+    // already up, otherwise wait - the office location arrives from its own
+    // request, so it can land on either side of the style loading.
+    if (styleLoaded.current) {
+      draw();
+      return undefined;
+    }
+    map.once('load', draw);
+    return () => map.off('load', draw);
+  }, [route, fitToMarkers, markers]);
 
   // Picker marker.
   useEffect(() => {
