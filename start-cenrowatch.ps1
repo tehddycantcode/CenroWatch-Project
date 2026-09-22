@@ -319,6 +319,23 @@ if (-not $NoMobile) {
             Write-Host '        an INSTALLED APK needs a REBUILD - that URL is baked in at build time.' -ForegroundColor DarkGray
         }
 
+        # Expo Go must be the build for THIS project's SDK. The Play Store only
+        # ever offers the newest one, and it auto-updates, so a phone that worked
+        # last month can stop opening the project with "Project is incompatible
+        # with this version of Expo Go" while nothing in the repo has changed.
+        # Print the matching download every time, because the day it is needed is
+        # the day nobody wants to go looking for it.
+        $sdk = $null
+        try {
+            $expoDep = (Get-Content "$root\mobile\package.json" -Raw | ConvertFrom-Json).dependencies.expo
+            if ($expoDep -match '(\d+)\.') { $sdk = $Matches[1] }
+        }
+        catch { }
+        if ($sdk) {
+            Write-Host "      phone needs the Expo Go build for SDK $sdk (the store ships the newest):" -ForegroundColor DarkGray
+            Write-Host "        https://expo.dev/go?sdkVersion=$sdk&platform=android&device=true" -ForegroundColor DarkGray
+        }
+
         # Checking the port first is also what keeps this non-interactive: Expo
         # asks "use port 8082 instead?" when 8081 is taken, and nobody may be
         # there to answer it.

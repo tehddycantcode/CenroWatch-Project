@@ -7,6 +7,25 @@ Standing rule: whenever I make a mobile mistake, append the lesson here so it ne
 repeats. (Project-wide tooling/PowerShell lessons live in the root `CLAUDE.md`.)
 - Verify a mobile change with `npx expo export --platform android` (bundles all
   modules) before committing — it catches import/JSX errors a web build won't.
+- **"Project is incompatible with this version of Expo Go" is a PHONE problem, not
+  a repo problem** (2026-09-22). The Play Store only ever offers the newest Expo
+  Go and auto-updates it, so a phone that opened this project last month starts
+  refusing it — Expo Go for SDK 57 against an SDK 56 project — with nothing in
+  the repo changed. Install the matching build from
+  `https://expo.dev/go?sdkVersion=56&platform=android&device=true`, then TURN OFF
+  auto-update for Expo Go, or the store will quietly break it again at the worst
+  moment. The launcher prints that link on every run. Do not let this push you
+  into an SDK upgrade: that is a React Native bump, a plugin-compatibility pass
+  and a new EAS build, and `runtimeVersion: fingerprint` means every installed
+  APK stops receiving OTA updates until it is reinstalled.
+  Two things that look like failures in that same log and are not: `Android
+  Bundled 10724ms index.js (917 modules)` means the phone reached Metro over the
+  LAN and pulled the whole bundle, so the network, the firewall and the API
+  target are all fine — read it before blaming any of them. And the "recommended
+  to log in with your Expo account" prompt is optional; "Proceed anonymously" is
+  the right answer for opening your own project, and the `AssertionError:
+  (username && password)` that follows an attempted login in that window is the
+  CLI failing to read the credentials, not a rejected account.
 - **`start-cenrowatch.bat` starts Expo too** (2026-09-22) — a third window running
   `npm start`, alongside the API and the web app, with `-NoMobile` to skip it.
   Before Metro starts it compares the app's API target (`mobile/.env`
