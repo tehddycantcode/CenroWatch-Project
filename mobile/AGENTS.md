@@ -7,6 +7,26 @@ Standing rule: whenever I make a mobile mistake, append the lesson here so it ne
 repeats. (Project-wide tooling/PowerShell lessons live in the root `CLAUDE.md`.)
 - Verify a mobile change with `npx expo export --platform android` (bundles all
   modules) before committing — it catches import/JSX errors a web build won't.
+- **`try { require(x) } catch` DOES NOT CATCH in a dev bundle — Metro swallows the
+  error and shows the red box itself** (2026-09-22). `MapPicker` guarded the
+  maplibre require in a try/catch so Expo Go could degrade to a message. It never
+  worked: `metroRequire` sends an uninitialized module through
+  `guardedLoadModule`, which wraps the module body in its OWN try/catch, passes
+  any error to `ErrorUtils.reportFatalError` — the full-screen LogBox — and
+  returns `undefined` WITHOUT re-throwing. Read it yourself in any dev bundle:
+  fetch `http://localhost:8081/index.bundle?platform=android&dev=true` and search
+  for `function guardedLoadModule`. Consequences: our catch block was dead code,
+  Expo Go showed "Uncaught Error: 'MLRNCameraModule' could not be found" for a
+  case the component was written to handle, and because the failed require left
+  the cache variable `undefined` rather than `null`, the `=== undefined` check
+  never latched and every re-render requested the broken module again.
+  **Ask whether the native module is registered instead of trying to catch its
+  absence:** `TurboModuleRegistry.get(name)` runs the exact lookup
+  `getEnforcing(name)` does — `global.__turboModuleProxy` first, then the legacy
+  `NativeModules` table (see `react-native/Libraries/TurboModule/TurboModuleRegistry.js`)
+  — and returns `null` instead of throwing. True in any build containing the
+  native code, false in Expo Go. The same shape applies to any optional native
+  dependency, not just the map.
 - **"Project is incompatible with this version of Expo Go" is a PHONE problem, not
   a repo problem** (2026-09-22). The Play Store only ever offers the newest Expo
   Go and auto-updates it, so a phone that opened this project last month starts

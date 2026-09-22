@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TurboModuleRegistry } from 'react-native';
 import { colors, radius } from '../theme';
 
 // Tap-to-pin map for report locations. Mirrors the web MapView so both apps
@@ -23,15 +23,45 @@ import { colors, radius } from '../theme';
 // report, My Reports, Profile and sign-in with it.
 //
 // Requiring inside a function keeps the module in the bundle (Metro still sees a
-// static string) but defers evaluation to the moment a map is actually rendered,
-// where a failure can be caught and degraded into a message.
+// static string) but defers evaluation to the moment a map is actually rendered.
+//
+// DO NOT GO BACK TO try/catch AROUND THE require - IT CANNOT CATCH THIS.
+// In a DEV bundle Metro does not let a module-evaluation error reach the caller:
+// metroRequire sends an uninitialized module through guardedLoadModule, which
+// runs the module body in its own try/catch, hands any error to
+// ErrorUtils.reportFatalError - the full-screen red LogBox - and returns
+// undefined WITHOUT re-throwing. So the catch below never ran, Expo Go showed
+// "Uncaught Error: 'MLRNCameraModule' could not be found" for a case this
+// component exists to handle, and because the error left nativeMap as undefined
+// rather than null, the `=== undefined` cache check never latched and every
+// re-render requested the failed module again.
+//
+// Ask whether the native module is registered instead. TurboModuleRegistry.get
+// performs the EXACT lookup the library's own getEnforcing does - the turbo
+// module proxy first, then the legacy NativeModules table - and returns null
+// instead of throwing, so it answers true in any build that really contains the
+// native code and false in Expo Go, which ships no third-party native modules.
+//
+// Either probe answering is enough: both modules come from the same native
+// package, so one present means the package is present. If a library upgrade
+// renames them, this goes stale and we require exactly as before - a red box in
+// Expo Go, never a silently missing map in a real build.
+const NATIVE_PROBES = ['MLRNMapViewModule', 'MLRNCameraModule'];
+
 let nativeMap;
 function loadNativeMap() {
   if (nativeMap === undefined) {
-    try {
-      nativeMap = require('@maplibre/maplibre-react-native');
-    } catch {
+    const installed = NATIVE_PROBES.some((name) => TurboModuleRegistry.get(name) != null);
+    if (!installed) {
       nativeMap = null; // no native module in this runtime (Expo Go)
+    } else {
+      try {
+        // `|| null` so a runtime that swallows the error still caches a decision
+        // here; leaving undefined would re-require on every single render.
+        nativeMap = require('@maplibre/maplibre-react-native') || null;
+      } catch {
+        nativeMap = null;
+      }
     }
   }
   return nativeMap;
