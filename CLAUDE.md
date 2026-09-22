@@ -321,13 +321,28 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   is unchanged: `docker compose up -d` -> health -> web -> `scripts/preflight.mjs`.
   `-NoPrompt` skips every `Read-Host` so another script can drive it; without it
   the window still waits for Enter, which is what a double-click needs.
+  It starts the MOBILE app too, in a third window (`npm start` -> Expo/Metro on
+  8081), and waits for `packager-status:running` on `/status` rather than a bare
+  port probe. `-NoMobile` skips it. Two things that look like bugs but are not:
+  Metro's `/status` comes back as a **byte[]** in Windows PowerShell because the
+  response carries no charset, so it must be decoded before matching or the test
+  never passes; and the port is checked BEFORE launching Expo because Expo asks
+  "use port 8082 instead?" when 8081 is taken, which would hang an unattended run.
+  Before Metro starts, the launcher compares the app's API target — `mobile/.env`
+  `EXPO_PUBLIC_API_URL` if set, else the fallback in `mobile/src/config.js` —
+  against this PC's IPv4 addresses, because a new DHCP lease breaks the phone
+  while the API and web app stay perfectly healthy. The suggested IP comes from
+  the adapter that has a default gateway, not the first address: this machine
+  also has 192.168.56.1, and sending someone to a VirtualBox address wastes an
+  afternoon.
 - **`scripts/preflight.mjs` is DOCKER-ONLY, and so is `check-cenrowatch.bat`.**
   Every deep check runs through `docker exec cenrowatch_api`, so on the native
   setup it reports a perfectly healthy system as broken top to bottom. That is
   why the launcher skips it in native mode and prints what went unverified
-  (migrations, schema drift, SMTP auth, uploads, the mobile API target) instead
-  of faking a green run. Do those checks on the Docker machine before a demo or
-  the defense, or teach preflight the native path first.
+  (migrations, schema drift, SMTP auth, uploads) instead of faking a green run.
+  Do those checks on the Docker machine before a demo or the defense, or teach
+  preflight the native path first. Its mobile-API-target check is the one part
+  the native launcher now does itself.
 - **A test credential that stops working is not automatically "drift" — ASK BEFORE
   RESETTING A PASSWORD.** On 2026-09-18 `juan.delacruz@example.com / Resident123`
   returned 401. This file documents that pair, and an older lesson records that a

@@ -14,10 +14,15 @@ Write-Host ''
 
 # -- Host dev servers --------------------------------------------------------
 # Closing the npm window kills the npm wrapper but can orphan the Vite child,
-# which keeps holding port 5173 - so match vite explicitly and verify after.
-# nodemon is matched too: on the native setup that is the API on port 5000.
+# which keeps holding port 5173 - so match the children explicitly and verify
+# after. nodemon is the API on the native setup; expo\bin\cli is Metro.
+#
+# The expo pattern is deliberately the CLI's path and not the bare word "expo":
+# this machine runs other node processes whose command line mentions expo
+# (editor extensions, npx caches), and a "stop the dev servers" script has no
+# business killing those.
 $procs = Get-CimInstance Win32_Process | Where-Object {
-    $_.Name -match 'node' -and $_.CommandLine -match 'vite|nodemon'
+    $_.Name -match 'node' -and $_.CommandLine -match 'vite|nodemon|expo[\\/]bin[\\/]cli'
 }
 if ($procs) {
     $procs | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
@@ -25,21 +30,6 @@ if ($procs) {
 }
 else {
     Write-Host '  dev servers: nothing was running' -ForegroundColor DarkGray
-}
-
-# Confirm 5173 actually released; an orphan here is a known failure mode.
-# NB: Vite listens on IPv6 loopback (::1) only, so an IPv4-only probe would
-# report the port as free while an orphaned dev server still holds it - exactly
-# the case this check exists to catch. Get-NetTCPConnection covers both families.
-Start-Sleep -Seconds 1
-$stillUp = $false
-try {
-    if (Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction Stop) { $stillUp = $true }
-}
-catch { $stillUp = $false }
-if ($stillUp) {
-    Write-Host '  web: WARNING - something is still listening on 5173' -ForegroundColor Red
-    Write-Host '       find it with:  Get-NetTCPConnection -LocalPort 5173' -ForegroundColor DarkGray
 }
 
 # -- Backend + database (Docker) ---------------------------------------------
@@ -54,6 +44,26 @@ else {
     # Also the normal case on the native setup, where there are no containers at
     # all and the API was already stopped with the dev servers above.
     Write-Host '  containers: Docker is not running, nothing to stop' -ForegroundColor DarkGray
+}
+
+# Confirm the ports actually released; an orphan here is a known failure mode.
+# This runs LAST, after the containers have been asked to stop, because on the
+# Docker setup port 5000 is the container and checking earlier would report a
+# perfectly ordinary shutdown as a problem.
+# NB: Vite listens on IPv6 loopback (::1) only, so an IPv4-only probe would
+# report the port as free while an orphaned dev server still holds it - exactly
+# the case this check exists to catch. Get-NetTCPConnection covers both families.
+Start-Sleep -Seconds 2
+foreach ($port in 5000, 5173, 8081) {
+    $stillUp = $false
+    try {
+        if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop) { $stillUp = $true }
+    }
+    catch { $stillUp = $false }
+    if ($stillUp) {
+        Write-Host "  WARNING - something is still listening on $port" -ForegroundColor Red
+        Write-Host "            find it with:  Get-NetTCPConnection -LocalPort $port" -ForegroundColor DarkGray
+    }
 }
 
 Write-Host ''

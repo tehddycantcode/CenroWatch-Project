@@ -2,6 +2,7 @@
 #
 #   start-cenrowatch.bat                 one-click; auto-detects the setup
 #   .\start-cenrowatch.ps1 -NoPrompt     never waits for a keypress
+#   .\start-cenrowatch.ps1 -NoMobile     web only; skip Expo
 #   .\start-cenrowatch.ps1 -Mode native  force the host/npm setup
 #   .\start-cenrowatch.ps1 -Mode docker  force the container setup
 #
@@ -18,7 +19,9 @@
 # Detection is that same node_modules test, the one documented in CLAUDE.md
 # under "Environment Notes". -Mode overrides it if you ever need to.
 #
-# Either way, the web app is a host-side Vite dev server on port 5173.
+# Either way, the web app is a host-side Vite dev server on port 5173, and the
+# mobile app is Expo/Metro on port 8081 in its own window, with the QR code for
+# Expo Go. Mobile is included by default; -NoMobile skips it for a web-only day.
 
 [CmdletBinding()]
 param(
@@ -28,7 +31,11 @@ param(
     # Double-clicking the .bat opens a window that would vanish with the result
     # still on it, so by default this waits for Enter before closing. Pass
     # -NoPrompt when something else is driving it and nobody is there to answer.
-    [switch]$NoPrompt
+    [switch]$NoPrompt,
+
+    # Expo is another window and another minute of startup. Skip it when the
+    # day's work is web-only; the API and web app do not depend on it.
+    [switch]$NoMobile
 )
 
 $root = $PSScriptRoot
@@ -72,6 +79,36 @@ function Test-Api {
     catch { return $false }
 }
 
+# Metro answers /status with the literal text packager-status:running. Windows
+# PowerShell hands that back as a byte[] because the response carries no charset,
+# so decode before matching or the test silently never passes.
+function Test-Metro {
+    try {
+        $body = (Invoke-WebRequest 'http://localhost:8081/status' -TimeoutSec 3 -UseBasicParsing).Content
+        if ($body -is [byte[]]) { $body = [Text.Encoding]::ASCII.GetString($body) }
+        return ([string]$body) -match 'packager-status:running'
+    }
+    catch { return $false }
+}
+
+# The LAN address a phone would have to reach this PC on. Prefer the adapter
+# that actually has a default gateway: a machine with VirtualBox or Hyper-V also
+# has addresses like 192.168.56.1, and suggesting one of those sends whoever
+# reads it off down a dead end.
+function Get-LanIp {
+    $gw = Get-NetIPConfiguration -ErrorAction SilentlyContinue |
+        Where-Object { $_.IPv4DefaultGateway -and $_.IPv4Address } |
+        Select-Object -First 1
+    if ($gw) { return $gw.IPv4Address.IPAddress }
+    return (Get-LocalIps | Select-Object -First 1)
+}
+
+function Get-LocalIps {
+    return @(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Where-Object { -not $_.IPAddress.StartsWith('127.') } |
+        ForEach-Object { $_.IPAddress })
+}
+
 function Wait-For {
     param([scriptblock]$Condition, [int]$TimeoutSeconds, [string]$What)
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -95,6 +132,7 @@ else {
 }
 
 $script:steps = if ($Mode -eq 'native') { 3 } else { 4 }
+if (-not $NoMobile) { $script:steps++ }
 $script:step = 0
 function Step {
     param([string]$Title)
@@ -215,6 +253,87 @@ else {
 }
 if (Test-Port -Port 5173) { Write-Host '      web ready -> http://localhost:5173' -ForegroundColor Green }
 
+# -- Mobile app --------------------------------------------------------------
+$mobileReady = $false
+$mobileSkipped = $true
+if (-not $NoMobile) {
+    Step 'Mobile app  (Expo / Metro on 8081)'
+    if (-not (Test-Path "$root\mobile\node_modules")) {
+        Write-Host '      mobile/node_modules missing - run:  cd mobile ; npm install' -ForegroundColor Yellow
+        Write-Host '      skipped; the API and web app above are unaffected.' -ForegroundColor DarkGray
+    }
+    else {
+        $mobileSkipped = $false
+
+        # A phone cannot reach `localhost` - that name points at the phone - so
+        # the app is compiled against this PC's LAN address. A new DHCP lease
+        # therefore breaks the phone while the API and web app stay perfectly
+        # healthy, which is a miserable thing to discover mid-demo. Check the
+        # target BEFORE Metro starts, so the warning is not 40 lines up-screen.
+        $target = $null
+        $source = $null
+        $envFile = "$root\mobile\.env"
+        if (Test-Path $envFile) {
+            $m = [regex]::Match((Get-Content $envFile -Raw), '(?m)^\s*EXPO_PUBLIC_API_URL\s*=\s*(\S+)\s*$')
+            if ($m.Success) {
+                $target = $m.Groups[1].Value.Trim('"').Trim("'")
+                $source = 'mobile\.env'
+            }
+        }
+        if (-not $target) {
+            $m = [regex]::Match((Get-Content "$root\mobile\src\config.js" -Raw), "EXPO_PUBLIC_API_URL\s*\|\|\s*'([^']+)'")
+            if ($m.Success) {
+                $target = $m.Groups[1].Value
+                $source = 'the fallback in mobile\src\config.js'
+            }
+        }
+
+        $lanIp = Get-LanIp
+        $localIps = Get-LocalIps
+        $targetHost = $null
+        if ($target) { try { $targetHost = ([uri]$target).Host } catch { } }
+
+        if (-not $targetHost) {
+            Write-Host '      WARNING: could not read an API host out of the mobile config.' -ForegroundColor Yellow
+        }
+        elseif (@('localhost', '127.0.0.1') -contains $targetHost) {
+            Write-Host "      WARNING: the app points at $targetHost ($source)." -ForegroundColor Yellow
+            Write-Host '      On a phone that name means the phone itself, so nothing will load.' -ForegroundColor Yellow
+            Write-Host "        fix:  mobile\.env  ->  EXPO_PUBLIC_API_URL=http://${lanIp}:5000/api/v1" -ForegroundColor DarkGray
+        }
+        elseif ($localIps -contains $targetHost) {
+            Write-Host "      API target $targetHost is still this machine" -ForegroundColor Green
+        }
+        else {
+            Write-Host "      WARNING: the app points at $targetHost ($source)," -ForegroundColor Yellow
+            Write-Host ("      but this PC is {0} - the phone will not connect." -f ($localIps -join ', ')) -ForegroundColor Yellow
+            Write-Host "        Expo Go:  mobile\.env  ->  EXPO_PUBLIC_API_URL=http://${lanIp}:5000/api/v1" -ForegroundColor DarkGray
+            Write-Host '        an INSTALLED APK needs a REBUILD - that URL is baked in at build time.' -ForegroundColor DarkGray
+        }
+
+        # Checking the port first is also what keeps this non-interactive: Expo
+        # asks "use port 8082 instead?" when 8081 is taken, and nobody may be
+        # there to answer it.
+        if (Test-Port -Port 8081) {
+            Write-Host '      already running on 8081 - reusing it' -ForegroundColor DarkGray
+        }
+        else {
+            Start-Process powershell -ArgumentList '-NoExit', '-NoProfile', '-Command', `
+                "$pathFix; Set-Location '$root\mobile'; Write-Host 'MOBILE -> scan the QR below with Expo Go' -ForegroundColor Cyan; npm start"
+            Write-Host '      starting Expo in its own window' -NoNewline -ForegroundColor DarkGray
+            $metroUp = Wait-For -TimeoutSeconds 150 -What 'the Metro bundler on 8081' -Condition { Test-Metro }
+            Write-Host ''
+            if (-not $metroUp) {
+                Write-Host '      Expo did not come up - check the mobile window for errors.' -ForegroundColor Red
+            }
+        }
+        if (Test-Metro) {
+            $mobileReady = $true
+            Write-Host '      Metro ready -> the QR code is in the Expo window' -ForegroundColor Green
+        }
+    }
+}
+
 # -- Prove it actually works -------------------------------------------------
 Step 'Verifying the running system'
 Write-Host ''
@@ -249,10 +368,26 @@ else {
         Write-Host '  FAIL  MySQL             nothing listening on 3306' -ForegroundColor Red
         $verified = $false
     }
+}
+
+# Metro is checked the same way in both modes: preflight.mjs knows nothing about
+# it, and in native mode it is the one part of the system this script started
+# that the checks above do not cover.
+if (-not $NoMobile -and -not $mobileSkipped) {
+    if ($mobileReady) {
+        Write-Host '  PASS  Metro bundler     packager-status:running on 8081' -ForegroundColor Green
+    }
+    else {
+        Write-Host '  FAIL  Metro bundler     no answer on 8081' -ForegroundColor Red
+        $verified = $false
+    }
+}
+
+if ($Mode -eq 'native') {
     Write-Host ''
-    Write-Host '  NOT checked here: migrations, schema drift, SMTP auth, uploads and the' -ForegroundColor Yellow
-    Write-Host '  mobile API target. scripts/preflight.mjs covers those but is Docker-only,' -ForegroundColor Yellow
-    Write-Host '  so run it on the container setup before a demo or the defense.' -ForegroundColor Yellow
+    Write-Host '  NOT checked here: migrations, schema drift, SMTP auth and uploads.' -ForegroundColor Yellow
+    Write-Host '  scripts/preflight.mjs covers those but is Docker-only, so run it on the' -ForegroundColor Yellow
+    Write-Host '  container setup before a demo or the defense.' -ForegroundColor Yellow
 }
 
 Write-Host ''
@@ -263,6 +398,9 @@ if ($verified) {
     Write-Host ''
     Write-Host '    Web    http://localhost:5173' -ForegroundColor Green
     Write-Host '    API    http://localhost:5000' -ForegroundColor Green
+    if ($mobileReady) {
+        Write-Host ("    Phone  Expo Go, same Wi-Fi as this PC ({0}) - QR is in the Expo window" -f (Get-LanIp)) -ForegroundColor Green
+    }
 }
 else {
     Write-Host '  ==================================================' -ForegroundColor Red

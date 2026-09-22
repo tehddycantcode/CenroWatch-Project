@@ -7,6 +7,18 @@ Standing rule: whenever I make a mobile mistake, append the lesson here so it ne
 repeats. (Project-wide tooling/PowerShell lessons live in the root `CLAUDE.md`.)
 - Verify a mobile change with `npx expo export --platform android` (bundles all
   modules) before committing — it catches import/JSX errors a web build won't.
+- **`start-cenrowatch.bat` starts Expo too** (2026-09-22) — a third window running
+  `npm start`, alongside the API and the web app, with `-NoMobile` to skip it.
+  Before Metro starts it compares the app's API target (`mobile/.env`
+  `EXPO_PUBLIC_API_URL`, else the fallback in `src/config.js`) against the PC's
+  own IPv4 addresses and warns if they disagree, because a changed DHCP lease
+  breaks the phone while the API and web app stay green — the failure looks like
+  a broken app and is actually a stale IP. For Expo Go, write the new address to
+  `mobile/.env`; an INSTALLED APK needs a rebuild, since the URL is inlined at
+  bundle time. To prove Metro really serves this app, ask it for the bundle:
+  `http://localhost:8081/index.bundle?platform=android&dev=true` returns ~5.6 MB
+  and 200 (11s here) — that is the request Expo Go makes when the QR is scanned,
+  so a 200 means far more than "port 8081 is open".
 - Mobile is a separate app: it can't import from `web/src`. Shared constants
   (e.g. the species list) must be duplicated into `mobile/src/lib/` and kept in sync.
 - **A standalone/EAS-built APK cannot reach a plain `http://` backend by default**
