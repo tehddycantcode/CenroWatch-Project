@@ -50,30 +50,32 @@ export default function AdminAuditLogsPage() {
         <div className="flex justify-center py-16"><Spinner className="h-7 w-7 text-primary" /></div>
       ) : (
         <Card className="overflow-hidden">
-          <table className="w-full text-sm">
-            <TableHead columns={['When', 'Actor', 'Action', 'Target', 'Details']} />
-            <tbody className="divide-y">
-              {items.map((log) => (
-                <tr key={log.log_id} className="align-top hover:bg-accent/20">
-                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{fmtDate(log.performed_at)}</td>
-                  <td className="px-4 py-3">
-                    {log.user ? (
-                      <span className="text-foreground">{log.user.first_name} {log.user.last_name}</span>
-                    ) : (
-                      <span className="text-muted-foreground">System</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3"><Badge tone="gray">{log.action}</Badge></td>
-                  <td className="px-4 py-3 text-muted-foreground">{log.target_table}{log.target_id ? ` #${log.target_id}` : ''}</td>
-                  <td className="px-4 py-3">
-                    <code className="block max-w-md truncate rounded bg-muted px-2 py-1 text-xs text-muted-foreground" title={JSON.stringify(log.data_generated_json)}>
-                      {JSON.stringify(log.data_generated_json)}
-                    </code>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <TableHead columns={['When', 'Actor', 'Action', 'Target', 'Details']} />
+              <tbody className="divide-y">
+                {items.map((log) => (
+                  <tr key={log.log_id} className="align-top hover:bg-accent/20">
+                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{fmtDate(log.performed_at)}</td>
+                    <td className="px-4 py-3">
+                      {log.user ? (
+                        <span className="text-foreground">{log.user.first_name} {log.user.last_name}</span>
+                      ) : (
+                        <span className="text-muted-foreground">System</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3"><Badge tone="gray">{log.action}</Badge></td>
+                    <td className="px-4 py-3 text-muted-foreground">{log.target_table}{log.target_id ? ` #${log.target_id}` : ''}</td>
+                    <td className="px-4 py-3">
+                      <code className="block max-w-md truncate rounded bg-muted px-2 py-1 text-xs text-muted-foreground" title={JSON.stringify(log.data_generated_json)}>
+                        {JSON.stringify(log.data_generated_json)}
+                      </code>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 

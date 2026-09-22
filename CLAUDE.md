@@ -301,6 +301,25 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   mailer logs `[mailer] (disabled)` or a 535/534 error and reports never email anyone.
   `isConfigured()` returning true is NOT proof — preflight runs `transporter.verify()`
   which authenticates against Gmail without sending anything.
+- **A `<table>` inside `<Card className="overflow-hidden">` is INVISIBLY CROPPED on
+  a phone — check every new table at 375px.** The `overflow-hidden` is there to
+  clip the table to the card's rounded corners, and it also clips the table's
+  width with no way to scroll: `overflow-x` is `hidden`, not `auto`. Every table
+  in the web app shipped this way. The staff queue is ~820px wide, so below about
+  850px the Reporter, Submitted and **Status** columns were simply unreachable —
+  and staff read that queue on a phone when they are out at a reported location.
+  The audit log was worse: 1233px of table in a 327px card, 73% of it lost.
+  Nothing looks broken from the outside, which is the trap: the PAGE has no
+  horizontal scrollbar precisely BECAUSE the card swallows the overflow, so a
+  quick "does it scroll sideways?" check says everything is fine. The fix is a
+  `<div className="overflow-x-auto">` between the Card and the table, which keeps
+  the rounded corners and lets the table move; desktop is unaffected (verified at
+  1440px: no scrollbar, all columns visible). Measure, do not eyeball:
+  `table.scrollWidth > wrapper.clientWidth` with `getComputedStyle(wrapper).overflowX`.
+  Same sweep found a second shape on the Users page — a filter `<form>` with
+  `flex items-center` (no `flex-wrap`) holding `w-40` + `w-52` controls, 444px
+  that cannot shrink, which pushed the whole page 93px wider than the viewport.
+  An outer wrapper having `flex-wrap` does not help if the inner form lacks it.
 - **Vite binds IPv6 loopback (`::1`) ONLY — never health-check it on 127.0.0.1.**
   A port probe that connects to IPv4 `127.0.0.1:5173` reports the dev server as down
   while it is running perfectly. This made `start-cenrowatch.ps1` wait its full 90s

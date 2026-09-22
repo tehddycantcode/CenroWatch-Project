@@ -106,9 +106,13 @@ export default function AdminUsersPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="font-display text-3xl">User Accounts</h1>
         <div className="flex flex-wrap items-center gap-2">
+          {/* The row outside this form wraps, but the form itself did not, so
+              its three fixed-width controls (w-40 + w-52 + the button, about
+              444px) held the page wider than a phone viewport and pushed the
+              whole layout sideways. Wrapping here keeps the page its own width. */}
           <form
             onSubmit={(e) => { e.preventDefault(); setApplied({ role: roleFilter, search: search.trim() }); }}
-            className="flex items-center gap-2"
+            className="flex flex-wrap items-center gap-2"
           >
             <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="h-9 w-40">
               <option value="">All roles</option>
@@ -163,80 +167,82 @@ export default function AdminUsersPage() {
       </p>
 
       <Card className="overflow-hidden">
-        <table className="w-full text-sm">
-          <TableHead columns={['Name', 'Email', 'Role', 'Status', '']} />
-          <tbody className="divide-y">
-            {data.items.map((u) => {
-              const isMe = u.user_id === me?.user_id;
-              return (
-                <tr key={u.user_id} className="hover:bg-accent/20">
-                  <td className="px-4 py-3 font-medium text-foreground">
-                    {u.first_name} {u.last_name}{isMe && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span>{u.email}</span>
-                      {/* Only ever flagged when unverified. A "Confirmed" pill on
-                          every other row would be noise on a screen whose normal
-                          state is that everyone is confirmed. */}
-                      {!u.email_verified_at && <Badge tone="amber">Unverified</Badge>}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {u.role === 'Admin' ? (
-                      // No dropdown for administrators: their role is not one of
-                      // the assignable options, so a select would render the
-                      // wrong value and one stray click would demote them.
-                      <Badge tone="purple">{ROLE_LABELS.Admin}</Badge>
-                    ) : (
-                      <Select
-                        value={u.role}
-                        disabled={isMe}
-                        onChange={(e) => patch(u.user_id, { role: e.target.value })}
-                        className="h-8 w-36"
-                      >
-                        {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                      </Select>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={u.is_active ? 'green' : 'red'}>{u.is_active ? 'Active' : 'Inactive'}</Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      {!u.email_verified_at && (confirmId === u.user_id ? (
-                        <>
-                          <span className="text-xs text-muted-foreground">
-                            Confirmed this address is theirs?
-                          </span>
-                          <Button size="sm" loading={confirming} onClick={() => confirmEmail(u.user_id)}>
-                            Yes, confirm
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setConfirmId(null)}>
-                            Cancel
-                          </Button>
-                        </>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <TableHead columns={['Name', 'Email', 'Role', 'Status', '']} />
+            <tbody className="divide-y">
+              {data.items.map((u) => {
+                const isMe = u.user_id === me?.user_id;
+                return (
+                  <tr key={u.user_id} className="hover:bg-accent/20">
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      {u.first_name} {u.last_name}{isMe && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{u.email}</span>
+                        {/* Only ever flagged when unverified. A "Confirmed" pill on
+                            every other row would be noise on a screen whose normal
+                            state is that everyone is confirmed. */}
+                        {!u.email_verified_at && <Badge tone="amber">Unverified</Badge>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.role === 'Admin' ? (
+                        // No dropdown for administrators: their role is not one of
+                        // the assignable options, so a select would render the
+                        // wrong value and one stray click would demote them.
+                        <Badge tone="purple">{ROLE_LABELS.Admin}</Badge>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => setConfirmId(u.user_id)}>
-                          Mark confirmed
-                        </Button>
-                      ))}
-                      {!isMe && (
-                        <Button
-                          size="sm"
-                          variant={u.is_active ? 'outline' : 'default'}
-                          onClick={() => patch(u.user_id, { is_active: !u.is_active })}
+                        <Select
+                          value={u.role}
+                          disabled={isMe}
+                          onChange={(e) => patch(u.user_id, { role: e.target.value })}
+                          className="h-8 w-36"
                         >
-                          {u.is_active ? 'Deactivate' : 'Activate'}
-                        </Button>
+                          {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                        </Select>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge tone={u.is_active ? 'green' : 'red'}>{u.is_active ? 'Active' : 'Inactive'}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {!u.email_verified_at && (confirmId === u.user_id ? (
+                          <>
+                            <span className="text-xs text-muted-foreground">
+                              Confirmed this address is theirs?
+                            </span>
+                            <Button size="sm" loading={confirming} onClick={() => confirmEmail(u.user_id)}>
+                              Yes, confirm
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setConfirmId(null)}>
+                              Cancel
+                            </Button>
+                          </>
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => setConfirmId(u.user_id)}>
+                            Mark confirmed
+                          </Button>
+                        ))}
+                        {!isMe && (
+                          <Button
+                            size="sm"
+                            variant={u.is_active ? 'outline' : 'default'}
+                            onClick={() => patch(u.user_id, { is_active: !u.is_active })}
+                          >
+                            {u.is_active ? 'Deactivate' : 'Activate'}
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </div>
   );

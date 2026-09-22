@@ -93,25 +93,27 @@ export default function AdminAnalyticsPage() {
       </p>
 
       <Card className="overflow-hidden">
-        <table className="w-full text-sm">
-          <TableHead columns={['Barangay', 'Complaints', 'Wildlife', 'Requests', 'Total', 'Share']} />
-          <tbody className="divide-y">
-            {barangays.map((b) => (
-              <tr key={b.barangay_id}>
-                <td className="px-4 py-2.5 font-medium text-foreground">{b.name}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{b.complaints}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{b.wildlife}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{b.requests}</td>
-                <td className="px-4 py-2.5 font-semibold">{b.total}</td>
-                <td className="px-4 py-2.5">
-                  <div className="h-2 w-24 overflow-hidden rounded bg-muted">
-                    <div className="h-full bg-primary" style={{ width: `${(b.total / maxTotal) * 100}%` }} />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <TableHead columns={['Barangay', 'Complaints', 'Wildlife', 'Requests', 'Total', 'Share']} />
+            <tbody className="divide-y">
+              {barangays.map((b) => (
+                <tr key={b.barangay_id}>
+                  <td className="px-4 py-2.5 font-medium text-foreground">{b.name}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{b.complaints}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{b.wildlife}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{b.requests}</td>
+                  <td className="px-4 py-2.5 font-semibold">{b.total}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="h-2 w-24 overflow-hidden rounded bg-muted">
+                      <div className="h-full bg-primary" style={{ width: `${(b.total / maxTotal) * 100}%` }} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </div>
   );

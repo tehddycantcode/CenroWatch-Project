@@ -142,39 +142,50 @@ export default function StaffQueue({ title, subtitle, kind, resource, statuses, 
         <EmptyState icon={ui.icon} filtered={isFiltered} onClear={clearFilters} />
       ) : (
         <Card className="overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="w-12 px-4 py-3" aria-hidden="true" />
-                {columns.map((c) => (
-                  <th key={c.header} className={cnHead(c)}>{c.header}</th>
-                ))}
-                <th className="w-10 px-4 py-3" aria-hidden="true" />
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {items.map((row) => (
-                <tr
-                  key={rowKey(row)}
-                  onClick={() => navigate(rowLink(row))}
-                  onKeyDown={(e) => e.key === 'Enter' && navigate(rowLink(row))}
-                  tabIndex={0}
-                  role="link"
-                  className="group cursor-pointer outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40"
-                >
-                  <td className="px-4 py-3">
-                    <IconChip icon={ui.icon} tone={ui.tone} size="sm" />
-                  </td>
+          {/* The queue is eight columns and about 820px wide, and staff read it
+              on a phone when they are out at the reported location. The card's
+              overflow-hidden - which is there to clip the table to the rounded
+              corners - was cropping it to the viewport with no way to scroll,
+              so Reporter, Submitted and Status were simply unreachable below
+              roughly 850px. Status is the column a field officer needs most.
+              This inner scroller keeps the rounded corners AND lets the table
+              move. No tabIndex on it: the rows are already focusable, so
+              keyboard users scroll it by tabbing through them. */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="w-12 px-4 py-3" aria-hidden="true" />
                   {columns.map((c) => (
-                    <td key={c.header} className={cnCell(c)}>{c.render(row)}</td>
+                    <th key={c.header} className={cnHead(c)}>{c.header}</th>
                   ))}
-                  <td className="px-4 py-3 text-right">
-                    <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden="true" />
-                  </td>
+                  <th className="w-10 px-4 py-3" aria-hidden="true" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y">
+                {items.map((row) => (
+                  <tr
+                    key={rowKey(row)}
+                    onClick={() => navigate(rowLink(row))}
+                    onKeyDown={(e) => e.key === 'Enter' && navigate(rowLink(row))}
+                    tabIndex={0}
+                    role="link"
+                    className="group cursor-pointer outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent/40"
+                  >
+                    <td className="px-4 py-3">
+                      <IconChip icon={ui.icon} tone={ui.tone} size="sm" />
+                    </td>
+                    {columns.map((c) => (
+                      <td key={c.header} className={cnCell(c)}>{c.render(row)}</td>
+                    ))}
+                    <td className="px-4 py-3 text-right">
+                      <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden="true" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 
