@@ -40,9 +40,17 @@ param(
 
 $root = $PSScriptRoot
 
-# This machine has installed Node user-scoped in the past and a fresh shell does
-# not always inherit it; rebuild PATH from User + Machine so node/npm are found.
-$pathFix = "`$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine')"
+# Run at the top of every window this script opens.
+#
+# PATH: this machine has installed Node user-scoped in the past and a fresh shell
+# does not always inherit it, so rebuild it from User + Machine.
+#
+# NO_COLOR / FORCE_COLOR: a dev server window should look the same whoever opened
+# it. Launched from an automated shell, the child inherits that shell's NO_COLOR
+# while npm sets FORCE_COLOR for scripts, and Expo then prints a warning pair on
+# every reload about one overriding the other. Dropping both leaves each tool to
+# its own default.
+$childPrelude = "`$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine'); Remove-Item Env:NO_COLOR, Env:FORCE_COLOR -ErrorAction SilentlyContinue"
 $env:Path = [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + [Environment]::GetEnvironmentVariable('Path', 'Machine')
 
 # The only interactive moment in the script, and it is skippable. Every exit path
@@ -207,7 +215,7 @@ else {
             exit 1
         }
         Start-Process powershell -ArgumentList '-NoExit', '-NoProfile', '-Command', `
-            "$pathFix; Set-Location '$root\backend'; Write-Host 'API -> http://localhost:5000' -ForegroundColor Cyan; npm run dev"
+            "$childPrelude; Set-Location '$root\backend'; Write-Host 'API -> http://localhost:5000' -ForegroundColor Cyan; npm run dev"
         Write-Host '      starting in its own window' -NoNewline -ForegroundColor DarkGray
     }
 }
@@ -243,7 +251,7 @@ else {
     # --strictPort so Vite fails loudly instead of quietly moving to 5174 and
     # leaving every browser check pointed at a stale server on 5173.
     Start-Process powershell -ArgumentList '-NoExit', '-NoProfile', '-Command', `
-        "$pathFix; Set-Location '$root\web'; Write-Host 'WEB -> http://localhost:5173' -ForegroundColor Cyan; npm run dev -- --strictPort"
+        "$childPrelude; Set-Location '$root\web'; Write-Host 'WEB -> http://localhost:5173' -ForegroundColor Cyan; npm run dev -- --strictPort"
     Write-Host '      starting in its own window' -NoNewline -ForegroundColor DarkGray
     $webUp = Wait-For -TimeoutSeconds 90 -What 'the Vite dev server on 5173' -Condition { Test-Port -Port 5173 }
     Write-Host ''
@@ -319,7 +327,7 @@ if (-not $NoMobile) {
         }
         else {
             Start-Process powershell -ArgumentList '-NoExit', '-NoProfile', '-Command', `
-                "$pathFix; Set-Location '$root\mobile'; Write-Host 'MOBILE -> scan the QR below with Expo Go' -ForegroundColor Cyan; npm start"
+                "$childPrelude; Set-Location '$root\mobile'; Write-Host 'MOBILE -> scan the QR below with Expo Go' -ForegroundColor Cyan; npm start"
             Write-Host '      starting Expo in its own window' -NoNewline -ForegroundColor DarkGray
             $metroUp = Wait-For -TimeoutSeconds 150 -What 'the Metro bundler on 8081' -Condition { Test-Metro }
             Write-Host ''
