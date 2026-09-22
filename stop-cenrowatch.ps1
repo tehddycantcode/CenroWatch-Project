@@ -1,5 +1,7 @@
-# Stops CENROWATCH: the web dev server on the host, and the backend + MySQL
-# containers. You normally run this by double-clicking stop-cenrowatch.bat.
+# Stops CENROWATCH: the host dev servers - Vite always, plus the API when it is
+# running natively under nodemon - and the backend + MySQL containers when the
+# setup is the Docker one. You normally run this by double-clicking
+# stop-cenrowatch.bat.
 #
 # Uses `docker compose stop` rather than `down`: the containers are kept so the
 # next start is fast, and the database volume (backend_db_data) is never at risk.
@@ -10,18 +12,19 @@ Write-Host ''
 Write-Host 'Stopping CENROWATCH...' -ForegroundColor Yellow
 Write-Host ''
 
-# -- Web dev server (host) ---------------------------------------------------
+# -- Host dev servers --------------------------------------------------------
 # Closing the npm window kills the npm wrapper but can orphan the Vite child,
 # which keeps holding port 5173 - so match vite explicitly and verify after.
+# nodemon is matched too: on the native setup that is the API on port 5000.
 $procs = Get-CimInstance Win32_Process | Where-Object {
     $_.Name -match 'node' -and $_.CommandLine -match 'vite|nodemon'
 }
 if ($procs) {
     $procs | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-    Write-Host ("  web: stopped {0} process(es)" -f @($procs).Count) -ForegroundColor Green
+    Write-Host ("  dev servers: stopped {0} process(es)" -f @($procs).Count) -ForegroundColor Green
 }
 else {
-    Write-Host '  web: nothing was running' -ForegroundColor DarkGray
+    Write-Host '  dev servers: nothing was running' -ForegroundColor DarkGray
 }
 
 # Confirm 5173 actually released; an orphan here is a known failure mode.
@@ -48,11 +51,14 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host '  backend + database: stopped' -ForegroundColor Green
 }
 else {
-    Write-Host '  backend + database: Docker is not running, nothing to stop' -ForegroundColor DarkGray
+    # Also the normal case on the native setup, where there are no containers at
+    # all and the API was already stopped with the dev servers above.
+    Write-Host '  containers: Docker is not running, nothing to stop' -ForegroundColor DarkGray
 }
 
 Write-Host ''
-Write-Host '  Data is safe - the database volume is untouched.' -ForegroundColor DarkGray
+Write-Host '  Data is safe - neither the database volume nor the MySQL80 service' -ForegroundColor DarkGray
+Write-Host '  is touched by this script.' -ForegroundColor DarkGray
 Write-Host '  Start again with: start-cenrowatch.bat' -ForegroundColor DarkGray
 Write-Host ''
 Start-Sleep -Seconds 3

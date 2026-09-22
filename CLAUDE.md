@@ -309,12 +309,25 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   and it does NOT need admin, unlike `Get-NetFirewallRule`), or try both `::1` and
   `127.0.0.1`. The same bug silently defeats orphaned-Vite detection in the stop
   script, which is the one thing that check exists to do.
-- **`start-cenrowatch` no longer runs the backend with `npm run dev`.** The backend lives
-  in Docker now and `backend/node_modules` does not exist on the host, so the old
-  launcher opened a window that died instantly and would have fought the
-  container for port 5000. The launcher now does: Docker -> `docker compose up -d`
-  -> wait for /api/health -> web dev server -> `scripts/preflight.mjs`. Double-click
-  `check-cenrowatch.bat` alone to verify a system that is already running.
+- **`start-cenrowatch.ps1` DETECTS the setup — do not hardcode it to one again.**
+  This note used to read "the backend is no longer started with `npm run dev`",
+  which was true of the Docker machine and wrong on the native one: there the
+  launcher booted Docker Desktop and raised a container against the 3307 database
+  while the real data sat in native MySQL on 3306. Since 2026-09-22 it picks
+  `native` when `backend/node_modules` exists and `docker` otherwise — the same
+  test as "Environment Notes" above — with `-Mode native|docker` to override.
+  Native mode starts `npm run dev` in `backend/` and `web/`, each in its own
+  window, waits for `/api/health`, and smoke-tests API + 5173 + 3306. Docker mode
+  is unchanged: `docker compose up -d` -> health -> web -> `scripts/preflight.mjs`.
+  `-NoPrompt` skips every `Read-Host` so another script can drive it; without it
+  the window still waits for Enter, which is what a double-click needs.
+- **`scripts/preflight.mjs` is DOCKER-ONLY, and so is `check-cenrowatch.bat`.**
+  Every deep check runs through `docker exec cenrowatch_api`, so on the native
+  setup it reports a perfectly healthy system as broken top to bottom. That is
+  why the launcher skips it in native mode and prints what went unverified
+  (migrations, schema drift, SMTP auth, uploads, the mobile API target) instead
+  of faking a green run. Do those checks on the Docker machine before a demo or
+  the defense, or teach preflight the native path first.
 - **A test credential that stops working is not automatically "drift" — ASK BEFORE
   RESETTING A PASSWORD.** On 2026-09-18 `juan.delacruz@example.com / Resident123`
   returned 401. This file documents that pair, and an older lesson records that a
