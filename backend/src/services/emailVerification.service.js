@@ -80,7 +80,22 @@ async function sendVerificationCode(userId, ctx = {}) {
     console.log(`[verify] mail disabled - code for ${user.email} is ${code}`);
   }
 
-  await notifyEmailVerification({ to: user.email, name: user.first_name, code });
+  // NOT awaited, and that is the point. sendMail never rejects and never tells
+  // the caller whether delivery worked - it returns { sent: false } and logs -
+  // so awaiting it added the mail server's latency to the response while
+  // providing no information in exchange. On the deployed system that latency
+  // was two minutes, which is what made "Resend code" look frozen.
+  //
+  // The token row above IS awaited: the code must exist before this returns, or
+  // a fast user could type a code the database does not have yet.
+  // Promise.resolve() because this must not assume notify returns a thenable -
+  // calling .catch() on a plain return value throws synchronously, which would
+  // turn "the mail helper changed shape" into "registration is broken".
+  Promise.resolve(notifyEmailVerification({ to: user.email, name: user.first_name, code })).catch((err) => {
+    // notify already swallows mail failures; this only stops an unexpected
+    // throw becoming an unhandled rejection, which can end the process.
+    console.error(`[verify] sending the code to ${user.email} failed: ${err.message}`);
+  });
 
   await writeAuditLog({
     performedBy: userId,
