@@ -31,6 +31,18 @@ export function formatDistance(km) {
   return `${km.toFixed(1)} km`;
 }
 
+// Driving time from the routing provider, in seconds. Rounded up to the minute
+// and hedged with "about" by the caller: a travel estimate presented to the
+// second would claim a precision it does not have.
+export function formatDuration(seconds) {
+  if (seconds == null || !Number.isFinite(seconds)) return null;
+  const mins = Math.max(1, Math.round(seconds / 60));
+  if (mins < 60) return `${mins} min`;
+  const hours = Math.floor(mins / 60);
+  const rest = mins % 60;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
 // Google Maps' documented cross-platform URL: it opens the native app on a
 // phone and the website on a desktop, so one link covers both without sniffing
 // the user agent.

@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { MapPin, Printer, Archive, RotateCcw, Navigation } from 'lucide-react';
 import { fileUrl, isPdfPath, adminApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { distanceKm, formatDistance, directionsUrl } from '@/lib/geo';
+import { distanceKm, formatDistance, formatDuration, directionsUrl } from '@/lib/geo';
 import { useOfficeLocation } from '@/lib/useOfficeLocation';
+import { useRoadRoute } from '@/lib/useRoadRoute';
 import { useAuth } from '@/context/AuthContext';
 import MapView from '@/components/MapView';
 import { Button } from '@/components/ui/button';
@@ -54,8 +55,17 @@ export function LocationBlock({ marker, address }) {
   // on the Settings page, and absent for a report with no pin - in either case
   // the map below simply shows the pin alone, as it always did.
   const to = hasGeo ? { lat: marker.latitude, lng: marker.longitude } : null;
-  const route = office && to ? { from: office, to } : null;
-  const distance = route ? formatDistance(distanceKm(office, to)) : null;
+
+  // The road route, when routing is configured and reachable. It arrives after
+  // the straight line is already on screen, which is the intended order: the
+  // map is useful immediately and gets more accurate a moment later, rather
+  // than showing nothing while a third party is consulted.
+  const road = useRoadRoute(office && to ? to : null);
+
+  const route = office && to ? { from: office, to, geometry: road?.geometry } : null;
+  const airDistance = route ? formatDistance(distanceKm(office, to)) : null;
+  const roadDistance = road ? formatDistance(road.distance_m / 1000) : null;
+  const roadTime = road ? formatDuration(road.duration_s) : null;
   const directions = route ? directionsUrl(office, to) : null;
 
   if (!hasGeo && !address) return null;
@@ -74,12 +84,30 @@ export function LocationBlock({ marker, address }) {
           </div>
           {route && (
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              {/* "Straight line" is not a disclaimer for its own sake: the drive
-                  is always longer, and a staff member planning a visit around
-                  this number should know which one it is. */}
-              <span className="text-xs text-muted-foreground">
-                <span className="tabular-nums">{distance}</span> from the CENRO office in a straight line
-              </span>
+              {/* Two different claims, and the wording has to keep them apart.
+                  Without a road route this is a straight-line distance and the
+                  drive is always longer, so saying so is not pedantry - someone
+                  plans a visit around this number. With one, the figures are the
+                  real driving distance and time and can be stated plainly. */}
+              {road ? (
+                <span className="text-xs text-muted-foreground">
+                  <span className="tabular-nums">{roadDistance}</span> by road from the CENRO office
+                  {roadTime && <> · about <span className="tabular-nums">{roadTime}</span></>}
+                  {' · '}
+                  <a
+                    href="https://openrouteservice.org/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    routing by openrouteservice
+                  </a>
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  <span className="tabular-nums">{airDistance}</span> from the CENRO office in a straight line
+                </span>
+              )}
               {/* noreferrer as well as noopener: the destination is a report's
                   exact location, and the referrer would otherwise carry this
                   page's URL to Google. */}

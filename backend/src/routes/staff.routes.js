@@ -33,6 +33,10 @@ router.get('/overview', overview.getOverview);
 // under /admin/settings.
 router.get('/office-location', office.getOfficeLocation);
 
+// The driving route from the office to a report's pin. Needs ORS_API_KEY; with
+// no key it answers 200 with route: null and the map keeps its straight line.
+router.get('/route', v.routeQueryRules, validate, office.getRoute);
+
 // Complaints
 router.get('/complaints', v.listQueryRules, validate, complaints.list);
 // Walk-in intake: multer first so multipart text fields populate req.body.

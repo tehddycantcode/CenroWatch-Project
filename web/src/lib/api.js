@@ -260,6 +260,10 @@ export const staffApi = {
   // { office: { lat, lng } } or { office: null } when an Admin has not set the
   // CENRO coordinates yet. Null is a normal answer, not an error.
   officeLocation: () => apiFetch('/staff/office-location'),
+  // Driving route from the office to a pin: { route, reason }. `route` is null
+  // whenever routing is off or unavailable, with `reason` saying which - the UI
+  // treats every null the same way and keeps its straight line.
+  route: ({ lat, lng }) => apiFetch(`/staff/route?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`),
   complaints: {
     ...staffResource('complaints'),
     // Log a walk-in complaint on behalf of a resident. `form` is a FormData

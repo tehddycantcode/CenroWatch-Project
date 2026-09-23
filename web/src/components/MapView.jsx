@@ -74,17 +74,24 @@ const EMPTY_MARKERS = [];
  * - Heatmap mode: pass `heatmap` to render complaint density instead of pins.
  * - Picker mode: pass `picker`, `value` ({latitude, longitude}) and `onPick(lat,lng)`.
  */
-// A straight office-to-report line, or null. Deliberately NOT a road route:
-// drawing one needs a routing service, and this exists to answer "where is this,
-// and how far out are we" - which a straight line and a distance answer without
-// a third-party dependency that can rate-limit or go down mid-demo. The
-// "Directions" button beside it hands the actual navigation to a maps app.
+// The office-to-report line: { from, to, geometry? }.
+//
+// `geometry` is the driving route from OpenRouteService, an array of [lng, lat]
+// along real roads. It is OPTIONAL on purpose. The routing key may be missing
+// and the provider is free, third-party and allowed to be down, so when there is
+// no geometry this still draws the straight line between the two points - the
+// map degrades to what it showed before routing existed rather than to nothing.
+//
+// The two are drawn differently because they mean different things: a dashed
+// line is "these two points are this far apart", a solid one is "this is the way
+// there". Reading a straight line as a road would send someone across a field.
 function routePoints(route) {
   const from = route?.from;
   const to = route?.to;
   if (from?.lat == null || from?.lng == null) return null;
   if (to?.lat == null || to?.lng == null) return null;
-  return { from, to };
+  const geometry = Array.isArray(route?.geometry) && route.geometry.length > 1 ? route.geometry : null;
+  return { from, to, geometry };
 }
 
 const ROUTE_SOURCE = 'office-route';
@@ -255,11 +262,12 @@ export default function MapView({
         clear(m);
         return;
       }
-      const { from, to } = points;
+      const { from, to, geometry } = points;
+      const coordinates = geometry || [[from.lng, from.lat], [to.lng, to.lat]];
       const data = {
         type: 'Feature',
         properties: {},
-        geometry: { type: 'LineString', coordinates: [[from.lng, from.lat], [to.lng, to.lat]] },
+        geometry: { type: 'LineString', coordinates },
       };
       const src = m.getSource(ROUTE_SOURCE);
       if (src) {
@@ -270,16 +278,19 @@ export default function MapView({
           id: ROUTE_LAYER,
           type: 'line',
           source: ROUTE_SOURCE,
-          // Dashed, so it reads as "distance between these two points" rather
-          // than a road you are meant to follow - which it is not.
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
           paint: {
             'line-color': '#0f766e',
-            'line-width': 3,
+            'line-width': 4,
             'line-opacity': 0.85,
-            'line-dasharray': [2, 1.5],
           },
         });
       }
+      // Dashed means "this is how far apart they are", solid means "this is the
+      // way there". The route arrives after the straight line is already drawn,
+      // so this has to be set on every draw, not only when the layer is created.
+      m.setPaintProperty(ROUTE_LAYER, 'line-dasharray', geometry ? [1, 0] : [2, 1.5]);
+      m.setPaintProperty(ROUTE_LAYER, 'line-width', geometry ? 4 : 3);
       if (officeMarker.current) {
         officeMarker.current.setLngLat([from.lng, from.lat]);
       } else {
@@ -289,8 +300,10 @@ export default function MapView({
       }
       if (fitToMarkers) {
         const bounds = new maplibregl.LngLatBounds();
-        bounds.extend([from.lng, from.lat]);
-        bounds.extend([to.lng, to.lat]);
+        // Fit the whole line, not just its ends: a road route can bow well
+        // outside the two points, and framing only the endpoints would crop the
+        // middle of the very thing being drawn.
+        coordinates.forEach((c) => bounds.extend(c));
         markers.forEach((mk) => {
           if (mk.latitude != null && mk.longitude != null) bounds.extend([mk.longitude, mk.latitude]);
         });

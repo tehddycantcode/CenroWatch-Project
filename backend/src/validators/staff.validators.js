@@ -24,6 +24,16 @@ const listQueryRules = [
   query('limit').optional({ values: 'falsy' }).isInt({ min: 1, max: 100 }).toInt(),
 ];
 
+// ── Route to a report (office -> pin) ─────────────────────────────────────
+// Shape only. Whether the point is inside Cabuyao is decided in
+// routing.service, which owns the service area. Express 5 makes req.query
+// read-only, so `.toFloat()` here would NOT survive into the controller - it
+// reads Number(req.query.lat) itself (see the note in CLAUDE.md).
+const routeQueryRules = [
+  query('lat').exists().withMessage('lat is required.').bail().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude.'),
+  query('lng').exists().withMessage('lng is required.').bail().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude.'),
+];
+
 // ── Complaint ─────────────────────────────────────────────────────────────
 const complaintStatusRules = [
   body('status').trim().notEmpty().withMessage('Status is required.').bail().isIn(COMPLAINT_STATUSES).withMessage('Invalid status.'),
@@ -88,6 +98,7 @@ module.exports = {
   WILDLIFE_STATUSES,
   REQUEST_STATUSES,
   listQueryRules,
+  routeQueryRules,
   complaintStatusRules,
   complaintUpdateRules,
   createWalkInComplaintRules,

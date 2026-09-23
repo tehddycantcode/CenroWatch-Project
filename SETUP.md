@@ -141,6 +141,46 @@ Then edit them:
 
 > Never commit `.env` or `gcs-key.json`. They are already in `.gitignore`.
 
+### Optional: road directions on the staff map (`ORS_API_KEY`)
+
+The staff report detail page draws the route from the CENRO office to the
+report's pin. **Skip this and nothing breaks** — the map falls back to a dashed
+straight line and an air distance, which is what it drew before routing existed.
+With a key, the line follows real roads and the label becomes "2.6 km by road ·
+about 8 min".
+
+1. Sign up (free) at <https://openrouteservice.org/dev/#/signup> — an email
+   address is enough, no card.
+2. Verify the email, sign in, and open the **Dashboard**.
+3. Request a token: choose the **free** plan (labelled *Standard* / *Free*), give
+   it any name (e.g. `cenrowatch-dev`), and create it. The key is a long string.
+4. Paste it into `backend/.env`:
+   ```
+   ORS_API_KEY="paste_the_key_here"
+   ```
+5. Restart the backend (nodemon does this for you if it is already running —
+   `.env` is read per request, but restart anyway to be certain).
+6. Check it: open any complaint with a map pin in the staff or admin view. The
+   line should follow the roads and the text should say "by road". If it still
+   says "in a straight line", ask the API directly —
+   `GET /api/v1/staff/route?lat=14.2779&lng=121.1326` (signed in as staff or
+   admin) answers with a `reason`:
+   - `routing_not_configured` → the key is not reaching the server (typo in the
+     variable name, or the backend was not restarted)
+   - `routing_unavailable` → the key is there but the provider refused or was
+     unreachable; the backend log line starting `[routing]` gives the status
+     (403 = bad or disallowed key, 429 = daily quota spent)
+   - `office_not_set` → the `cenro_office_lat` / `cenro_office_lng` settings are
+     empty; fill them on the admin **Settings** page
+
+Free tier limits are 2,500 routes/day and 40,000/month, and routes are cached
+per office/pin pair, so a report costs one request no matter how often it is
+opened. Governmental, academic and non-profit organisations can apply for an
+upgraded *collaborative* plan from the same dashboard.
+
+> The routing key stays **server-side** — unlike `VITE_MAPTILER_API_KEY`, which
+> the browser must hold to fetch tiles, this one never leaves the backend.
+
 ---
 
 ## 5. Set up the database
