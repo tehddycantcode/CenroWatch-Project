@@ -8,7 +8,7 @@
       "policy": "fingerprint"
     },
     "updates": {
-      "url": "https://u.expo.dev/6f3b38f4-8566-42cc-8d71-f062b96cf439"
+      "url": "https://u.expo.dev/98b46157-e26b-402b-93a5-a8e1c939f80b"
     },
     "orientation": "portrait",
     "icon": "./assets/cenro-logo.png",
@@ -53,9 +53,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "6f3b38f4-8566-42cc-8d71-f062b96cf439"
+        "projectId": "98b46157-e26b-402b-93a5-a8e1c939f80b"
       }
     },
-    "owner": "ejjj02"
+    "owner": "ejjj02s-team"
   }
 }
