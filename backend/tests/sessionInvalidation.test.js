@@ -148,6 +148,10 @@ describe('authenticate + password_changed_at', () => {
       password_changed_at: new Date((NOW - 60) * 1000),
     });
     const req = {
+      // A read: a cookie-authenticated WRITE without the CSRF header is refused
+      // 403 before the token is even examined (utils/csrf.js), which would mask
+      // the 401 this test is about.
+      method: 'GET',
       cookies: { cenrowatch_token: tokenIssuedAt((NOW - 3600)) },
       headers: {},
     };

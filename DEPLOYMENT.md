@@ -34,17 +34,36 @@ the web app and the API are on the same registrable domain.**
 
 | Setup | Cookie needed | CSRF protection |
 |---|---|---|
-| `DOMAIN` + `API_DOMAIN` (sibling hosts, one domain) | `SameSite=Lax` | **intact** |
-| `cenrowatch.pages.dev` + `x.up.railway.app` | `SameSite=None` | **given up** |
+| `DOMAIN` + `API_DOMAIN` (sibling hosts, one domain) | `SameSite=Lax` | **intact**, two layers |
+| `cenrowatch.pages.dev` + `x.up.railway.app` | `SameSite=None` | **intact**, one layer (see below) |
 
 The platforms' free subdomains are *different registrable domains*, so using them
 forces `SESSION_COOKIE_SAMESITE=none`. The code makes that an explicit opt-in
 precisely so nobody switches it on without noticing what it costs.
 
-**So: register the domain first, and put the API on a subdomain of it.** Everything
-below assumes that. If CENRO truly cannot obtain a domain, the system still works —
-set `SESSION_COOKIE_SAMESITE=none`, and record it as a known weakness in
-`HANDOVER.md` §10 rather than leaving it undocumented.
+**Since 2026-09-23 that no longer means giving CSRF protection up.** A second,
+domain-independent defence is in place: `authenticate` refuses any
+cookie-authenticated write that does not carry an `X-Requested-With` header
+(`backend/src/utils/csrf.js`). A cross-site page cannot add a header to a
+"simple" request, and adding one makes the request non-simple, which triggers a
+preflight that the exact-origin CORS allowlist then refuses.
+
+That closes the one gap `SameSite=None` actually opened. It is worth being precise
+about what that gap was: every JSON endpoint was **already** safe, because
+`Content-Type: application/json` is non-simple and gets preflighted — role
+changes, settings, status updates and archiving were never reachable cross-site.
+The exposure was the six `multipart/form-data` upload routes, which are simple
+requests that skip the preflight, so an attacker's page could file reports in a
+signed-in user's name.
+
+Mobile is untouched by the rule: it authenticates with `Authorization: Bearer`,
+which a browser never attaches by itself, so there is no forgery to prevent and
+no installed APK to break.
+
+**A real domain is still the better answer** — defence in depth, and a government
+service on `*.pages.dev` has a credibility problem regardless of security. But a
+free-subdomain deployment is now a reasonable starting point rather than a
+documented weakness. If you take it, still record the choice in `HANDOVER.md` §10.
 
 ---
 
@@ -376,6 +395,15 @@ the environment.
 | 12 | Print a complaint PDF | Reporter name and address render |
 | 13 | APK on mobile data, not Wi-Fi | Reaches the API |
 | 14 | `curl https://API_DOMAIN/api/v1/gis/map` signed out | `200`, and **zero** personal data |
+| 15 | File a report **from the deployed web app** | Succeeds — proves the CSRF header survives the cross-origin preflight |
+| 16 | Repeat that write with the `X-Requested-With` header removed | **403** |
+
+Checks 15 and 16 are a pair, and 15 is the one that can only be done after
+deploying. Locally the web app reaches the API through Vite's proxy, so it is
+same-origin and no preflight happens; in production they are different origins
+and every write is preflighted. `cors()` is configured without an explicit
+`allowedHeaders`, so it reflects whatever the browser asks for and this should
+pass — but "should" is why it is on the list.
 
 **Checks 6, 7 and 10 matter most.** Each corresponds to a failure that produces no
 error message: uploads served publicly, the volume not actually mounted, and

@@ -63,6 +63,13 @@ export async function apiFetch(
   const finalHeaders = { ...headers };
   // Let the browser set multipart boundaries; only set JSON header otherwise.
   if (!isForm && body) finalHeaders['Content-Type'] = 'application/json';
+  // CSRF. The API refuses a cookie-authenticated write without this header, and
+  // a cross-site page cannot add it: doing so makes the request non-simple,
+  // which triggers a preflight the CORS allowlist then refuses. It matters most
+  // for the multipart uploads, which are otherwise "simple" requests that skip
+  // the preflight entirely. Sent on reads too, because one rule is easier to
+  // keep true than an exception. See backend/src/utils/csrf.js.
+  finalHeaders['X-Requested-With'] = 'XMLHttpRequest';
 
   let res;
   try {

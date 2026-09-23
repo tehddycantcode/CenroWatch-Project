@@ -11,22 +11,37 @@
 const prisma = require('../utils/prisma');
 const { verifyToken } = require('../utils/jwt');
 const { SESSION_COOKIE_NAME } = require('../utils/sessionCookie');
+const { isCsrfViolation, CSRF_HEADER } = require('../utils/csrf');
 
+// Returns the token AND where it came from. The source matters: a cookie is
+// attached by the browser automatically, which is what makes CSRF possible, and
+// a Bearer header never is. See utils/csrf.js.
 function readToken(req) {
   const fromCookie = req.cookies?.[SESSION_COOKIE_NAME];
-  if (fromCookie) return fromCookie;
+  if (fromCookie) return { token: fromCookie, fromCookie: true };
   const [scheme, bearer] = (req.headers.authorization || '').split(' ');
-  return scheme === 'Bearer' && bearer ? bearer : null;
+  return scheme === 'Bearer' && bearer
+    ? { token: bearer, fromCookie: false }
+    : { token: null, fromCookie: false };
 }
 
 async function authenticate(req, res, next) {
   try {
-    const token = readToken(req);
+    const { token, fromCookie } = readToken(req);
 
     if (!token) {
       return res.status(401).json({
         success: false,
         message: 'Not signed in.',
+      });
+    }
+
+    // Checked before the token is even verified: a forged request should be
+    // refused on its shape, not on whose session it managed to ride in on.
+    if (isCsrfViolation({ method: req.method, headers: req.headers, fromCookie })) {
+      return res.status(403).json({
+        success: false,
+        message: `Missing ${CSRF_HEADER} header. Browser clients must send it on writes.`,
       });
     }
 
