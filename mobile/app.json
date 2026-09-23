@@ -49,14 +49,6 @@
         }
       ],
       "expo-image",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "usesCleartextTraffic": true
-          }
-        }
-      ],
       "@maplibre/maplibre-react-native"
     ],
     "extra": {

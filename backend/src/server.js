@@ -2,8 +2,22 @@
 require('dotenv').config();
 
 const app = require('./app');
+const { assertUploadsPersistent } = require('./utils/uploadsPersistence');
 
 const PORT = process.env.PORT || 5000;
+
+// Before the port is opened, not after: a server that accepts uploads it cannot
+// keep is worse than one that never starts. See utils/uploadsPersistence.js -
+// the failure this prevents produces no error anywhere until the files are gone.
+try {
+  assertUploadsPersistent();
+} catch (e) {
+  console.error('');
+  console.error('REFUSING TO START — uploaded files would not survive a deploy.');
+  console.error(`  ${e.message}`);
+  console.error('');
+  process.exit(1);
+}
 
 // NODE_ENV gates a lot more than logging here, and the failure mode worth
 // guarding is deploying WITHOUT setting it. Every one of these protections sits

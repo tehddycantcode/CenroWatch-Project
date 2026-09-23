@@ -63,36 +63,62 @@ architecture, and it is worth knowing why so nobody "fixes" them later:
 
 Two remain, and both still matter:
 
-### 0.1 `mobile/src/config.js` points at a LAN address
+### 0.1 The mobile app's API target — **now an environment variable**
+
+`mobile/src/config.js` no longer hardcodes an address. It reads:
 
 ```js
-export const API_URL = 'http://192.168.0.97:5000/api/v1';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.18.11:5000/api/v1';
 ```
 
-It must become `https://API_DOMAIN/api/v1`. This is a plain constant in `src/`, so
-since over-the-air updates were wired up it can be corrected by `eas update`
-without a rebuild — **but only for phones already running a build that contains the
-updater**. The first production APK must be built with the correct value.
+The fallback is a development desk and must never reach a production build. Set
+`EXPO_PUBLIC_API_URL=https://API_DOMAIN/api/v1` as an **EAS environment variable**
+on the `production` (and `preview`) environment, the same way
+`EXPO_PUBLIC_MAPTILER_API_KEY` is already set — `eas env:list --environment
+production` to check. `EXPO_PUBLIC_*` values are inlined at **build** time, so a
+wrong one cannot be corrected by `eas update`; it needs a rebuild.
 
-Note also `usesCleartextTraffic: true` in `mobile/app.json`. It exists for local
-`http://` development. Production is HTTPS, so it is no longer needed and should be
-removed — that is a native change, so it needs a rebuild, not an update.
+Verify after building rather than trusting the config: open the app with the API
+stopped and confirm the failure names your domain, not a `192.168.*` address.
+
+### 0.1b `usesCleartextTraffic` — **already removed** (2026-09-23)
+
+It is gone from `mobile/app.json`. Android release builds block plain `http://`
+by default, which is correct now that the API is HTTPS.
+
+The consequence to remember: an **EAS-built APK can no longer reach a plain
+`http://` LAN backend at all**. Testing an APK against a laptop on the same Wi-Fi
+stops working — use Expo Go for that, which ignores the release manifest's network
+policy. If you ever genuinely need it back, it is the `expo-build-properties`
+plugin entry in `plugins` (see `mobile/AGENTS.md` for why it cannot be a bare
+`android` key), and restoring it changes the native fingerprint, so it needs a new
+build and cuts existing installs off from OTA updates.
 
 ### 0.2 Add production guards
 
 Three settings fail *silently* rather than loudly when wrong. Make the server
 refuse to boot in production unless each is right.
 
-**1. The uploads volume must actually be mounted.** With `STORAGE_DRIVER=local`
-and no volume, an upload returns 200, the database row is written, and the file
-lives on the container's ephemeral disk until the next deploy destroys it. No
-error, at any point. This is the most dangerous misconfiguration available to you.
+**1. The uploads volume must actually be mounted — DONE (2026-09-23).** With
+`STORAGE_DRIVER=local` and no volume, an upload returns 201, the database row is
+written, and the file lives on the container's ephemeral disk until the next
+deploy destroys it. No error, at any point. This was the most dangerous
+misconfiguration available to you.
 
-Railway automatically sets `RAILWAY_VOLUME_MOUNT_PATH` on a service that has a
-volume attached. Guard on it: in production, refuse to boot if
-`STORAGE_DRIVER=local` and that variable is missing or does not point at the
-uploads directory. (Confirm the exact variable name in the service's Variables tab
-before relying on it.)
+`backend/src/utils/uploadsPersistence.js` now refuses to start the server in that
+state — the check runs in `server.js` **before the port opens**, and exits 1 with
+an explanation. It is deliberately not a warning: a server that will not start is
+noticed in minutes, a warning in a deploy log is not.
+
+How it decides, in order: not production or `STORAGE_DRIVER=gcs` → nothing to
+check. Otherwise the uploads directory must exist and be writable, and then be
+either (a) `UPLOADS_PERSISTENT=1`, an explicit operator claim for hosts like a VPS
+where the directory really does survive, (b) named by
+`RAILWAY_VOLUME_MOUNT_PATH`, or (c) on a **different device id from its parent** —
+which is what a real mount looks like, and needs no vendor-specific variable.
+
+So on Railway, mounting the volume at `/app/uploads` (Part 3) is sufficient and
+no extra variable is needed. Covered by `backend/tests/uploadsPersistence.test.js`.
 
 **2. `TRUST_PROXY` is unset.** Railway terminates TLS in front of your container,
 so `req.ip` is the proxy for every request and **all of Cabuyao shares one
@@ -221,6 +247,19 @@ warning and no audit row. See `HANDOVER.md` §11.1c.
 | `EMAIL_USER` | the CENRO mailbox | `HANDOVER.md` §1.2 |
 | `EMAIL_PASS` | the 16-letter Gmail App Password | Not the account password |
 | `EMAIL_FROM` | the display address | Optional |
+| `ORS_API_KEY` | the OpenRouteService "Basic Key" | Optional — see below |
+
+`ORS_API_KEY` draws the driving route from the office to a report on the staff
+detail map. Leave it unset and that map falls back to a straight line and an air
+distance; nothing breaks and no error appears. It is server-side only — the web
+bundle never sees it. `SETUP.md` covers getting a key, and `ORS_ENDPOINT`
+overrides the provider URL if HeiGIT's migration off `api.openrouteservice.org`
+ever bites.
+
+The office coordinates themselves are **not** environment variables: they are the
+`cenro_office_lat` / `cenro_office_lng` rows on the admin Settings page, seeded by
+`prisma/seed.js` to the City Hall location. Confirm them after the seed (Part 4);
+if either is blank the distance line simply does not render.
 
 `FIELD_ENCRYPTION_KEY` must be the **same key the existing data was encrypted
 with**. A new key does not re-encrypt anything; it makes every existing encrypted
