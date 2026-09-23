@@ -1,0 +1,23 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Admin — audit log lists recorded actions with who and when",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /admin/audit-logs"
+    },
+    {
+      "type": "assertion",
+      "description": "A table of audit entries is shown, each row naming an action, the user who performed it and a timestamp"
+    },
+    {
+      "type": "assertion",
+      "description": "At least one entry shows a recognisable action name in capitals with underscores, such as SETTINGS_UPDATE or COMPLAINT_STATUS_UPDATE"
+    },
+    {
+      "type": "assertion",
+      "description": "The entries are listed newest first"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Admin — system settings expose the SLA budgets and the CENRO office coordinates",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /admin/settings"
+    },
+    {
+      "type": "assertion",
+      "description": "A list of settings is shown, each with its key, its current value and a Save control"
+    },
+    {
+      "type": "assertion",
+      "description": "The settings include complaint_sla_minutes with a whole-number value"
+    },
+    {
+      "type": "assertion",
+      "description": "The settings include cenro_office_lat and cenro_office_lng, both holding decimal coordinates"
+    },
+    {
+      "type": "assertion",
+      "description": "The cenro_office_lat value begins \"14.\" and cenro_office_lng begins \"121.\", placing the office in Cabuyao"
+    }
+  ]
+}

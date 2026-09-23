@@ -1,0 +1,35 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Staff — complaints queue lists reports and filters by status",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /staff/complaints"
+    },
+    {
+      "type": "assertion",
+      "description": "The page heading reads \"Complaints\" and the subtitle reads \"Triage and resolve resident environmental complaints\""
+    },
+    {
+      "type": "assertion",
+      "description": "A table is shown whose header row includes the columns Tracking, Type, Barangay and Status"
+    },
+    {
+      "type": "assertion",
+      "description": "At least one row is listed, and its Tracking cell matches the pattern CMP-YYYY-NNNNN"
+    },
+    {
+      "type": "action",
+      "description": "Apply the status filter for \"Pending\""
+    },
+    {
+      "type": "assertion",
+      "description": "Every row now visible shows the status Pending; no row shows Resolved or Rejected"
+    },
+    {
+      "type": "assertion",
+      "description": "The summary line below the table reads \"Showing N of M\" where N is the number of visible rows"
+    }
+  ]
+}

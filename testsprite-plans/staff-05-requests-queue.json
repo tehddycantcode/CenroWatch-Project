@@ -1,0 +1,31 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Staff — service requests queue lists requests and opens one",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /staff/requests"
+    },
+    {
+      "type": "assertion",
+      "description": "The page heading reads \"Service Requests\" and the subtitle mentions approving and scheduling resident service requests"
+    },
+    {
+      "type": "assertion",
+      "description": "A table lists requests, each row showing a tracking reference beginning REQ- and a request type"
+    },
+    {
+      "type": "action",
+      "description": "Open the first request in the list"
+    },
+    {
+      "type": "assertion",
+      "description": "The URL now contains /staff/requests/REQ-"
+    },
+    {
+      "type": "assertion",
+      "description": "The detail page shows the request type, the requesting resident, and the current status"
+    }
+  ]
+}

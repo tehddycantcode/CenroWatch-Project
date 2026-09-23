@@ -1,0 +1,31 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Staff — wildlife turnovers queue lists species and opens a turnover",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /staff/wildlife"
+    },
+    {
+      "type": "assertion",
+      "description": "The page heading reads \"Wildlife Turnovers\" and the subtitle mentions that endangered species get priority"
+    },
+    {
+      "type": "assertion",
+      "description": "A table lists turnovers, each row showing a tracking reference beginning WLD- and a species name"
+    },
+    {
+      "type": "action",
+      "description": "Open the first turnover in the list"
+    },
+    {
+      "type": "assertion",
+      "description": "The URL now contains /staff/wildlife/WLD-"
+    },
+    {
+      "type": "assertion",
+      "description": "The detail page shows the species, the turnover status, and a status history section"
+    }
+  ]
+}

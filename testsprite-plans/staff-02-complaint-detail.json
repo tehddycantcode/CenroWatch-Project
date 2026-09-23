@@ -1,0 +1,35 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Staff — complaint detail shows the location, office distance and Directions link",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /staff/complaints/CMP-2026-00048"
+    },
+    {
+      "type": "assertion",
+      "description": "The page shows a DESCRIPTION section with the complaint text and a LOCATION section"
+    },
+    {
+      "type": "assertion",
+      "description": "The LOCATION section shows a latitude, longitude pair beginning \"14.\" and \"121.\""
+    },
+    {
+      "type": "assertion",
+      "description": "A map is rendered in the location block (a MapLibre canvas with the MapTiler / OpenStreetMap attribution visible)"
+    },
+    {
+      "type": "assertion",
+      "description": "A line of text under the map mentions the CENRO office and a distance in km or m"
+    },
+    {
+      "type": "assertion",
+      "description": "A \"Directions\" link is present and its href points at google.com/maps with an origin and destination"
+    },
+    {
+      "type": "assertion",
+      "description": "A REPORTER section lists the reporter name and contact details"
+    }
+  ]
+}

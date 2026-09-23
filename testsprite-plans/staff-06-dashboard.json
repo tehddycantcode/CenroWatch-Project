@@ -1,0 +1,27 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Staff — dashboard greets the signed-in user and links into the queues",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /staff/dashboard"
+    },
+    {
+      "type": "assertion",
+      "description": "The page shows a heading that begins \"Good day,\" followed by the signed-in user's first name"
+    },
+    {
+      "type": "assertion",
+      "description": "Summary figures for the queues are shown as numbers, not placeholders or dashes"
+    },
+    {
+      "type": "action",
+      "description": "Follow the navigation link to the complaints queue"
+    },
+    {
+      "type": "assertion",
+      "description": "The URL is /staff/complaints and the \"Complaints\" heading is shown"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Admin — dashboard reports system-wide analytics",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /admin/dashboard"
+    },
+    {
+      "type": "assertion",
+      "description": "The page heading reads \"Analytics Dashboard\" with the subtitle \"CENRO Cabuyao system-wide overview\""
+    },
+    {
+      "type": "assertion",
+      "description": "A Total Reports figure is shown as a number, with a breakdown naming complaints, wildlife and requests"
+    },
+    {
+      "type": "assertion",
+      "description": "Cards for Users, Avg Resolution and Endangered Wildlife each show a numeric value"
+    },
+    {
+      "type": "assertion",
+      "description": "A \"Reports over time\" chart is rendered with month labels on its axis"
+    },
+    {
+      "type": "assertion",
+      "description": "SLA compliance cards are shown as percentages for complaints, wildlife and requests"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Staff — moving a complaint to Under Review records it in the status history",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /staff/complaints/CMP-2026-00029"
+    },
+    {
+      "type": "assertion",
+      "description": "The complaint currently shows the status Pending"
+    },
+    {
+      "type": "action",
+      "description": "In the status update control, choose \"Under Review\", type the note \"TestSprite automated check\" and submit with Save update"
+    },
+    {
+      "type": "assertion",
+      "description": "A success confirmation appears and the complaint status now reads Under Review, not Pending"
+    },
+    {
+      "type": "assertion",
+      "description": "The Status history section contains a new entry showing the change from Pending to Under Review"
+    },
+    {
+      "type": "assertion",
+      "description": "The note \"TestSprite automated check\" appears against that history entry"
+    }
+  ]
+}

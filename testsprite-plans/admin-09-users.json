@@ -1,0 +1,27 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Admin — user accounts list filters by role",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /admin/users"
+    },
+    {
+      "type": "assertion",
+      "description": "The page heading reads \"User Accounts\" and a table lists accounts with Name, Email, Role and Status columns"
+    },
+    {
+      "type": "assertion",
+      "description": "At least one account with the role Administrator is listed"
+    },
+    {
+      "type": "action",
+      "description": "Set the role filter to \"CENRO Staff\" and apply it"
+    },
+    {
+      "type": "assertion",
+      "description": "Every row now listed shows the role CENRO Staff; no Resident or Administrator row remains"
+    }
+  ]
+}

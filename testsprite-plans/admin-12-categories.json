@@ -1,0 +1,23 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Admin — report categories list the complaint and request types",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /admin/categories"
+    },
+    {
+      "type": "assertion",
+      "description": "The page lists complaint categories including Illegal Dumping, Open Burning and Water Pollution"
+    },
+    {
+      "type": "assertion",
+      "description": "The page also lists service request types, including Seedling Distribution"
+    },
+    {
+      "type": "assertion",
+      "description": "Each category shows whether it is active"
+    }
+  ]
+}

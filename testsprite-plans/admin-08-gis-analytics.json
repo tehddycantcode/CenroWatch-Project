@@ -1,0 +1,23 @@
+{
+  "projectId": "5d388d65-1e13-4cdb-9fdc-7d3a72a82890",
+  "type": "frontend",
+  "name": "Admin — GIS analytics renders the map and the per-barangay table",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to /admin/analytics"
+    },
+    {
+      "type": "assertion",
+      "description": "A map is rendered (a MapLibre canvas with MapTiler / OpenStreetMap attribution)"
+    },
+    {
+      "type": "assertion",
+      "description": "A table of barangays is shown, each row naming a barangay of Cabuyao and a report count"
+    },
+    {
+      "type": "assertion",
+      "description": "The barangay names shown are real Cabuyao barangays such as Marinig, Mamatid, Banlic or Butong"
+    }
+  ]
+}
