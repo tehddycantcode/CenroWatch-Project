@@ -1,0 +1,69 @@
+# What EAS Build uploads. Read the next paragraph before editing.
+#
+# EAS archives from the GIT ROOT, not from mobile/, so building the phone app
+# otherwise ships the entire monorepo - backend, web, docs - to Expo's servers.
+#
+# **THIS FILE REPLACES .gitignore FOR EAS.** When .easignore exists, EAS stops
+# consulting .gitignore entirely, so every secret rule below has to be restated
+# here. Leave out the .env lines and backend/.env - holding JWT_SECRET,
+# FIELD_ENCRYPTION_KEY, EMAIL_PASS and ORS_API_KEY - is uploaded to a third
+# party's build machine. Anything added to .gitignore must be added here too.
+
+# ── Secrets: NEVER upload ──────────────────────────────────
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+gcs-key.json
+**/gcs-key.json
+*.jks
+*.p12
+*.key
+*.mobileprovision
+
+# ── Not needed to build the phone app ──────────────────────
+# Mobile is a self-contained Expo app; it cannot import from web/ or backend/
+# (see mobile/AGENTS.md), so none of this belongs in the build context.
+backend/
+web/
+docs/
+scripts/
+testsprite-plans/
+.github/
+
+# ── Agent/editor tooling ───────────────────────────────────
+# .agents/skills/ contains SYMLINKS into .claude/skills/. Recreating a symlink
+# during the upload needs admin rights or Developer Mode on Windows, so the
+# build fails with "EPERM: operation not permitted, symlink" before it starts.
+# Nothing here is part of the app.
+.agents/
+.claude/
+.superpowers/
+.hallmark/
+.playwright-mcp/
+.mcp.json
+skills-lock.json
+
+# ── Dependencies and build output ──────────────────────────
+node_modules/
+**/node_modules/
+dist/
+build/
+**/dist/
+**/build/
+**/generated/
+mobile/.expo/
+mobile/.expo-shared/
+
+# ── Local noise ────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.orig.*
