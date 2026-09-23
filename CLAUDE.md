@@ -81,7 +81,12 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   context, or Edit fails with "File has not been read yet."
 - **Stop the backend before `prisma migrate`/`generate` on Windows:** a running
   `node src/server.js` locks the query-engine DLL and generation can EPERM. Stop the
-  background server first, migrate, then restart.
+  background server first, migrate, then restart. **This now includes plain
+  `npm install`** — since 2026-09-23 `backend/package.json` has
+  `"postinstall": "prisma generate"`, added so Railway regenerates the client on
+  every deploy (a cached `npm ci` otherwise skips Prisma's own hook and the server
+  boots to "@prisma/client did not initialize yet"). So an install with the dev
+  server running can EPERM where it used to be harmless.
 - **Don't stage `uploads/` or throwaway test scripts:** verify `git status` before
   every commit; `uploads/` and `dist/` are gitignored, and `_*.mjs` test scaffolds
   must be deleted (not committed).
