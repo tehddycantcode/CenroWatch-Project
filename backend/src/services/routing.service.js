@@ -14,7 +14,15 @@
 // browser fetches tiles itself), but nothing about routing requires the browser
 // to hold this one, and a key in the bundle is a key on someone else's quota.
 
-const ORS_ENDPOINT = 'https://api.openrouteservice.org/v2/directions/driving-car/geojson';
+// HeiGIT (who run OpenRouteService) are retiring api.openrouteservice.org in
+// favour of api.heigit.org - the notice is on the key dashboard. The new host
+// does NOT serve the same path: /v2/... is a 404 there, the prefix is
+// /openrouteservice/v2/.... Both were tested with a real key on 2026-09-23 and
+// returned byte-identical routes (1580.8 m, 42 points), so this uses the
+// successor. ORS_ENDPOINT overrides it without a code change if the migration
+// turns out to be bumpy.
+const DEFAULT_ENDPOINT = 'https://api.heigit.org/openrouteservice/v2/directions/driving-car/geojson';
+const endpoint = () => process.env.ORS_ENDPOINT || DEFAULT_ENDPOINT;
 
 // A third party that never answers must not hold a request open behind it.
 const TIMEOUT_MS = 6000;
@@ -78,7 +86,7 @@ async function getRoute(from, to) {
 
   let body;
   try {
-    const res = await fetch(ORS_ENDPOINT, {
+    const res = await fetch(endpoint(), {
       method: 'POST',
       headers: {
         Authorization: process.env.ORS_API_KEY,

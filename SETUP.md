@@ -151,9 +151,10 @@ about 8 min".
 
 1. Sign up (free) at <https://openrouteservice.org/dev/#/signup> — an email
    address is enough, no card.
-2. Verify the email, sign in, and open the **Dashboard**.
-3. Request a token: choose the **free** plan (labelled *Standard* / *Free*), give
-   it any name (e.g. `cenrowatch-dev`), and create it. The key is a long string.
+2. Verify the email, sign in, and open the **Dashboard** (it lives on
+   `account.heigit.org` — HeiGIT is the institute that runs OpenRouteService).
+3. The key is the one shown as **Basic Key** at the top of the API Key tab.
+   There is nothing else to generate; that string IS the token.
 4. Paste it into `backend/.env`:
    ```
    ORS_API_KEY="paste_the_key_here"
@@ -173,10 +174,20 @@ about 8 min".
    - `office_not_set` → the `cenro_office_lat` / `cenro_office_lng` settings are
      empty; fill them on the admin **Settings** page
 
-Free tier limits are 2,500 routes/day and 40,000/month, and routes are cached
-per office/pin pair, so a report costs one request no matter how often it is
-opened. Governmental, academic and non-profit organisations can apply for an
-upgraded *collaborative* plan from the same dashboard.
+The free key's **Directions V2** quota is 2,000 requests/day and 40/minute (the
+dashboard's Key Quotas table is per endpoint and is the authoritative number —
+don't trust a figure from a blog post). Routes are cached per office/pin pair, so
+a report costs one request no matter how often it is opened. Governmental,
+academic and non-profit organisations can apply for an upgraded *collaborative*
+plan with **Request Upgrade** on the same dashboard — CENRO Cabuyao and a
+Pamantasan ng Cabuyao capstone both qualify.
+
+**About the host:** HeiGIT are retiring `api.openrouteservice.org` in favour of
+`api.heigit.org`, and the dashboard says so. The new host does **not** serve the
+same path — `/v2/...` 404s there; the prefix is `/openrouteservice/v2/...`. The
+code already calls the new one. Both were tested with a real key on 2026-09-23
+and returned identical routes, and `ORS_ENDPOINT` in `backend/.env` overrides the
+URL if the migration ever misbehaves.
 
 > The routing key stays **server-side** — unlike `VITE_MAPTILER_API_KEY`, which
 > the browser must hold to fetch tiles, this one never leaves the backend.
