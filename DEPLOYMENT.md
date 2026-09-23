@@ -309,7 +309,31 @@ if either is blank the distance line simply does not render.
 with**. A new key does not re-encrypt anything; it makes every existing encrypted
 field unreadable, permanently.
 
-Do **not** set `SESSION_COOKIE_SAMESITE` unless Part 0 forced you to.
+### `SESSION_COOKIE_SAMESITE` — required on free subdomains
+
+On a real domain with the API on a subdomain of it, leave this unset: `Lax` is
+the default and the stronger setting.
+
+**Deploying on the platforms' free subdomains, you MUST set it:**
+
+```
+SESSION_COOKIE_SAMESITE=none
+```
+
+`*.pages.dev` and `*.up.railway.app` are different registrable domains, so the
+browser refuses to attach a `Lax` cookie to the API call. The symptom is not an
+error anyone would connect to cookies: **sign-in appears to succeed, the page
+loads for a moment, then bounces back to the login screen** — because `/auth/me`
+goes out without the cookie, answers 401, and `AuthContext` signs the user out.
+Nothing in the logs says "cookie".
+
+`Secure` is implied by `NODE_ENV=production`, which `None` requires anyway, so
+both sides must be HTTPS — they are.
+
+This gives up SameSite's CSRF protection, which is survivable **only because**
+cookie-authenticated writes separately require the `X-Requested-With` header
+(`backend/src/utils/csrf.js`). Without that, this setting would be a real
+weakness rather than a trade.
 
 ---
 
