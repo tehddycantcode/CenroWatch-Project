@@ -153,14 +153,34 @@ lets anyone spoof around the limits.
 
 1. Sign in to Railway with the **CENRO-owned** GitHub account, not a student's.
 2. **New Project → Deploy from GitHub repo → `REPO`**.
-3. In the service's **Settings**:
-   - **Root Directory:** `backend`
-   - **Start Command:** `npm start`
+3. In the **service's** Settings — not the project's; Root Directory does not
+   exist on the project page, which has Shared Variables and Members instead:
+   - **Source → Root Directory:** `backend`
+   - **Deploy → Custom Start Command:** `npm start`
+
+> **Connecting the repo starts a build immediately**, before you have set the
+> root directory, and that first build fails: Railway looks at the repository
+> root, finds no `package.json` among `backend/ web/ mobile/`, and reports
+> "Railpack could not determine how to build the app". That is expected. Set the
+> root directory and redeploy.
+
+> **The build uses `backend/Dockerfile`, not Railpack.** Railway prefers a
+> Dockerfile when it finds one, so the image — Debian slim, Node 20, OpenSSL for
+> Prisma's query engine — is what ships, and `engines`/Railpack detection are not
+> consulted. The same image builds Koshi's local stack, so a change here affects
+> both; `docker-compose.yml` supplies its own `command` for the local behaviour
+> that does not belong in a deployed image.
 
 > **Do not use `npm run start:docker`.** It runs `prisma migrate deploy && node
 > prisma/seed.js` before the server on *every* start. Migrations belong in the
 > pre-deploy command (Part 4), and re-running the seed against a live database
 > reverts admin-edited settings — see Part 4 for exactly what it overwrites.
+>
+> That used to be the Dockerfile's own `CMD`, which meant this warning was the
+> only thing standing between a deploy and silently reverted settings — one
+> cleared text field in the Railway UI and every restart re-seeded production.
+> Since 2026-09-23 the image just serves (`CMD ["npm", "start"]`), so the Start
+> Command above is belt-and-braces rather than the whole belt.
 
 Railway sets `PORT` itself and `server.js` already reads it, so no change there.
 

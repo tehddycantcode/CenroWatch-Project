@@ -49,6 +49,12 @@ services:
     build: ./backend
     container_name: cenrowatch_api
     restart: unless-stopped
+    # Migrate and seed on boot, then serve. This lives here rather than in the
+    # Dockerfile on purpose: it is right for a local stack you can throw away and
+    # wrong anywhere real, because the seed upserts baseline rows on EVERY start
+    # and would quietly revert admin-edited settings after each deploy. The image
+    # therefore just serves (CMD npm start), and a local stack opts in here.
+    command: npm run start:docker
     depends_on:
       db:
         condition: service_healthy      # wait until MySQL accepts connections
