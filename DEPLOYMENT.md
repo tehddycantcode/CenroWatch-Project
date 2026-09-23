@@ -259,7 +259,7 @@ of every upsert re-applies the seeded value over whatever is in the row now.
 
 | Re-running the seed silently overwrites | Where |
 |---|---|
-| All four service deadlines (`setting_value`) | `seed.js:86-90` |
+| All **six** settings — the four SLA budgets **and** the two CENRO office coordinates | `seed.js:90-96` |
 | Every seeded barangay's latitude, longitude and boundary | `seed.js:76-79` |
 | Every complaint type's `sort_order` | `seed.js:102-105` |
 | Every request type's `sort_order`, `sla_setting_key`, `sla_fallback_minutes` | `seed.js:109-116` |
@@ -267,6 +267,11 @@ of every upsert re-applies the seeded value over whatever is in the row now.
 Only `is_active` and `label` are spared, deliberately. **An SLA figure an Admin
 corrected to match the Citizens Charter is not.** It reverts with no error, no
 warning and no audit row. See `HANDOVER.md` §11.1c.
+
+The same now applies to the CENRO office coordinates: if the office moves and an
+Admin updates them on the Settings page, a second seed puts them back at City
+Hall, and the only visible symptom is that every report's "distance from the
+office" is quietly wrong.
 
 ---
 
