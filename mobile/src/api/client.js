@@ -124,6 +124,13 @@ let categoriesPromise = null;
 export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
+  // Clears the SERVER-SET session cookie. The app authenticates with Bearer and
+  // never reads this cookie, but React Native's Android networking is OkHttp,
+  // which keeps a cookie jar and stores the Set-Cookie that login returns - for
+  // the full JWT_EXPIRES_IN, across app restarts. Only the server can clear it
+  // (it is HttpOnly), and this endpoint does exactly that and nothing else, so
+  // calling it never disturbs the Bearer session.
+  logout: () => request('/auth/logout', { method: 'POST' }),
   // Asks for a reset LINK, which the server emails. The app never sees the
   // token and cannot complete the reset: the link opens /reset-password in the
   // browser. The answer is deliberately the same whether or not the address has

@@ -72,6 +72,16 @@ export function AuthProvider({ children }) {
       // leaving it there would silently restore a session the person has just
       // asked not to keep.
       await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
+      // And the COOKIE, which the keychain delete does not touch. The login
+      // that just succeeded returned a Set-Cookie, and OkHttp's jar keeps it
+      // for the full JWT_EXPIRES_IN across restarts. Nothing in the app reads
+      // it today - every call sends Bearer - so this is hygiene rather than a
+      // live bug, but leaving a week-long credential on a phone belonging to
+      // someone who just said "do not keep me signed in" is the wrong default,
+      // and it would become a real bug the moment any call goes out without a
+      // Bearer header. Not awaited: declining to be remembered must not fail
+      // because the network did.
+      api.logout().catch(() => {});
     }
     setToken(tk);
     setUser(usr);
@@ -97,6 +107,11 @@ export function AuthProvider({ children }) {
   );
 
   const logout = useCallback(async () => {
+    // Ask the server to clear the session cookie OkHttp is holding. Signing out
+    // has to work on a dead network, so this is deliberately not awaited and
+    // its failure is ignored - the local state below is what actually ends the
+    // session for this app.
+    api.logout().catch(() => {});
     await SecureStore.deleteItemAsync(TOKEN_KEY);
     setToken(null);
     setUser(null);
