@@ -381,6 +381,23 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   now means somebody changed it on purpose and the answer is to ask, not to
   overwrite. Restoring *rows* from seed data is safe; restoring a *credential* is
   not, and the distinction is worth the one question it costs.
+- **CRLF SILENTLY BREAKS EAS OTA UPDATES, exactly as it broke Prisma migrations.**
+  EAS derives the `fingerprint` runtime version by hashing the BYTES of the files
+  that decide the native app — `eas.json`, `app.json`, `.gitignore`, native
+  node_modules. An update is only served to a build whose fingerprint matches.
+  The APK is built on EAS's Linux machines (LF); `eas update` fingerprints the
+  LOCAL checkout, which on this Windows box was CRLF. Twenty-four carriage
+  returns in a file nobody edited turned `a1d292d6` into `df761dab`, and an
+  update published here would have uploaded happily and reached NOBODY — the
+  phone asks for its runtime version and never gets a reply. There is no error;
+  `eas update` reports success. **Run `eas fingerprint:compare --build-id <id>`
+  BEFORE publishing** — it is the only thing that catches this. It words the
+  problem as `modified file: eas.json`, which reads like someone edited it;
+  `git ls-files --eol` shows the truth (`i/lf w/crlf`). Fixed by pinning those
+  paths `text eol=lf` in `.gitattributes`, then `git add --renormalize` AND
+  re-checking the file out — renormalize alone updates the index and leaves the
+  working copy CRLF. Beware: `grep -q $'\r' file` answered NO on a file `od`
+  proves is full of CRs. Check bytes (`tr -cd '\r' | wc -c`), not a grep.
 - **REACT NATIVE DOES HAVE A COOKIE JAR — the "mobile sends Bearer, so it is
   exempt" assumption is false.** Android RN networking is OkHttp, which keeps
   cookies per app process: the phone stores the `Set-Cookie` login returns and

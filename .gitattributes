@@ -19,3 +19,25 @@
 # Koshi's Linux container, so a migration applied on one machine verifies on the
 # other.
 *.sql text eol=lf
+
+# The SAME bug, in a second place, found 2026-09-24.
+#
+# EAS computes a `fingerprint` runtime version by hashing the bytes of the files
+# that decide what the native app contains - eas.json, app.json, .gitignore and
+# the native side of node_modules. An over-the-air update is only served to a
+# build whose fingerprint matches, so the two have to agree exactly.
+#
+# The APK is built on EAS's Linux machines, where eas.json is LF. `eas update`
+# computes the fingerprint from the LOCAL checkout, which on Windows was CRLF.
+# Twenty-four carriage returns in a file nobody had edited were enough to turn
+# a1d292d6 into df761dab, and an update published from this laptop would have
+# uploaded happily and then been served to no one - the phone asks for its own
+# runtime version and never sees a reply.
+#
+# `eas fingerprint:compare` reports this as `modified file: eas.json`, which
+# reads like someone changed it. `git ls-files --eol` is what actually shows it:
+# `i/lf  w/crlf`. Note that `grep -q $'\r'` answered NO on a file that od proves
+# is full of them - check the bytes, not a grep.
+mobile/eas.json text eol=lf
+mobile/app.json text eol=lf
+mobile/.gitignore text eol=lf
