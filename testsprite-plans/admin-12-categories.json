@@ -19,5 +19,7 @@
       "type": "assertion",
       "description": "Each category shows whether it is active"
     }
-  ]
+  ],
+  "description": "The report categories page lists the admin-managed complaint categories and service request types, each showing whether it is currently active.",
+  "priority": "p2"
 }

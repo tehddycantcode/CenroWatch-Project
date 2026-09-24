@@ -31,5 +31,7 @@
       "type": "assertion",
       "description": "The summary line below the table reads \"Showing N of M\" where N is the number of visible rows"
     }
-  ]
+  ],
+  "description": "A CENRO staff member opening the complaints queue sees the resident complaints listed with their tracking references, and narrowing the status filter to Pending leaves only Pending rows and an updated result count.",
+  "priority": "p0"
 }

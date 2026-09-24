@@ -19,5 +19,7 @@
       "type": "assertion",
       "description": "The entries are listed newest first"
     }
-  ]
+  ],
+  "description": "The audit log lists recorded system actions newest first, each naming the action, the user who performed it and when — the R.A. 10173 accountability trail every data mutation is required to write.",
+  "priority": "p0"
 }

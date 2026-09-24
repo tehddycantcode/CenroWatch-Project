@@ -27,5 +27,7 @@
       "type": "assertion",
       "description": "The detail page shows the species, the turnover status, and a status history section"
     }
-  ]
+  ],
+  "description": "The wildlife turnovers queue lists turnovers by species with their WLD tracking references, and opening one shows its species, current status and status history.",
+  "priority": "p1"
 }

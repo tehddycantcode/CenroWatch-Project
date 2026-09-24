@@ -31,5 +31,7 @@
       "type": "assertion",
       "description": "A REPORTER section lists the reporter name and contact details"
     }
-  ]
+  ],
+  "description": "Opening a single complaint shows the reported location on a map with its coordinates, the computed distance from the CENRO office, a working Directions link, and the reporter details staff need to follow up.",
+  "priority": "p1"
 }

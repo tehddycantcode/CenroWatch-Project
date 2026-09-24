@@ -27,5 +27,7 @@
       "type": "assertion",
       "description": "SLA compliance cards are shown as percentages for complaints, wildlife and requests"
     }
-  ]
+  ],
+  "description": "The admin analytics dashboard reports system-wide figures: total reports broken down by kind, user and resolution-time cards, a six-month reports-over-time chart, and SLA compliance percentages per report type.",
+  "priority": "p0"
 }

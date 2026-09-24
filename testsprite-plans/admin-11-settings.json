@@ -23,5 +23,7 @@
       "type": "assertion",
       "description": "The cenro_office_lat value begins \"14.\" and cenro_office_lng begins \"121.\", placing the office in Cabuyao"
     }
-  ]
+  ],
+  "description": "System settings expose the editable SLA budgets in whole minutes and the CENRO office coordinates, whose latitude and longitude place the office within Cabuyao.",
+  "priority": "p1"
 }

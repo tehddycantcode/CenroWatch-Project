@@ -23,5 +23,7 @@
       "type": "assertion",
       "description": "Every row now listed shows the role CENRO Staff; no Resident or Administrator row remains"
     }
-  ]
+  ],
+  "description": "The admin user accounts list shows every account with its role and status, and filtering by CENRO Staff leaves only CENRO Staff rows — the control that enforces role-based access.",
+  "priority": "p1"
 }

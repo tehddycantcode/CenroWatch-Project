@@ -23,5 +23,7 @@
       "type": "assertion",
       "description": "The URL is /staff/complaints and the \"Complaints\" heading is shown"
     }
-  ]
+  ],
+  "description": "The staff dashboard greets the signed-in user by name, reports each queue total as a real number rather than a placeholder, and its navigation links reach the complaints queue.",
+  "priority": "p1"
 }

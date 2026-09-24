@@ -19,5 +19,7 @@
       "type": "assertion",
       "description": "The barangay names shown are real Cabuyao barangays such as Marinig, Mamatid, Banlic or Butong"
     }
-  ]
+  ],
+  "description": "The GIS analytics page renders the Cabuyao map and a per-barangay table whose rows name real Cabuyao barangays alongside their report counts.",
+  "priority": "p1"
 }

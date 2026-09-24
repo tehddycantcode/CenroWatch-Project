@@ -5,7 +5,7 @@
   "planSteps": [
     {
       "type": "action",
-      "description": "Navigate to /staff/complaints/CMP-2026-00029"
+      "description": "Navigate to /staff/complaints/CMP-2026-00045"
     },
     {
       "type": "assertion",
@@ -27,5 +27,7 @@
       "type": "assertion",
       "description": "The note \"TestSprite automated check\" appears against that history entry"
     }
-  ]
+  ],
+  "description": "A staff member moving a Pending complaint to Under Review with a note sees the status change confirmed and a new entry carrying that note recorded in the complaint status history.",
+  "priority": "p0"
 }

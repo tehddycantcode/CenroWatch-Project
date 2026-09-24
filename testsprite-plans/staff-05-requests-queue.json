@@ -27,5 +27,7 @@
       "type": "assertion",
       "description": "The detail page shows the request type, the requesting resident, and the current status"
     }
-  ]
+  ],
+  "description": "The service requests queue lists resident service requests with their REQ tracking references, and opening one shows its type, the requesting resident and its current status.",
+  "priority": "p1"
 }
