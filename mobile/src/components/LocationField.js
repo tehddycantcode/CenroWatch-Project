@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Location from 'expo-location';
-import MapPicker from './MapPicker';
+import MapPicker, { isInCabuyao } from './MapPicker';
 import Icon from './Icon';
 import { colors, radius } from '../theme';
+import { FORM_TL } from '../lib/tagalog';
 
 // Optional location for a report, pinned two ways: tap the map, or let GPS fill
 // it in. Stores { latitude, longitude }.
@@ -15,8 +16,16 @@ import { colors, radius } from '../theme';
 export default function LocationField({ value, onChange }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Bumped only by a GPS fix. MapPicker moves its camera when this changes, so
+  // a point the person taps by hand - already on screen, already where they
+  // were looking - leaves the map exactly where they left it.
+  const [focusToken, setFocusToken] = useState(0);
 
   const has = value?.latitude != null && value?.longitude != null;
+  // The map is clamped to Cabuyao, so a fix from anywhere else is pinned but
+  // unreachable: the camera stops at the boundary and the marker sits off the
+  // edge. Say so rather than letting it look like nothing happened.
+  const outside = has && !isInCabuyao(value);
 
   async function locate() {
     setError('');
@@ -32,6 +41,8 @@ export default function LocationField({ value, onChange }) {
         latitude: Number(pos.coords.latitude.toFixed(6)),
         longitude: Number(pos.coords.longitude.toFixed(6)),
       });
+      // After onChange, so the map has the new value to travel to.
+      setFocusToken((n) => n + 1);
     } catch {
       setError('Could not get your location. You can submit without it.');
     } finally {
@@ -41,7 +52,17 @@ export default function LocationField({ value, onChange }) {
 
   return (
     <View style={{ gap: 8 }}>
-      <MapPicker value={value} onChange={onChange} />
+      <MapPicker value={value} onChange={onChange} focusToken={focusToken} />
+
+      {outside && (
+        <View style={styles.warn}>
+          <Text style={styles.warnText}>
+            Your location is outside Cabuyao. CENRO only serves Cabuyao&apos;s 18 barangays - tap
+            the map to pin the correct spot.
+          </Text>
+          <Text style={styles.warnTextTl}>{FORM_TL.locationOutside}</Text>
+        </View>
+      )}
 
       <View style={styles.box}>
         {has ? (
@@ -84,6 +105,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     justifyContent: 'center',
   },
+  // Amber rather than colors.danger: the coordinates were still captured and the
+  // report can still be filed, so this is a "check this" and not a failure. The
+  // tones match the amber the web app already uses for PRIORITY and Archived.
+  warn: {
+    borderWidth: 1,
+    borderColor: '#fcd34d',
+    backgroundColor: '#fef3c7',
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  warnText: { fontSize: 12, color: '#92400e', fontWeight: '600' },
+  warnTextTl: { fontSize: 11, color: '#92400e' },
   coordRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   coords: { fontSize: 15, color: colors.text, fontWeight: '600' },
   hint: { fontSize: 15, color: colors.placeholder },

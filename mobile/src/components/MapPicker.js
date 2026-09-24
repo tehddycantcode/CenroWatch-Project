@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TurboModuleRegistry } from 'react-native';
 import { colors, radius } from '../theme';
 
@@ -73,12 +74,48 @@ const STYLE = `https://api.maptiler.com/maps/streets-v2/style.json?key=${KEY}`;
 const CABUYAO = [121.1256, 14.2726]; // [lng, lat]
 // Keep the map on Cabuyao City. LngLatBounds is flat [W, S, E, N] in this
 // library, unlike the nested [[SW],[NE]] pairs maplibre-gl uses on web.
-const CABUYAO_BOUNDS = [121.06, 14.19, 121.2, 14.33];
+export const CABUYAO_BOUNDS = [121.06, 14.19, 121.2, 14.33];
 const MIN_ZOOM = 11;
 const DEFAULT_ZOOM = 12.5;
+// Close enough to read a street when GPS brings the camera to the pin.
+const FOCUS_ZOOM = 16;
 
-export default function MapPicker({ value, onChange, height = 220 }) {
+// Is a point inside the same box the camera is clamped to? Exported so callers
+// can WARN about a fix the map physically cannot travel to, rather than each
+// one keeping its own copy of these four numbers.
+export function isInCabuyao(point) {
+  if (point?.latitude == null || point?.longitude == null) return false;
+  const [west, south, east, north] = CABUYAO_BOUNDS;
+  return (
+    point.longitude >= west &&
+    point.longitude <= east &&
+    point.latitude >= south &&
+    point.latitude <= north
+  );
+}
+
+export default function MapPicker({ value, onChange, height = 220, focusToken = 0 }) {
   const has = value?.latitude != null && value?.longitude != null;
+  const cameraRef = useRef(null);
+
+  // `initialViewState` is honoured ONCE, when the map mounts. The form opens
+  // with no location, so without this the camera stays framed on the whole city
+  // while "Use my location" quietly drops a marker somewhere off-screen - the
+  // pin existed, it just could not be seen.
+  //
+  // Keyed on focusToken and NOT on `value` on purpose: the caller bumps the
+  // token only for a GPS fix, so tapping the map to place a pin by hand leaves
+  // the camera where the person put it instead of sliding out from under them.
+  // Hooks run before the early returns below, which React requires; in Expo Go
+  // there is no camera and the optional call is a no-op.
+  useEffect(() => {
+    if (!focusToken || !has) return;
+    cameraRef.current?.easeTo({
+      center: [value.longitude, value.latitude],
+      zoom: FOCUS_ZOOM,
+      duration: 600,
+    });
+  }, [focusToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Checked before the key: in Expo Go BOTH are missing, and "build the app" is
   // the useful instruction there - setting the key would change nothing.
@@ -129,6 +166,7 @@ export default function MapPicker({ value, onChange, height = 220 }) {
         }}
       >
         <Camera
+          ref={cameraRef}
           initialViewState={{
             center: has ? [value.longitude, value.latitude] : CABUYAO,
             zoom: has ? 15 : DEFAULT_ZOOM,

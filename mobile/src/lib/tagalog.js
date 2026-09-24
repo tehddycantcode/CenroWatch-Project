@@ -100,6 +100,9 @@ export const FORM_TL = {
   description: 'Ano ang nangyari? Ilagay ang oras, amoy, o gaano na katagal.',
   observed_at: 'Kailan mo ito nakita?',
   location: 'Pwedeng laktawan. Ituro sa mapa kung saan ito nangyari.',
+  // Shown when GPS puts the reporter outside the city. The point is still
+  // pinned - this tells them why the map will not follow it.
+  locationOutside: 'Nasa labas ka ng Cabuyao. Ituro sa mapa ang tamang lugar.',
   photo: 'Maglagay ng kahit isang litrato bilang patunay.',
   document: 'Pwedeng laktawan. Pwede kang maglagay ng sulat o dokumento.',
   quantity: 'Ilan ang kailangan mo?',
