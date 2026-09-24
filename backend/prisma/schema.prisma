@@ -132,6 +132,7 @@ model User {
   notifications        Notification[]
   password_reset_tokens PasswordResetToken[]
   email_verification_tokens EmailVerificationToken[]
+  push_tokens           PushToken[]
 
   @@index([email])
   @@index([role])
@@ -506,6 +507,30 @@ model Notification {
 
   @@index([user_id, is_read])
   @@index([created_at])
+}
+
+// A device that has agreed to receive push notifications. One row per DEVICE,
+// not per user: a resident with a phone and a tablet gets both, and the same
+// device signing in as somebody else must not inherit the previous person's
+// notifications - which is why `token` is unique and the row is re-pointed at
+// whoever registers it, rather than duplicated.
+//
+// Rows are deleted, never soft-deleted: on sign-out, and whenever Expo answers
+// DeviceNotRegistered for a token it no longer recognises. A push token is not
+// history worth keeping, and a stale one is a message delivered to the wrong
+// phone.
+model PushToken {
+  push_token_id Int      @id @default(autoincrement())
+  user_id       Int
+  // The ExpoPushToken, e.g. ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx].
+  token         String   @unique @db.VarChar(255)
+  platform      String?  @db.VarChar(20) // android | ios
+  created_at    DateTime @default(now())
+  last_used_at  DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
 }
 
 // ============================================================
