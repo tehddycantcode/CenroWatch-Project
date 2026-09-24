@@ -83,3 +83,62 @@ describe('what must keep working', () => {
     expect(check({ method: 'PROPFIND' })).toBe(true);
   });
 });
+
+// Everything above tests the RULE. This tests who the rule is applied to, which
+// is where it actually went wrong in production.
+//
+// The claim "mobile is exempt because it sends Bearer" only holds if a Bearer
+// request is CREDITED to Bearer. React Native's networking layer on Android is
+// OkHttp, which keeps a cookie jar of its own: the phone stores the
+// `Set-Cookie` the login response carries and replays it on every later
+// request. So the mobile app sends BOTH a cookie and an Authorization header,
+// and whichever readToken() prefers decides whether the CSRF rule applies.
+// Preferring the cookie made every installed APK fail its writes with
+// "Missing x-requested-with header" while the suite above stayed green.
+//
+// Preferring Bearer costs no protection: CSRF is about credentials the browser
+// attaches BY ITSELF, and it never attaches Authorization. An attacker's page
+// that sets one makes the request non-simple, which forces a preflight the
+// exact-origin CORS allowlist refuses - and it has no valid token to send
+// anyway, the web session being HttpOnly.
+describe('which transport a request is credited to', () => {
+  const { readToken } = require('../src/middlewares/authenticate');
+  const { SESSION_COOKIE_NAME } = require('../src/utils/sessionCookie');
+
+  test('an explicit Bearer header wins over a cookie the platform attached', () => {
+    const req = {
+      cookies: { [SESSION_COOKIE_NAME]: 'cookie-token' },
+      headers: { authorization: 'Bearer phone-token' },
+    };
+    expect(readToken(req)).toEqual({ token: 'phone-token', fromCookie: false });
+  });
+
+  test('a mobile write carrying both is not a CSRF violation', () => {
+    const req = {
+      method: 'POST',
+      cookies: { [SESSION_COOKIE_NAME]: 'cookie-token' },
+      headers: { authorization: 'Bearer phone-token' },
+    };
+    const { fromCookie } = readToken(req);
+    expect(isCsrfViolation({ method: req.method, headers: req.headers, fromCookie })).toBe(false);
+  });
+
+  test('a cookie alone is still credited to the cookie, and still needs the header', () => {
+    const req = { method: 'POST', cookies: { [SESSION_COOKIE_NAME]: 'web-token' }, headers: {} };
+    const { token, fromCookie } = readToken(req);
+    expect({ token, fromCookie }).toEqual({ token: 'web-token', fromCookie: true });
+    expect(isCsrfViolation({ method: req.method, headers: req.headers, fromCookie })).toBe(true);
+  });
+
+  test('a malformed Authorization header falls back to the cookie', () => {
+    const req = {
+      cookies: { [SESSION_COOKIE_NAME]: 'web-token' },
+      headers: { authorization: 'Basic abc123' },
+    };
+    expect(readToken(req)).toEqual({ token: 'web-token', fromCookie: true });
+  });
+
+  test('no credential at all is neither', () => {
+    expect(readToken({ cookies: {}, headers: {} })).toEqual({ token: null, fromCookie: false });
+  });
+});

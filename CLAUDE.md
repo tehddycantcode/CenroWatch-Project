@@ -381,6 +381,25 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   now means somebody changed it on purpose and the answer is to ask, not to
   overwrite. Restoring *rows* from seed data is safe; restoring a *credential* is
   not, and the distinction is worth the one question it costs.
+- **REACT NATIVE DOES HAVE A COOKIE JAR — the "mobile sends Bearer, so it is
+  exempt" assumption is false.** Android RN networking is OkHttp, which keeps
+  cookies per app process: the phone stores the `Set-Cookie` login returns and
+  replays it on every later request, so a mobile request arrives carrying BOTH a
+  cookie and `Authorization: Bearer`. `authenticate.js` preferred the cookie
+  whenever one was present, so every mobile write was credited to the cookie,
+  the CSRF rule (`utils/csrf.js`, cookie-writes only) then demanded
+  `x-requested-with`, and every installed APK answered **"Missing
+  x-requested-with header"** on report submission and resend-code. Reads kept
+  working — `SAFE_METHODS` exempts GET — so the app looked half-alive, which is
+  what made it read as "the APK is broken" rather than a server bug.
+  `readToken()` now checks Bearer FIRST. That costs no protection: CSRF is about
+  credentials a browser attaches BY ITSELF, it never attaches `Authorization`,
+  and a cross-site page that sets one makes the request non-simple → preflight →
+  CORS refusal. **The 34 backend tests stayed green throughout**, because
+  `csrfHeader.test.js` passed `fromCookie` in by hand — it tested the RULE and
+  never the CALLER that decides who the rule applies to. When a guard is scoped
+  to a condition, test how that condition is COMPUTED, not just what the guard
+  does once told. Regression tests now live in the same file.
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
 - Backend: Admin-only `/admin` API. `GET /admin/analytics` (Prisma groupBy + JS
@@ -435,11 +454,14 @@ Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
     `DensityMap.jsx` was carrying so much weight. Login/register now also
     `Set-Cookie: cenrowatch_token` (HttpOnly, SameSite=Lax, Secure only when
     `NODE_ENV=production`, Max-Age parsed from `JWT_EXPIRES_IN`) via
-    `backend/src/utils/sessionCookie.js`; `authenticate.js` reads the cookie
-    first and falls back to `Authorization: Bearer`. **Both transports are
-    load-bearing — do not delete the Bearer path:** mobile has no cookie jar and
-    keeps its token in `expo-secure-store`, which is why login/register still
-    return `token` in the JSON body. `POST /auth/logout` (deliberately NOT behind
+    `backend/src/utils/sessionCookie.js`; `authenticate.js` reads
+    `Authorization: Bearer` FIRST and falls back to the cookie. **Both
+    transports are load-bearing — do not delete the Bearer path:** mobile keeps
+    its token in `expo-secure-store`, which is why login/register still
+    return `token` in the JSON body. **This file used to say "mobile has no
+    cookie jar" and the middleware used to prefer the cookie. Both were wrong
+    and it broke every installed APK** (2026-09-24) — see the Lessons entry
+    "React Native DOES have a cookie jar". `POST /auth/logout` (deliberately NOT behind
     `authenticate`, so it still works on an expired token) clears the cookie.
     Web-side: `web/src/lib/api.js` has no `getToken`/`setToken` at all and
     authenticates purely with `credentials: 'include'`.
