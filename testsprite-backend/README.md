@@ -1,6 +1,7 @@
 # CenroWatch backend API — TestSprite suite
 
-17 backend tests covering the Express API. Each `.py` file is a standalone
+21 backend tests covering the Express API: 17 endpoint tests plus a
+4-test integration chain in `integration/`. Each `.py` file is a standalone
 TestSprite backend test: a plain `requests` script with concrete assertions,
 executed from TestSprite's cloud.
 
@@ -84,6 +85,68 @@ the 8 public ones stay green.
 | 15 | Staff overview | `by_status` sums to total; cards equal the queues |
 | 16 | Unknown tracking id | clean 404, no record, no personal data |
 | 17 | `/uploads` | unsigned **403**, forged signature 403, traversal refused |
+
+## Integration tests (`integration/`)
+
+TestSprite's **Integration Tests** tab is not something you author directly. The
+platform *auto-assembles* it from backend tests that share captured variables
+across a POST+GET/PUT/DELETE lifecycle, and the assembled result is **run from
+the portal** — `test run --all` deliberately skips it ("assembled integration
+test skipped (run via the portal)").
+
+What you author is the chain. `--produces` / `--needs` declare the shared
+variables and drive wave ordering; `--category teardown` puts cleanup in the
+final wave.
+
+| # | Test | produces / needs |
+|---|------|------------------|
+| 1 | A resident files a complaint with a photo | produces `testsprite_complaint_tracking_id` |
+| 2 | The resident tracks it anonymously, sees no personal data | needs it |
+| 3 | Staff review, the SLA clock, the status reaching the resident | needs it, produces `testsprite_complaint_reviewed` |
+| 4 | Teardown archives the records and restores every figure | needs both, `--category teardown` |
+
+Run the chain (about 0.8 credits):
+
+```bash
+testsprite test run --all --project 974cd510-b596-4739-922c-192632843333   --filter "Lifecycle" --wait
+```
+
+### These tests WRITE to the dev database
+
+That is unavoidable — a lifecycle test has to create something. It is made safe
+by three rules:
+
+1. **Everything created carries `[TESTSPRITE]`** in its description.
+2. **Teardown archives every live marked record**, not just the current run's, so
+   a run that dies half way does not leave test data behind. Each candidate is
+   re-read and confirmed to carry the marker before it is touched — cleanup is
+   scoped to those rows, never to a broad predicate.
+3. **Archiving is the system's soft delete.** GIS, analytics, the staff queues
+   and public tracking all filter archived rows, so the map, the dashboard and
+   the SLA figures come back exactly as the run found them.
+
+Verified before and after a full cloud run: complaints 59 -> 59, total reports
+72 -> 72, public map markers 57 -> 57, live marked complaints 0.
+
+**What does persist:** an AuditLog row per mutation (by design — every mutation
+writes one), the archived Complaint rows themselves (invisible to the app; there
+is no DELETE endpoint), the uploaded 1x1 PNG in `uploads/`, and the tracking-id
+sequence, which advances by one per run. If you quote report counts in the
+manuscript, those are unaffected; if you quote **audit-log counts**, they are not.
+
+### What the chain proves that no single-endpoint test can
+
+- The public tracking page and the staff detail view disagree about the *same
+  record* in exactly the way R.A. 10173 requires — staff see the reporter, the
+  public sees a status and nothing else.
+- A status change made by staff **reaches the resident's tracking page**.
+- The SLA clock **starts on approval, not at intake**, and a status round trip
+  (`Approved -> Pending -> Approved`) does **not** mint a fresh deadline — which
+  is what stops a breach being erased by toggling the status.
+- Every transition is journalled with old status, new status, who and when.
+- An archived report disappears from the queue, the tracking page **and** the
+  public map at once.
+
 
 ## Verified contract facts these tests rely on (probed 2026-09-25)
 
