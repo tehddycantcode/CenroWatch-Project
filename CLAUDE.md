@@ -438,6 +438,24 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   never the CALLER that decides who the rule applies to. When a guard is scoped
   to a condition, test how that condition is COMPUTED, not just what the guard
   does once told. Regression tests now live in the same file.
+- **`data[0]` is not the shape — sample every VARIANT before asserting on it.**
+  Writing the TestSprite GIS test I read `markers[0]`, saw eight keys, and wrote
+  a strict key allowlist from it. `markers[0]` was a *complaint*; **wildlife**
+  markers also carry `endangered`, so the assertion called a correct payload a
+  privacy violation. One polymorphic array, one sampled element, a test that
+  fails on working code. Group by the discriminator (`kind`, `role`, `status`)
+  and read one of EACH before pinning a contract. The same pass wrongly assumed
+  `/staff/overview` counts were flat ints when each queue nests `by_status`.
+- **Probe the error paths too, not just the happy one:** this API answers a
+  validation failure with **422**, not 400. Every hand-written test asserting
+  400 would have failed for the wrong reason and sent someone into the validator
+  looking for a bug that was never there.
+- **Verify a cloud test locally before it costs money.** `py
+  scripts/run-testsprite-backend-locally.py <base> <token-file>
+  testsprite-backend/*.py` execs each file with `TARGET_URL` and
+  `__AUTH_HEADERS__` injected exactly as TestSprite does. It caught both shape
+  bugs above for free; each cloud run is ~0.2 credits off a 150/mo Free budget.
+
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
 - Backend: Admin-only `/admin` API. `GET /admin/analytics` (Prisma groupBy + JS
