@@ -13,6 +13,12 @@ const controller = require('../controllers/admin.controller');
 
 router.use(authenticate, authorize('Admin'));
 
+// TEMPORARY DIAGNOSTIC - remove with utils/egressProbe.js once the mail
+// failure is understood. Admin-only by the guard above, read-only, and it
+// sends nothing: raw TCP connects to find out whether this container can
+// reach Gmail's SMTP ports at all.
+router.get('/diagnostics/egress', controller.egressDiagnostic);
+
 // Analytics dashboard
 router.get('/analytics', controller.analytics);
 router.get('/analytics/report', controller.analyticsReport);
