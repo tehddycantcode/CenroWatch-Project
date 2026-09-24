@@ -381,6 +381,27 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   now means somebody changed it on purpose and the answer is to ask, not to
   overwrite. Restoring *rows* from seed data is safe; restoring a *credential* is
   not, and the distinction is worth the one question it costs.
+- **RAILWAY BLOCKS OUTBOUND SMTP — mail goes over HTTPS (Brevo), not Gmail.**
+  Measured from inside the container 2026-09-24: ports 25, 465 AND 587 to
+  smtp.gmail.com all time out with no response, while `api.github.com:443`
+  connects in 44ms from the same process. DNS resolves fine and the App
+  Password is valid; nothing ever reaches Gmail to be authenticated, so every
+  verification code, reset and status email was silently discarded. `sendMail`
+  never throws, so the app reported success the whole time and the only trace
+  was `[mailer] failed to email ...: Connection timeout` in the Railway log.
+  **Set `BREVO_API_KEY` on the service and make `EMAIL_FROM` a VERIFIED SENDER
+  in Brevo** (a Gmail address is enough, no domain needed) or the API answers
+  `400 sender is not valid`. `EMAIL_USER`/`EMAIL_PASS` remain for local dev,
+  where Gmail IS reachable (~40ms) — the transport is chosen by which is
+  configured, not by NODE_ENV.
+  Two traps this hid behind: the log says `connect ENETUNREACH 2607:f8b0:...`,
+  which reads as an IPv6 problem — it is not, nodemailer resolves both families
+  and tries **IPv4 first**, so an IPv6 error means IPv4 ALREADY failed. And the
+  `family: 4` added to "fix" that **does nothing: nodemailer 9 has no `family`
+  option**, not one reference in its `lib/`. A test asserted `options.family
+  === 4` and passed for weeks while mail was entirely broken, because it only
+  proved the option had been PASSED, never that it was read. When a config
+  option is the fix, check the dependency actually consumes it.
 - **CRLF SILENTLY BREAKS EAS OTA UPDATES, exactly as it broke Prisma migrations.**
   EAS derives the `fingerprint` runtime version by hashing the BYTES of the files
   that decide the native app — `eas.json`, `app.json`, `.gitignore`, native
@@ -503,7 +524,9 @@ Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
   graceful) + StaffLayout/queues/detail web UI.
 - Sprint 2 (done): resident reporting backend + web/mobile resident UI + public GIS map.
 - Sprint 1 (done): auth + RBAC across backend/web/mobile; shared UI kits; Figma palette.
-- Email: live — EMAIL_USER/EMAIL_PASS (Gmail App Password) set in backend/.env.
+- Email: TWO transports, chosen by what is configured. Locally, SMTP via
+  EMAIL_USER/EMAIL_PASS (Gmail App Password) in backend/.env. On Railway, HTTPS
+  via `BREVO_API_KEY` — SMTP is blocked there, see the Lessons entry.
 - Test accounts (dev) — THE TWO DATABASES HOLD DIFFERENT ACCOUNTS. Check which
   setup you are on (see Environment Notes) before believing either list.
   - **Docker DB** (verified 2026-08-24 against the container): admin@cenrowatch.local

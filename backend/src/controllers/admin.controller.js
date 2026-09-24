@@ -8,7 +8,6 @@ const reportService = require('../services/admin.report.service');
 const categoryService = require('../services/category.service');
 const barangayService = require('../services/barangay.service');
 const { writeAuditLog } = require('../utils/audit');
-const { probeEgress } = require('../utils/egressProbe'); // TEMPORARY - see egressProbe.js
 
 // Analytics
 const analytics = asyncHandler(async (req, res) => {
@@ -132,17 +131,8 @@ const updateSetting = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Setting updated.', data: { setting } });
 });
 
-// TEMPORARY DIAGNOSTIC. Answers whether the container can open a TCP
-// connection to Gmail's SMTP ports at all. Deliberately writes no AuditLog:
-// it changes nothing and is about to be deleted, so a permanent row in an
-// append-only audit trail would outlive the question it answers.
-const egressDiagnostic = asyncHandler(async (req, res) => {
-  res.json({ success: true, data: await probeEgress() });
-});
-
 module.exports = {
   analytics, analyticsReport, listUsers, createUser, updateUser, verifyUserEmail,
-  egressDiagnostic,
   listArchived, archiveReport, restoreReport,
   listAuditLogs, listSettings, updateSetting,
   listCategories, createCategory, updateCategory,

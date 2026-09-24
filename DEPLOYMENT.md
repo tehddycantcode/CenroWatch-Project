@@ -288,10 +288,40 @@ office" is quietly wrong.
 | `FIELD_ENCRYPTION_KEY` | *(the existing key)* | **No recovery if lost** — `HANDOVER.md` §2 |
 | `CLIENT_URL` | `https://DOMAIN` | CORS allowlist |
 | `MOBILE_URL` | *(only if a distinct origin is needed)* | CORS allowlist |
-| `EMAIL_USER` | the CENRO mailbox | `HANDOVER.md` §1.2 |
-| `EMAIL_PASS` | the 16-letter Gmail App Password | Not the account password |
-| `EMAIL_FROM` | the display address | Optional |
+| `BREVO_API_KEY` | the Brevo transactional API key | **Required — SMTP does not work here, see below** |
+| `EMAIL_FROM` | the display address | Must be a **verified sender** in Brevo |
+| `EMAIL_USER` | the CENRO mailbox | Local development only |
+| `EMAIL_PASS` | the 16-letter Gmail App Password | Local development only |
 | `ORS_API_KEY` | the OpenRouteService "Basic Key" | Optional — see below |
+
+### Email: the host blocks SMTP, so do not try to use Gmail directly
+
+**Railway drops outbound SMTP.** Measured from inside the running container on
+2026-09-24: ports 25, 465 and 587 to `smtp.gmail.com` all time out with no
+response, while `api.github.com:443` connects in 44 ms from the same process.
+DNS resolves Gmail correctly and the App Password is valid — nothing ever
+reaches Gmail to be authenticated, so every verification code, password reset
+and status-update email is silently discarded. `sendMail` never throws, so the
+app reports success throughout and the only trace is `[mailer] failed to
+email …: Connection timeout` in the server log.
+
+No nodemailer setting fixes this. An earlier attempt set `family: 4`, reading
+the `ENETUNREACH … 2607:f8b0:…` in the log as an IPv6 problem; nodemailer 9 has
+no `family` option, and it already tries IPv4 before IPv6, so that error only
+ever meant the IPv4 attempt had failed first. Both families are blocked on all
+three ports.
+
+So mail goes over **HTTPS** instead, via Brevo's transactional API:
+
+1. Create a free Brevo account (300 emails/day, no card).
+2. **Senders → add and verify a sender address.** A Gmail address is fine; a
+   custom domain is not required. Whatever you verify must equal `EMAIL_FROM`,
+   or the API answers `400 sender is not valid`.
+3. **SMTP & API → API Keys → generate**, and set it as `BREVO_API_KEY` on the
+   Railway service.
+
+`EMAIL_USER`/`EMAIL_PASS` stay for local development, where Gmail is reachable.
+With `BREVO_API_KEY` set the SMTP path is not used at all.
 
 `ORS_API_KEY` draws the driving route from the office to a report on the staff
 detail map. Leave it unset and that map falls back to a straight line and an air
