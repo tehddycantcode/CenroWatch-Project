@@ -560,3 +560,16 @@ Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
     was true of the container only.
 - Known gotcha: Express 5 req.query is read-only — coerce query params in services
   (see memory `express5-query-readonly`).
+- **Push notifications are HALF DONE and that is deliberate.** The server side
+  is live (`push.service.js`, `PushToken` + migration, `POST/DELETE
+  /notifications/devices`, hooked into `notifyStatusChange`, 14 tests). The APP
+  side is NOT started, because `expo-notifications` is a native module:
+  installing it changes the EAS fingerprint, which blocks OTA updates to the
+  installed APK until a new build exists. The backend is inert until a device
+  registers, so nothing is broken meanwhile. Everything remaining — FCM
+  credentials, packages, the app code, the build, and the manuscript change —
+  is written down in `docs/push-notifications-remaining.md`. **The banner
+  deliberately says nothing identifying** (no reference, no status, no staff
+  note) because it is readable on a locked phone; the tests assert that
+  absence, so "make it more useful" fails the suite rather than quietly
+  undoing it.
