@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ResidentNavigator from './ResidentNavigator';
 
@@ -27,11 +28,9 @@ export default function RootNavigator() {
     return user?.role === 'Resident' ? <ResidentNavigator /> : <HomeScreen />;
   }
 
-  return screen === 'register' ? (
-    <RegisterScreen onNavigate={setScreen} />
-  ) : (
-    <LoginScreen onNavigate={setScreen} />
-  );
+  if (screen === 'register') return <RegisterScreen onNavigate={setScreen} />;
+  if (screen === 'forgot') return <ForgotPasswordScreen onNavigate={setScreen} />;
+  return <LoginScreen onNavigate={setScreen} />;
 }
 
 const styles = StyleSheet.create({

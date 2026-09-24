@@ -124,6 +124,11 @@ let categoriesPromise = null;
 export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
+  // Asks for a reset LINK, which the server emails. The app never sees the
+  // token and cannot complete the reset: the link opens /reset-password in the
+  // browser. The answer is deliberately the same whether or not the address has
+  // an account, so never treat a 200 here as "this email exists".
+  forgotPassword: (payload) => request('/auth/forgot-password', { method: 'POST', body: payload }),
   me: (token) => request('/auth/me', { token }),
   updateProfile: (payload, token) => request('/auth/me', { method: 'PATCH', body: payload, token }),
   changePassword: (payload, token) => request('/auth/change-password', { method: 'POST', body: payload, token }),

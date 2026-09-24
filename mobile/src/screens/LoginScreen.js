@@ -107,6 +107,14 @@ export default function LoginScreen({ onNavigate }) {
 
               <Button title="Sign In" onPress={onSubmit} loading={submitting} />
 
+              <Pressable
+                onPress={() => onNavigate('forgot')}
+                hitSlop={6}
+                style={styles.forgotRow}
+              >
+                <Text style={styles.link}>Forgot password?</Text>
+              </Pressable>
+
               <View style={styles.footer}>
                 <Text style={styles.footerText}>New to CENROWATCH? </Text>
                 <Pressable onPress={() => onNavigate('register')} hitSlop={6}>
@@ -138,6 +146,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: '800', color: colors.text },
   subtitle: { fontSize: 14, color: colors.muted, marginTop: 4 },
   rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  forgotRow: { alignSelf: 'center' },
   checkbox: {
     width: 20,
     height: 20,

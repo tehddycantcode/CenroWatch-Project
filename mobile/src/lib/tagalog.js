@@ -119,6 +119,13 @@ export const COPY_TL = {
   noNotifications: 'Wala ka pang abiso. Sasabihan ka namin kapag may bago sa ulat mo.',
   confirmEmail: 'Kumpirmahin ang email mo',
   confirmEmailWhy: 'Dito ipapadala ng CENRO ang update sa ulat mo.',
+  forgotPassword: 'Nakalimutan ang password?',
+  forgotPasswordWhy: 'Ilagay ang email mo at padadalhan ka namin ng link para makagawa ng bagong password.',
+  // Deliberately says "kung" (if) - the server answers the same way whether or
+  // not the address has an account, and this line must not contradict that.
+  forgotPasswordSent:
+    'Kung may account sa email na ito, may naipadala kaming link. Tingnan mo rin ang spam folder.',
+  forgotPasswordOpens: 'Bubuksan ng link ang browser mo para doon mo mapalitan ang password.',
   wrongAddress: 'Mali ang address? Palitan mo.',
   progress: 'Status ng ulat',
   description: 'Detalye',
