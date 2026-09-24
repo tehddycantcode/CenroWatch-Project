@@ -7,11 +7,16 @@ const KIND_LABEL = { complaint: 'Complaint', wildlife: 'Wildlife Turnover', requ
 
 const humanize = (v) => (v ? String(v).replace(/_/g, ' ') : '');
 
-// Where the resident can view their report (web tracking page, login-gated).
-function trackingUrl(trackingId) {
-  const base = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
-  return `${base}/resident/track/${trackingId}`;
-}
+// There used to be a trackingUrl() here, and a "View your report" / "Track your
+// report" button in both resident emails. Both are gone (2026-09-25) because
+// the link did not work: it pointed at /resident/track/<id>, which sits behind
+// ProtectedRoute roles={['Resident']}. Opening it from a phone's mail app means
+// a browser with no session, so it landed on the sign-in page - and an
+// anonymous reporter has no account to sign in with at all.
+//
+// The reference number is in the body of both emails, which is what the public
+// tracker at /track asks for, so nothing is lost. If a working button is wanted
+// later it must point at the PUBLIC tracker, never at /resident/*.
 
 /**
  * Email a resident that their report's status changed. Never throws.
@@ -27,7 +32,6 @@ function notifyReportStatus({ to, name, kind, trackingId, status, note, dueDate 
   const label = KIND_LABEL[kind] || 'Report';
   const niceStatus = humanize(status);
   const subject = `[CENROWATCH] ${label} ${trackingId} · ${niceStatus}`;
-  const url = trackingUrl(trackingId);
 
   // Only sent when a deadline actually exists, which is the moment the report is
   // approved. Before that there is no commitment to communicate, and quoting a
@@ -59,7 +63,6 @@ function notifyReportStatus({ to, name, kind, trackingId, status, note, dueDate 
       <p style="font-size:18px;font-weight:bold;color:#0f3d1f">${niceStatus}</p>
       ${dueHtml}
       ${noteHtml}
-      <p><a href="${url}" style="display:inline-block;background:#22a050;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">View your report</a></p>
       <p style="color:#66756e;font-size:12px;margin-top:24px">
         This is an automated message from CENROWATCH. Please do not reply.
       </p>
@@ -67,7 +70,7 @@ function notifyReportStatus({ to, name, kind, trackingId, status, note, dueDate 
 
   const text = `CENROWATCH\n\nHi ${name || 'there'},\n\nYour ${label.toLowerCase()} ${trackingId} has been updated to: ${niceStatus}.\n${dueText}${
     note ? `\nNote from CENRO: ${note}\n` : ''
-  }\nView your report: ${url}\n\nThis is an automated message. Please do not reply.`;
+  }\nThis is an automated message. Please do not reply.`;
 
   return sendMail({ to, subject, html, text });
 }
@@ -198,7 +201,6 @@ const formatDateTime = (d) =>
 function notifyReportSubmitted({ to, name, kind, trackingId, type, barangay, submittedAt, slaDeadline }) {
   const label = KIND_LABEL[kind] || 'Report';
   const subject = `[CENROWATCH] ${label} received · ${trackingId}`;
-  const url = trackingUrl(trackingId);
 
   // Wildlife turnovers are identified by species; the other kinds by category.
   const rows = [
@@ -225,7 +227,6 @@ function notifyReportSubmitted({ to, name, kind, trackingId, type, barangay, sub
       <p>Hi ${escapeHtml(name || 'there')},</p>
       <p>We received your ${label.toLowerCase()}. Keep the reference number below — you will need it to track your report.</p>
       <table style="margin:16px 0;border-collapse:collapse;font-size:14px">${rowsHtml}</table>
-      <p><a href="${url}" style="display:inline-block;background:#22a050;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">Track your report</a></p>
       <p style="color:#66756e;font-size:13px">We will email you again whenever the status changes.</p>
       <p style="color:#66756e;font-size:12px;margin-top:24px">
         This is an automated message from CENROWATCH. Please do not reply.
@@ -234,7 +235,7 @@ function notifyReportSubmitted({ to, name, kind, trackingId, type, barangay, sub
 
   const text = `CENROWATCH\n\nHi ${name || 'there'},\n\nWe received your ${label.toLowerCase()}.\n\n${rows
     .map(([k, v]) => `${k}: ${v}`)
-    .join('\n')}\n\nTrack your report: ${url}\n\nWe will email you again whenever the status changes.\nThis is an automated message. Please do not reply.`;
+    .join('\n')}\n\nWe will email you again whenever the status changes.\nThis is an automated message. Please do not reply.`;
 
   return sendMail({ to, subject, html, text });
 }
