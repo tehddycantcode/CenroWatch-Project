@@ -11,16 +11,15 @@
       "url": "https://u.expo.dev/6f3b38f4-8566-42cc-8d71-f062b96cf439"
     },
     "orientation": "portrait",
-    "icon": "./assets/cenro-logo.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
