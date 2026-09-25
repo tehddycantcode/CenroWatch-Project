@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
 import { NavContext } from './navContext';
@@ -21,6 +21,7 @@ import {
   setForegroundHandler,
 } from '../lib/push';
 import { trackingIdFromResponse, responseKey } from '../lib/pushDecision';
+import { BACK, HOME_TAB, resolveBackAction } from '../lib/backAction';
 
 // Dependency-light navigation for the resident area: a small screen stack with
 // two tab roots (Dashboard, My Reports) and pushable detail/form screens. This
@@ -141,6 +142,42 @@ export default function ResidentNavigator() {
   const switchTab = useCallback((screen) => {
     setStack([{ screen, params: {} }]);
   }, []);
+
+  // Android's back button.
+  //
+  // This navigator keeps its stack in React state, so the OS knows nothing
+  // about it. Without this handler every back press was treated as "leave the
+  // activity" and closed the app outright - from a half-filled report form,
+  // from a report detail, from anywhere. Returning true means handled;
+  // returning false lets Android do its default, which should only happen at
+  // the Home root.
+  //
+  // Declared AFTER switchTab deliberately: the dependency array is built during
+  // render, so listing a `const` that is declared further down throws on the
+  // first render rather than misbehaving later.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      const action = resolveBackAction({
+        sheetOpen,
+        stackDepth: stack.length,
+        tab: top.screen,
+      });
+      if (action === BACK.CLOSE_SHEET) {
+        setSheetOpen(false);
+        return true;
+      }
+      if (action === BACK.GO_BACK) {
+        goBack();
+        return true;
+      }
+      if (action === BACK.GO_HOME) {
+        switchTab(HOME_TAB);
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [sheetOpen, stack.length, top.screen, goBack, switchTab]);
 
   // Memoised: every resident screen consumes this through useNav(), so a fresh
   // object each render re-renders the whole stack on any navigator state change.
