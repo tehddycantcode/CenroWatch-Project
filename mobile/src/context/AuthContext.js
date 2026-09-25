@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { api, setSessionExpiredHandler } from '../api/client';
+import { registerDevice, unregisterDevice } from '../lib/push';
 
 const TOKEN_KEY = 'cenrowatch_token';
 const AuthContext = createContext(null);
@@ -61,6 +62,10 @@ export function AuthProvider({ children }) {
   // without re-subscribing to it.
   const rememberedRef = useRef(true);
 
+  // The Expo push token this session registered, kept so sign-out can tell the
+  // server to forget THIS device rather than every device the person owns.
+  const pushTokenRef = useRef(null);
+
   const persist = useCallback(async (tk, usr, remember = true) => {
     rememberedRef.current = remember !== false;
     if (rememberedRef.current) {
@@ -86,6 +91,14 @@ export function AuthProvider({ children }) {
     setToken(tk);
     setUser(usr);
     setSessionNotice('');
+
+    // Register this phone for report-update notifications. NOT awaited: a
+    // device that cannot mint a push token - FCM misconfigured, no Play
+    // Services, permission not granted yet - must still finish signing in.
+    // registerDevice swallows its own failures and resolves to null.
+    registerDevice(tk).then((pt) => {
+      pushTokenRef.current = pt;
+    });
   }, []);
 
   const login = useCallback(
@@ -106,7 +119,20 @@ export function AuthProvider({ children }) {
     [persist]
   );
 
+  // `token` is in the dependency list because the body reads it. With the empty
+  // array this used to have, unregisterDevice would have closed over the token
+  // as it was on first render - null - and silently never told the server
+  // anything, leaving the phone registered to a resident who had signed out.
+  // It costs no extra renders: `token` is already a dependency of the memoised
+  // context value below, so that recomputes on a token change either way.
   const logout = useCallback(async () => {
+    // Tell the server to forget THIS device, so a signed-out phone stops
+    // receiving the previous resident's report updates. Not awaited, for the
+    // same reason api.logout() is not: signing out has to work on a dead
+    // network, and a push row left behind is a smaller problem than a person
+    // who cannot sign out.
+    unregisterDevice(token, pushTokenRef.current);
+    pushTokenRef.current = null;
     // Ask the server to clear the session cookie OkHttp is holding. Signing out
     // has to work on a dead network, so this is deliberately not awaited and
     // its failure is ignored - the local state below is what actually ends the
@@ -115,7 +141,7 @@ export function AuthProvider({ children }) {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
     setToken(null);
     setUser(null);
-  }, []);
+  }, [token]);
 
   // Refresh the cached user after a self-service profile edit.
   const updateUser = useCallback((next) => setUser(next), []);
