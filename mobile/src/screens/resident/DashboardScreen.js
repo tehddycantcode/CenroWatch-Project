@@ -21,6 +21,7 @@ import NotificationBell from '../../components/NotificationBell';
 import HeaderMenu from '../../components/HeaderMenu';
 import VerifyEmailCard from '../../components/VerifyEmailCard';
 import Icon from '../../components/Icon';
+import { LogoMark } from '../../components/Brand';
 
 const DONE = ['Resolved', 'Completed', 'Released'];
 
@@ -92,9 +93,12 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <View style={styles.brandRow}>
-          <View style={styles.brandTile}>
-            <Text style={styles.brandTileText}>CW</Text>
-          </View>
+          {/* The real CENRO Cabuyao seal, not a "CW" monogram. Every other
+              screen's header already used LogoMark at this size (see
+              ScreenHeader.js) - Home was the one place still drawing a
+              stand-in, so the office's own seal disappeared exactly where
+              residents land first. */}
+          <LogoMark size={30} />
           <Text style={styles.brand}>CENROWATCH</Text>
         </View>
         {/* The bell stays here on Home, where the unread count is worth showing
@@ -248,8 +252,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandTile: { width: 30, height: 30, borderRadius: 8, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
-  brandTileText: { color: colors.primary, fontWeight: '800', fontSize: 12 },
   brand: { color: colors.white, fontSize: 17, fontWeight: '800', letterSpacing: 0.5 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
 
