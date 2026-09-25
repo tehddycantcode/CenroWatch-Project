@@ -21,7 +21,7 @@ import SecureTextInput from '../../components/SecureTextInput';
 import HeaderMenu from '../../components/HeaderMenu';
 import { DECISION, ALLOW_ACTION, allowAction } from '../../lib/pushDecision';
 import { setDecision } from '../../lib/pushPreference';
-import { getStatus, requestPermission, registerDevice, isAvailable } from '../../lib/push';
+import { getStatus, requestPermission, isAvailable } from '../../lib/push';
 
 function Btn({ label, onPress, loading, disabled }) {
   return (
@@ -170,8 +170,9 @@ function Field({ label, hint, children }) {
 // "Don't allow" would cut a resident off from report updates permanently,
 // which is the opposite of what the notifications are for.
 function NotificationsSection() {
-  const { user, token } = useAuth();
+  const { user, forgetDevice, rememberDevice } = useAuth();
   const [granted, setGranted] = useState(false);
+  const [registered, setRegistered] = useState(true);
   const [canAsk, setCanAsk] = useState(true);
   const [available, setAvailable] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -182,12 +183,21 @@ function NotificationsSection() {
   // unmounted - so a mount-only read would show a stale value at exactly the
   // moment it matters. Re-read on every foreground, the way useNotifications.js
   // already does for the in-app list.
+  //
+  // Permission is only half the answer. The phone also has to be REGISTERED
+  // with the server, and that can fail on its own - a weak connection when the
+  // token was minted, or a token the server pruned after a reinstall. Reporting
+  // "On" off the permission alone would reassure a resident who is in fact
+  // going to hear nothing. So when permission is granted this re-registers,
+  // which doubles as the retry that nothing else provides.
   const refresh = useCallback(async () => {
     setAvailable(isAvailable());
     const { status, canAskAgain } = await getStatus();
-    setGranted(status === 'granted');
+    const isGranted = status === 'granted';
+    setGranted(isGranted);
     setCanAsk(canAskAgain);
-  }, []);
+    if (isGranted) setRegistered(!!(await rememberDevice()));
+  }, [rememberDevice]);
 
   useEffect(() => {
     refresh();
@@ -202,10 +212,14 @@ function NotificationsSection() {
       setBusy(true);
       try {
         if (!next) {
-          // An OS permission cannot be revoked from inside the app; only the
-          // system settings screen can do it. Record the decision so the launch
-          // prompt stays away, and send them where the switch actually lives.
+          // The app cannot revoke an OS permission - only system settings can -
+          // but it CAN tell the server to stop sending to this phone, and that
+          // is what actually makes "off" mean off. Doing only the settings trip
+          // would leave someone who backs out of that screen still receiving
+          // notifications, with the switch flipping itself back on.
           await setDecision(user?.user_id, DECISION.DECLINED);
+          await forgetDevice();
+          setRegistered(false);
           await Linking.openSettings();
           return;
         }
@@ -213,7 +227,7 @@ function NotificationsSection() {
           await Linking.openSettings();
         } else {
           const res = await requestPermission();
-          if (res.status === 'granted') await registerDevice(token);
+          if (res.status === 'granted') setRegistered(!!(await rememberDevice()));
         }
         await setDecision(user?.user_id, DECISION.ALLOWED);
         await refresh();
@@ -221,11 +235,11 @@ function NotificationsSection() {
         setBusy(false);
       }
     },
-    [canAsk, refresh, token, user?.user_id]
+    [canAsk, forgetDevice, refresh, rememberDevice, user?.user_id]
   );
 
-  // Nothing to offer on a runtime without the native module (the old APK, or
-  // Expo Go). A dead switch would be worse than no switch.
+  // Nothing to offer on a runtime without the native module (the old APK).
+  // A dead switch would be worse than no switch.
   if (!available) return null;
 
   return (
@@ -245,6 +259,14 @@ function NotificationsSection() {
           accessibilityLabel="Report update notifications"
         />
       </View>
+      {/* Permission granted but the phone is not registered: say so rather than
+          showing a confident "On" to someone who will hear nothing. */}
+      {granted && !registered ? (
+        <Text style={styles.notifyWarning}>
+          This phone could not be reached for notifications. Open this screen again while on a
+          stable connection to retry.
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -295,6 +317,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 12,
   },
+  notifyWarning: { fontSize: 12, lineHeight: 17, color: colors.danger, marginTop: 8 },
   label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.4, textTransform: 'uppercase', color: colors.text },
   fieldHint: { fontSize: 12, color: colors.muted },
   input: {

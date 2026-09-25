@@ -54,7 +54,14 @@ function load() {
   return nativeNotifications;
 }
 
-/** The native module exists in this runtime. False on the pre-push APK and in Expo Go. */
+/**
+ * The native module exists in this runtime. False on the pre-push APK.
+ *
+ * NOT false in Expo Go: Expo Go ships expo-notifications natively, so the
+ * module loads there and this returns true - but Android push tokens cannot be
+ * minted in Expo Go, so getToken() fails and registration quietly does nothing.
+ * That is a development-only wrinkle, and the real check is a dev build.
+ */
 export function isAvailable() {
   return load() != null;
 }
@@ -90,16 +97,79 @@ export async function requestPermission() {
   }
 }
 
-// Android shows NO banner at all without a channel, whatever the permission
-// says. This is a common way for push to look broken when it is not.
+// The Android channel a resident can mute or tune in system settings.
+//
+// The id here must match the `channelId` the server puts on the message
+// (backend/src/services/push.service.js). Android routes by the message's
+// channel, so a mismatch does not fail loudly - it delivers on Expo's generic
+// fallback channel and leaves this named one controlling nothing, so turning
+// "Report updates" off in settings would not stop the notifications.
+//
+// HIGH, not DEFAULT: Expo's fallback channel is IMPORTANCE_HIGH, so naming our
+// own channel without matching that would have quietly DOWNGRADED these from a
+// heads-up banner to a silent shade entry - a regression dressed as a fix.
+export const ANDROID_CHANNEL_ID = 'default';
+
 export async function setAndroidChannel() {
   const N = load();
   if (!N || Platform.OS !== 'android') return;
   try {
-    await N.setNotificationChannelAsync('default', {
+    await N.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
       name: 'Report updates',
-      importance: N.AndroidImportance.DEFAULT,
+      importance: N.AndroidImportance.HIGH,
     });
+  } catch {
+    // Non-fatal.
+  }
+}
+
+// What to do with a notification that arrives while the app is OPEN.
+//
+// Without a handler, expo-notifications shows nothing at all: the default is to
+// drop a foreground notification after the handler timeout, with no banner and
+// no entry in the shade. A resident sitting in My Reports when staff resolve
+// their complaint would simply never be told.
+export function setForegroundHandler() {
+  const N = load();
+  if (!N) return;
+  try {
+    N.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  } catch {
+    // Non-fatal.
+  }
+}
+
+// The tap that launched the app.
+//
+// A notification tapped while the app is KILLED is the case this feature exists
+// for, and addNotificationResponseReceivedListener does not cover it: the
+// native side emits the response once, at module creation, long before the JS
+// bundle has evaluated and any listener has subscribed. Nothing replays it.
+// Expo ships this accessor for exactly that reason.
+export async function getLastResponse() {
+  const N = load();
+  if (!N) return null;
+  try {
+    return (await N.getLastNotificationResponseAsync()) || null;
+  } catch {
+    return null;
+  }
+}
+
+// Drop the pending response once it has been acted on, so a later remount does
+// not navigate the resident back to the same report unbidden.
+export function clearLastResponse() {
+  const N = load();
+  if (!N) return;
+  try {
+    N.clearLastNotificationResponse?.();
   } catch {
     // Non-fatal.
   }

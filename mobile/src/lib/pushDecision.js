@@ -34,4 +34,30 @@ function preferenceKey(userId) {
   return `cenrowatch_push_decision_${userId}`;
 }
 
-module.exports = { DECISION, ALLOW_ACTION, shouldPrompt, allowAction, preferenceKey };
+// The report reference the server hid in `data`.
+//
+// The banner deliberately carries no reference - it is readable on a locked
+// phone - so this nested path is the ONLY thing that gets a resident from a tap
+// to the right report. Every level of it is optional in Expo's types, and a
+// silent undefined here is indistinguishable, from the outside, from "tapping
+// the notification does nothing".
+function trackingIdFromResponse(response) {
+  return response?.notification?.request?.content?.data?.trackingId || null;
+}
+
+// Identity of a tap. A cold start reads the pending response AND the listener
+// can deliver the same tap, so both paths need to agree on what "already
+// handled" means or one tap navigates twice.
+function responseKey(response) {
+  return response?.notification?.request?.identifier || 'unidentified-response';
+}
+
+module.exports = {
+  DECISION,
+  ALLOW_ACTION,
+  shouldPrompt,
+  allowAction,
+  preferenceKey,
+  trackingIdFromResponse,
+  responseKey,
+};

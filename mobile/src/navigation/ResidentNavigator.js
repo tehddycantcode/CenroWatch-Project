@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
@@ -14,7 +14,13 @@ import NotificationsScreen from '../screens/resident/NotificationsScreen';
 import ReportSheet from '../components/ReportSheet';
 import Icon from '../components/Icon';
 import PushPermissionPrompt from '../components/PushPermissionPrompt';
-import { getNativeModule } from '../lib/push';
+import {
+  getNativeModule,
+  getLastResponse,
+  clearLastResponse,
+  setForegroundHandler,
+} from '../lib/push';
+import { trackingIdFromResponse, responseKey } from '../lib/pushDecision';
 
 // Dependency-light navigation for the resident area: a small screen stack with
 // two tab roots (Dashboard, My Reports) and pushable detail/form screens. This
@@ -69,6 +75,15 @@ export default function ResidentNavigator() {
   // bottom inset, so the only reliable way to park the button just above it is
   // to read the height it actually laid out at.
   const [tabBarHeight, setTabBarHeight] = useState(0);
+  // Taps already acted on, so the cold-start response and the live listener
+  // cannot both navigate for one tap.
+  const handledResponses = useRef(new Set());
+
+  // Without this a notification arriving while the app is OPEN is dropped
+  // entirely - no banner, no shade entry. Set once, behind the same guard.
+  useEffect(() => {
+    setForegroundHandler();
+  }, []);
 
   const navigate = useCallback((screen, params = {}) => {
     setStack((s) => [...s, { screen, params }]);
@@ -80,19 +95,46 @@ export default function ResidentNavigator() {
 
   // Open the report a tapped banner refers to. The banner deliberately says
   // nothing identifying - it is readable on a locked phone - so the reference
-  // travels in `data` (push.service.js sends { trackingId, kind }) and this
-  // listener is the only thing that gets the resident to the right report.
+  // travels in `data` (push.service.js sends { trackingId, kind }) and this is
+  // the only thing that gets the resident to the right report.
   //
   // getNativeModule() rather than a second lazy require: the guard in
   // src/lib/push.js is subtle enough that one copy is the right number.
+  //
+  // TWO PATHS, AND BOTH ARE NEEDED. The listener covers a tap while the app is
+  // running. It does NOT cover a tap that launched the app from cold - which is
+  // the case this whole feature exists for, since the phone is usually locked
+  // and the app closed. There, the native side emits the response once at module
+  // creation, before the JS bundle has even evaluated, and nothing replays it to
+  // a listener that subscribes later; getLastResponse() is how Expo hands that
+  // one back. Both can fire for the same tap, hence the dedupe by response key.
   useEffect(() => {
     const N = getNativeModule();
     if (!N) return undefined;
-    const sub = N.addNotificationResponseReceivedListener((response) => {
-      const id = response?.notification?.request?.content?.data?.trackingId;
+    let active = true;
+
+    const open = (response) => {
+      if (!response) return;
+      const key = responseKey(response);
+      if (handledResponses.current.has(key)) return;
+      handledResponses.current.add(key);
+      const id = trackingIdFromResponse(response);
       if (id) navigate('track', { id });
+    };
+
+    getLastResponse().then((response) => {
+      if (!active || !response) return;
+      open(response);
+      // Consumed: without this a later remount would navigate the resident back
+      // to the same report they had already moved on from.
+      clearLastResponse();
     });
-    return () => sub.remove();
+
+    const sub = N.addNotificationResponseReceivedListener(open);
+    return () => {
+      active = false;
+      sub.remove();
+    };
   }, [navigate]);
 
   // Tapping a tab resets that tab's stack to its root.

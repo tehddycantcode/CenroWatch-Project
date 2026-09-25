@@ -102,6 +102,13 @@ async function notifyReportUpdate(userId, { trackingId, kind } = {}) {
     const messages = tokens.map((to) => ({
       to,
       sound: 'default',
+      // Android routes a notification by the channel the MESSAGE names. The app
+      // creates one called "Report updates" (mobile/src/lib/push.js) so a
+      // resident can mute or tune exactly these in system settings; without
+      // this line Expo delivers on its own generic fallback channel instead,
+      // and that named channel sits there controlling nothing - turning it off
+      // would not stop the notifications. Ignored by iOS, which has no channels.
+      channelId: 'default',
       // Deliberately says nothing identifying - see the note at the top.
       title: 'Your report has an update',
       body: 'Tap to view.',

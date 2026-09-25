@@ -4,6 +4,8 @@ const {
   shouldPrompt,
   allowAction,
   preferenceKey,
+  trackingIdFromResponse,
+  responseKey,
 } = require('../pushDecision');
 
 describe('shouldPrompt', () => {
@@ -56,5 +58,49 @@ describe('preferenceKey', () => {
   // SecureStore keys must be alphanumeric plus ".-_"; anything else throws.
   test('produces a SecureStore-legal key', () => {
     expect(preferenceKey(9)).toMatch(/^[A-Za-z0-9._-]+$/);
+  });
+});
+
+describe('trackingIdFromResponse', () => {
+  const response = (data) => ({ notification: { request: { content: { data } } } });
+
+  test('reads the reference the server put in data', () => {
+    expect(trackingIdFromResponse(response({ trackingId: 'CMP-2026-00055', kind: 'complaint' }))).toBe(
+      'CMP-2026-00055'
+    );
+  });
+
+  // The banner deliberately carries no reference, so this nested path is the
+  // ONLY thing that gets a resident to the right report. Every level of it is
+  // optional in Expo's types, and a silent undefined here looks exactly like
+  // "tapping the notification does nothing".
+  test('returns null rather than throwing on a malformed or empty response', () => {
+    expect(trackingIdFromResponse(undefined)).toBeNull();
+    expect(trackingIdFromResponse(null)).toBeNull();
+    expect(trackingIdFromResponse({})).toBeNull();
+    expect(trackingIdFromResponse({ notification: {} })).toBeNull();
+    expect(trackingIdFromResponse(response(undefined))).toBeNull();
+    expect(trackingIdFromResponse(response({ kind: 'complaint' }))).toBeNull();
+  });
+});
+
+describe('responseKey', () => {
+  // A cold start reads the pending response AND the listener may deliver the
+  // same tap, so both paths have to agree on an identity or the resident gets
+  // navigated twice for one tap.
+  test('is stable for the same notification', () => {
+    const r = { notification: { request: { identifier: 'abc-123' } } };
+    expect(responseKey(r)).toEqual(responseKey({ ...r }));
+  });
+
+  test('differs between notifications', () => {
+    const a = { notification: { request: { identifier: 'abc-123' } } };
+    const b = { notification: { request: { identifier: 'def-456' } } };
+    expect(responseKey(a)).not.toEqual(responseKey(b));
+  });
+
+  test('survives a response with no identifier', () => {
+    expect(() => responseKey({})).not.toThrow();
+    expect(responseKey({})).toBeTruthy();
   });
 });

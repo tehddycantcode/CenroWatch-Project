@@ -62,6 +62,22 @@ describe('what the phone is allowed to show on a lock screen', () => {
     const [message] = JSON.parse(global.fetch.mock.calls[0][1].body);
     expect(message.data).toEqual({ trackingId: 'CMP-2026-00055', kind: 'complaint' });
   });
+
+  // The app creates an Android channel called "Report updates" so a resident
+  // can mute or tune exactly these notifications in system settings. Android
+  // routes by the message's channelId, and a message that names none is
+  // delivered on Expo's generic fallback channel instead - which would leave
+  // the named channel sitting there doing nothing, so turning it off would not
+  // stop the notifications and turning it up would not make them louder.
+  test('the message names the app channel, so system settings can control it', async () => {
+    prisma.pushToken.findMany.mockResolvedValue([{ token: TOKEN_A }]);
+    global.fetch = jest.fn(async () => okTickets(1));
+
+    await push.notifyReportUpdate(7, { trackingId: 'CMP-2026-00055', kind: 'complaint' });
+
+    const [message] = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(message.channelId).toBe('default');
+  });
 });
 
 describe('delivery', () => {

@@ -44,6 +44,17 @@ export function AuthProvider({ children }) {
           if (active) {
             setUser(res.data.user);
             setToken(saved);
+            // Register on RESTORE too, not only on sign-in. Most launches
+            // restore a session rather than going through persist(), so
+            // without this pushTokenRef stays null for the whole run and
+            // sign-out has no token to unregister - the phone would keep
+            // receiving the previous resident's updates after they signed
+            // out. It also re-registers a token the server may have pruned
+            // (Expo replies DeviceNotRegistered after a reinstall), which is
+            // otherwise never retried. Not awaited: see persist().
+            registerDevice(saved).then((pt) => {
+              if (active) pushTokenRef.current = pt;
+            });
           }
         }
       } catch {
@@ -143,6 +154,24 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, [token]);
 
+  // Stop this phone receiving report updates, without signing out.
+  //
+  // The Profile toggle needs this because turning notifications "off" cannot
+  // revoke an OS permission from inside the app - only system settings can -
+  // so unregistering the device is the one thing the app CAN do that actually
+  // stops the notifications arriving. Without it, "off" would rely entirely on
+  // the resident finding the right switch in Android settings.
+  const forgetDevice = useCallback(async () => {
+    await unregisterDevice(token, pushTokenRef.current);
+    pushTokenRef.current = null;
+  }, [token]);
+
+  // Register this phone again after the resident turns notifications back on.
+  const rememberDevice = useCallback(async () => {
+    pushTokenRef.current = await registerDevice(token);
+    return pushTokenRef.current;
+  }, [token]);
+
   // Refresh the cached user after a self-service profile edit.
   const updateUser = useCallback((next) => setUser(next), []);
 
@@ -168,8 +197,8 @@ export function AuthProvider({ children }) {
   // literal here re-renders every useAuth() consumer on each provider render,
   // which on mobile means the whole navigator tree.
   const value = useMemo(
-    () => ({ user, token, loading, isAuthenticated: !!user, sessionNotice, login, register, logout, updateUser, updateToken }),
-    [user, token, loading, sessionNotice, login, register, logout, updateUser, updateToken]
+    () => ({ user, token, loading, isAuthenticated: !!user, sessionNotice, login, register, logout, updateUser, updateToken, forgetDevice, rememberDevice }),
+    [user, token, loading, sessionNotice, login, register, logout, updateUser, updateToken, forgetDevice, rememberDevice]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
