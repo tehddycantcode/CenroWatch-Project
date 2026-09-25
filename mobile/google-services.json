@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "994478378267",
+    "project_id": "cenrowatch-mobile-app",
+    "storage_bucket": "cenrowatch-mobile-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:994478378267:android:d10078f05923fd6cf697be",
+        "android_client_info": {
+          "package_name": "com.aishiii.cenrowatch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgHYL4AbOFj0gPfkZX77jdECq7ENa6E0k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
