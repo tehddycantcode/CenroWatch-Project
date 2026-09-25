@@ -13,6 +13,7 @@ import ProfileScreen from '../screens/resident/ProfileScreen';
 import NotificationsScreen from '../screens/resident/NotificationsScreen';
 import ReportSheet from '../components/ReportSheet';
 import Icon from '../components/Icon';
+import PushPermissionPrompt from '../components/PushPermissionPrompt';
 
 // Dependency-light navigation for the resident area: a small screen stack with
 // two tab roots (Dashboard, My Reports) and pushable detail/form screens. This
@@ -102,6 +103,11 @@ export default function ResidentNavigator() {
     <NavContext.Provider value={value}>
       <View style={styles.root}>
         <View style={styles.body}>{renderScreen(top)}</View>
+
+        {/* Mounted once for the whole resident area rather than per screen, so
+            it survives navigation and asks once per launch. It renders null
+            until it has decided there is something to ask. */}
+        <PushPermissionPrompt />
 
         {showFab && tabBarHeight > 0 && (
           <Pressable
