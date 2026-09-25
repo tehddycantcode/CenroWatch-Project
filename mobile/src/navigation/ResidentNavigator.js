@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
@@ -14,6 +14,7 @@ import NotificationsScreen from '../screens/resident/NotificationsScreen';
 import ReportSheet from '../components/ReportSheet';
 import Icon from '../components/Icon';
 import PushPermissionPrompt from '../components/PushPermissionPrompt';
+import { getNativeModule } from '../lib/push';
 
 // Dependency-light navigation for the resident area: a small screen stack with
 // two tab roots (Dashboard, My Reports) and pushable detail/form screens. This
@@ -76,6 +77,23 @@ export default function ResidentNavigator() {
   const goBack = useCallback(() => {
     setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
   }, []);
+
+  // Open the report a tapped banner refers to. The banner deliberately says
+  // nothing identifying - it is readable on a locked phone - so the reference
+  // travels in `data` (push.service.js sends { trackingId, kind }) and this
+  // listener is the only thing that gets the resident to the right report.
+  //
+  // getNativeModule() rather than a second lazy require: the guard in
+  // src/lib/push.js is subtle enough that one copy is the right number.
+  useEffect(() => {
+    const N = getNativeModule();
+    if (!N) return undefined;
+    const sub = N.addNotificationResponseReceivedListener((response) => {
+      const id = response?.notification?.request?.content?.data?.trackingId;
+      if (id) navigate('track', { id });
+    });
+    return () => sub.remove();
+  }, [navigate]);
 
   // Tapping a tab resets that tab's stack to its root.
   const switchTab = useCallback((screen) => {

@@ -1,5 +1,16 @@
-import { useState } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  StyleSheet,
+  Switch,
+  Linking,
+  AppState,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
@@ -8,6 +19,9 @@ import { colors, radius } from '../../theme';
 import BarangayPicker from '../../components/BarangayPicker';
 import SecureTextInput from '../../components/SecureTextInput';
 import HeaderMenu from '../../components/HeaderMenu';
+import { DECISION, ALLOW_ACTION, allowAction } from '../../lib/pushDecision';
+import { setDecision } from '../../lib/pushPreference';
+import { getStatus, requestPermission, registerDevice, isAvailable } from '../../lib/push';
 
 function Btn({ label, onPress, loading, disabled }) {
   return (
@@ -152,6 +166,89 @@ function Field({ label, hint, children }) {
   );
 }
 
+// The way back after declining the launch prompt. Without this, one tap on
+// "Don't allow" would cut a resident off from report updates permanently,
+// which is the opposite of what the notifications are for.
+function NotificationsSection() {
+  const { user, token } = useAuth();
+  const [granted, setGranted] = useState(false);
+  const [canAsk, setCanAsk] = useState(true);
+  const [available, setAvailable] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  // Nothing caches the permission: the OS is the source of truth, and it can
+  // change while this screen is mounted. Tapping the switch can send the
+  // resident out to system Settings, and they come back to a screen that never
+  // unmounted - so a mount-only read would show a stale value at exactly the
+  // moment it matters. Re-read on every foreground, the way useNotifications.js
+  // already does for the in-app list.
+  const refresh = useCallback(async () => {
+    setAvailable(isAvailable());
+    const { status, canAskAgain } = await getStatus();
+    setGranted(status === 'granted');
+    setCanAsk(canAskAgain);
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refresh();
+    });
+    return () => sub.remove();
+  }, [refresh]);
+
+  const onToggle = useCallback(
+    async (next) => {
+      setBusy(true);
+      try {
+        if (!next) {
+          // An OS permission cannot be revoked from inside the app; only the
+          // system settings screen can do it. Record the decision so the launch
+          // prompt stays away, and send them where the switch actually lives.
+          await setDecision(user?.user_id, DECISION.DECLINED);
+          await Linking.openSettings();
+          return;
+        }
+        if (allowAction({ canAskAgain: canAsk }) === ALLOW_ACTION.OPEN_SETTINGS) {
+          await Linking.openSettings();
+        } else {
+          const res = await requestPermission();
+          if (res.status === 'granted') await registerDevice(token);
+        }
+        await setDecision(user?.user_id, DECISION.ALLOWED);
+        await refresh();
+      } finally {
+        setBusy(false);
+      }
+    },
+    [canAsk, refresh, token, user?.user_id]
+  );
+
+  // Nothing to offer on a runtime without the native module (the old APK, or
+  // Expo Go). A dead switch would be worse than no switch.
+  if (!available) return null;
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>Report update notifications</Text>
+      <Text style={styles.cardHint}>
+        Get a notification when CENRO reviews, schedules or resolves one of your reports.
+      </Text>
+      <View style={styles.switchRow}>
+        <Text style={styles.label}>{granted ? 'On' : 'Off'}</Text>
+        <Switch
+          value={granted}
+          onValueChange={onToggle}
+          disabled={busy}
+          trackColor={{ true: colors.light }}
+          thumbColor={granted ? colors.primary : undefined}
+          accessibilityLabel="Report update notifications"
+        />
+      </View>
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safe}>
@@ -164,6 +261,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <ProfileSection />
         <PasswordSection />
+        <NotificationsSection />
       </ScrollView>
     </SafeAreaView>
   );
@@ -191,6 +289,12 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
   cardHint: { fontSize: 13, color: colors.muted, marginTop: 4 },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
   label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.4, textTransform: 'uppercase', color: colors.text },
   fieldHint: { fontSize: 12, color: colors.muted },
   input: {
