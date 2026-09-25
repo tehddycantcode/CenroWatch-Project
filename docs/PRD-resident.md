@@ -49,14 +49,34 @@ mistyped address themselves.
 ### 2.2 Public map — `/map`
 
 - Renders a map of Cabuyao (MapLibre canvas with MapTiler / OpenStreetMap attribution).
-- Plots report markers by barangay; markers can be inspected and the map zoomed.
+- Has **two views**, switched by a control at the top left of the map. The map is
+  zoomable and pannable in both, and keeps its position when the view is switched:
+  - **Heat map** — the default, and what the landing page's "View Heat Map" button
+    and the "Heat Map" nav link lead to. Shows complaint **density** as coloured
+    blobs with a Low/High legend. It plots no individual pins, so there is nothing
+    to click. This is the intended default, **not a defect**.
+  - **Markers** — individual pins with a popup each: complaints (red, or amber when
+    priority) and wildlife sightings (green, or purple when endangered). A popup
+    shows the tracking reference, type, barangay and status, and nothing else.
 - Carries **zero personal data** — no reporter name, contact number, email or address.
-- Endangered wildlife coordinates are deliberately fuzzed (see §5).
+- Endangered wildlife coordinates are deliberately fuzzed (see §5), which is why the
+  Markers legend calls that pin's location approximate.
 
 ### 2.3 Reports feed — `/feed`
 
 - Heading "Environmental Reports".
 - Lists recent reports with their tracking reference, type, barangay, status and date.
+- A **"Filter by status"** dropdown narrows the list, with a "N of M reports" count
+  beside it. Its options are built from the statuses actually present in the feed,
+  so a status nobody has used yet does not appear.
+- A **complaint row is a link** to `/track?id=<reference>`, which is the only public
+  per-report view there is (§2.4). **Wildlife rows are deliberately not links** —
+  public tracking is mounted for complaints only, so a `WLD-` link would always
+  resolve to "not found".
+- There is deliberately **no `/reports/:id` route**. A per-report public page would
+  be a second surface to keep clear of personal data, and `/track` already answers
+  "what is happening with this report". A request for `/reports/<anything>` correctly
+  renders the 404 page.
 - Same privacy rule: no personal data.
 
 ### 2.4 Report tracking — `/track`

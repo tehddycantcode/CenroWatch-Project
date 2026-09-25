@@ -114,7 +114,6 @@ export default function MapView({
   const markerObjs = useRef([]);
   const pickMarker = useRef(null);
   const officeMarker = useRef(null);
-  const heatReady = useRef(false);
   const heatData = useRef({ type: 'FeatureCollection', features: [] });
   const onPickRef = useRef(onPick);
   useEffect(() => {
@@ -171,13 +170,6 @@ export default function MapView({
         onPickRef.current?.(Number(e.lngLat.lat.toFixed(6)), Number(e.lngLat.lng.toFixed(6)));
       });
     }
-    if (heatmap) {
-      // The heatmap layer needs the style loaded before it can be added.
-      map.on('load', () => {
-        addHeatLayer(map, heatData.current);
-        heatReady.current = true;
-      });
-    }
     mapRef.current = map;
     return () => {
       // map.remove() is MapLibre's owner teardown - it removes the controls,
@@ -190,21 +182,56 @@ export default function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Feed the heatmap source whenever markers change.
+  // Keep the heat GeoJSON current whether or not the layer is showing. Building
+  // it is cheap, and skipping it while `heatmap` is false would leave stale data
+  // to be handed to addHeatLayer the moment someone toggles density back on.
   useEffect(() => {
-    if (!heatmap) return;
     const fc = complaintFeatureCollection(markers);
     heatData.current = fc;
     const src = mapRef.current?.getSource('complaints-heat');
     if (src) src.setData(fc);
-  }, [markers, heatmap]);
+  }, [markers]);
+
+  // Add/remove the heat layer as `heatmap` changes, rather than only at mount.
+  // The public map toggles between density and pins on one mounted map, so this
+  // has to be reversible: adding it at init would strand the layer under the
+  // pins the first time someone switched away from density.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return undefined;
+
+    const apply = () => {
+      // The map can be torn down while this waits for `load`.
+      const m = mapRef.current;
+      if (!m) return;
+      if (heatmap) {
+        if (!m.getSource('complaints-heat')) addHeatLayer(m, heatData.current);
+        return;
+      }
+      if (m.getLayer('complaints-heat-layer')) m.removeLayer('complaints-heat-layer');
+      if (m.getSource('complaints-heat')) m.removeSource('complaints-heat');
+    };
+
+    // A layer cannot be added before the style exists.
+    if (styleLoaded.current) {
+      apply();
+      return undefined;
+    }
+    map.once('load', apply);
+    return () => map.off('load', apply);
+  }, [heatmap]);
 
   // Display markers.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || picker || heatmap) return;
+    if (!map) return;
+    // Clear BEFORE the mode check, not after it. These pins belong to this
+    // component, so switching to density has to take them with it; returning
+    // early first would leave the previous mode's pins sitting on top of the
+    // heat layer with nothing left holding a reference to remove them.
     markerObjs.current.forEach((m) => m.remove());
     markerObjs.current = [];
+    if (picker || heatmap) return;
     markers.forEach((mk) => {
       if (mk.latitude == null || mk.longitude == null) return;
       const popup = new maplibregl.Popup({ offset: 18 }).setHTML(
