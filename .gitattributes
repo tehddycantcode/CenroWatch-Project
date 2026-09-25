@@ -41,3 +41,10 @@
 mobile/eas.json text eol=lf
 mobile/app.json text eol=lf
 mobile/.gitignore text eol=lf
+
+# Added with push notifications (2026-09-25). app.json's `googleServicesFile`
+# points at this, and it is copied into the native project at prebuild, so it
+# helps decide what the built app contains - the same class of input as the
+# three above. It is LF today; this keeps it LF on a fresh Windows clone rather
+# than waiting to rediscover the bug above from the other end.
+mobile/google-services.json text eol=lf
