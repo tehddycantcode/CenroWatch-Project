@@ -44,11 +44,28 @@ Push does not work in Expo Go, and an emulator needs Play Services.
 3. From the web app as staff, change that report's status.
 4. Lock the phone. The banner appears, saying only that there is an update.
 5. Tap it → the app opens that report.
-6. Sign out → confirm the `PushToken` row is gone.
-7. **Offline sign-out** (deferred from the code work, which could not test it
+6. **App CLOSED (swiped away), not just locked** — change another report's
+   status, tap the banner. The app must open *on that report*. This is the case
+   the feature exists for and the one a listener alone does not cover; it is
+   handled by reading the pending response at startup, which only a real cold
+   start exercises.
+7. **App OPEN and in the foreground** — change a status while looking at My
+   Reports. A banner must still appear. Without a notification handler
+   expo-notifications drops these silently, and every other step here has the
+   phone locked, so nothing else would catch it.
+8. **Check the channel** — Settings → Apps → CENROWATCH → Notifications. There
+   must be one channel named **"Report updates"**, and turning it off must
+   actually stop them. A second generic channel appearing instead means the
+   `channelId` on the message and the one the app creates have drifted apart.
+9. Sign out → confirm the `PushToken` row is gone.
+10. **Relaunch, then sign out** — sign in, fully close the app, reopen it (so
+    the session is *restored* rather than freshly logged in), then sign out.
+    The `PushToken` row must still be gone. This is the path that previously
+    left a phone registered to someone who had signed out.
+11. **Offline sign-out** (deferred from the code work, which could not test it
    without this build): sign in, enable airplane mode, sign out. It must return
    to the login screen with no error and no hang.
-8. **Decline path:** fresh install → **Don't allow** → confirm the prompt does
+12. **Decline path:** fresh install → **Don't allow** → confirm the prompt does
    not return on the next launch, and that the Profile toggle turns it back on.
 
 ### 4. Re-pin OTA to the new fingerprint
@@ -74,7 +91,7 @@ it has to be rewritten rather than left.
 
 | File | Role |
 |---|---|
-| `mobile/src/lib/pushDecision.js` | Pure: when to prompt, what Allow does, the per-user preference key. The only push code with unit tests (9). |
+| `mobile/src/lib/pushDecision.js` | Pure: when to prompt, what Allow does, the per-user preference key, and reading the reference out of a tapped notification. The only push code with unit tests (14). |
 | `mobile/src/lib/pushPreference.js` | Stores the resident's choice in SecureStore, keyed per user. |
 | `mobile/src/lib/push.js` | The native module behind a lazy guard; token register/unregister. |
 | `mobile/src/components/PushPermissionPrompt.js` | The non-dismissable modal. |
