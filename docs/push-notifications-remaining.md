@@ -1,141 +1,133 @@
-# Push notifications — the half that needs a build
+# Push notifications — what is left
 
-**State:** the server half is **done, tested and deployed** (commit `17753b2`).
-The app half is **not started**, deliberately. This is everything left to do.
+**State (2026-09-25):**
 
-## Why it was split
-
-`expo-notifications` is a native module. Installing it changes the EAS
-**fingerprint**, and an over-the-air update is only served to a build whose
-fingerprint matches. So the moment step 2 below runs, `eas update` stops
-reaching the installed APK (`7181dd4a`, runtime `a1d292d6…`) and **every
-further JS change needs a full build until you make one.**
-
-That is the whole reason this is a separate piece of work: do it in one
-sitting, ending in a build, rather than leaving the repo in a state where
-nothing can ship.
-
-## What already works
-
-| | |
+| Half | State |
 |---|---|
-| `PushToken` model + migration | applied locally and on Railway |
-| `push.service.js` | sends via Expo, prunes dead tokens, never throws |
-| `POST /notifications/devices` | `{ token, platform }` — registers a device |
-| `DELETE /notifications/devices` | `{ token }` — forgets one device |
-| Hook | inside `notifyStatusChange`, so all three report kinds are covered |
-| Tests | 14, including the privacy assertions |
+| Server | **done, tested, deployed** (`17753b2`) |
+| FCM credentials | **done** — Firebase project `cenrowatch-mobile-app`, FCM V1 service-account key uploaded to EAS |
+| App code | **done** — see the plan and spec below |
+| **Build + on-device verification** | **NOT DONE. This is all that remains.** |
 
-The server sends to every `PushToken` row for the report's owner. With no rows
-it sends nothing, which is exactly today's behaviour — so the deployed backend
-is inert until the app registers a device. Nothing is broken while this sits.
+Design: `docs/superpowers/specs/2026-09-25-mobile-push-notifications-design.md`
+Plan: `docs/superpowers/plans/2026-09-25-mobile-push-notifications.md`
+
+> **OTA IS CURRENTLY BROKEN, BY DESIGN.** `expo-notifications` landed in
+> `df1aed5`, which changed the EAS fingerprint. `eas update` no longer reaches
+> the installed APK (`7181dd4a`, runtime `a1d292d6…`) and will report success
+> while reaching nobody. **The build below is what fixes that.** Until it runs,
+> no JS change can ship to a phone.
 
 ---
 
-## Step 1 — FCM credentials (one-time, ~15 min)
+## What remains
 
-Android needs Firebase Cloud Messaging. Expo relays through it; the API never
-touches Firebase.
-
-1. <https://console.firebase.google.com> → create a project (free).
-2. Add an **Android app** with package name **`com.aishiii.cenrowatch`**
-   (from `app.json` → `expo.android.package` — it must match exactly).
-3. Project settings → **Service accounts** → **Generate new private key** →
-   download the JSON.
-4. From `mobile/`: `eas credentials` → Android → production → **Push
-   Notifications: FCM V1** → upload that JSON.
-
-Keep the JSON out of the repo. It is a credential.
-
-## Step 2 — Packages and config
-
-```bash
-cd mobile
-npx expo install expo-notifications expo-constants
-```
-
-Add to `app.json` under `expo.plugins`:
-
-```json
-["expo-notifications", { "color": "#22a050" }]
-```
-
-**From here OTA is blocked until step 5.**
-
-## Step 3 — App code
-
-Four pieces. The API client already has the shape to copy from
-(`src/api/client.js`).
-
-1. **`src/lib/push.js`** — `registerForPush()`:
-   - `Notifications.getPermissionsAsync()`, request if undetermined;
-   - on Android also `setNotificationChannelAsync('default', …)`, required for
-     a banner to appear at all;
-   - `getExpoPushTokenAsync({ projectId })` where `projectId` comes from
-     `Constants.expoConfig.extra.eas.projectId`;
-   - POST it to `/notifications/devices` with `platform: Platform.OS`.
-
-   **Guard the native import the way `MapPicker.js` does.** That file explains
-   at length why a bare top-level import of a native module takes the whole app
-   down in a runtime that lacks it — the same trap applies here, and anyone
-   still on the old APK is exactly that runtime.
-
-2. **`AuthContext`** — call `registerForPush()` after a successful sign-in, and
-   `DELETE /notifications/devices` in `logout()` before clearing local state.
-   Not awaited: signing out must work with no network, the same as the cookie
-   clear already there.
-
-3. **Permission timing** — ask on the resident dashboard after sign-in, with one
-   line of explanation. Not cold at launch; that is how you get denied. Android
-   13+ requires the runtime `POST_NOTIFICATIONS` grant.
-
-4. **Tap handling** — `Notifications.addNotificationResponseReceivedListener`
-   reads `response.notification.request.content.data.trackingId` and navigates
-   to that report. The banner says nothing identifying, so this is the only
-   thing that gets the person to the right place.
-
-## Step 4 — Do NOT make the banner more informative
-
-The banner is:
-
-```
-Your report has an update
-Tap to view.
-```
-
-No tracking reference, no status, no staff note. A push banner is readable on a
-**locked** phone by whoever is holding it, and this system encrypts reporter
-identity at rest and accepts whistleblower reports. Putting the reference on a
-lock screen would give away at a glance what the rest of the system protects.
-
-`tests/pushNotifications.test.js` asserts the absence of all three, so this
-fails the suite rather than slipping through. If someone asks for a richer
-banner, that is a decision to take deliberately, not a tidy-up.
-
-## Step 5 — Build, install, verify
+### 1. Build
 
 ```bash
 cd mobile
 eas build --platform android --profile preview
 ```
 
-Install the new APK on a real device (push does not work in Expo Go, and an
-emulator needs Play Services). Then:
+### 2. Install on a REAL device
 
-1. Sign in → accept the notification permission.
-2. Confirm a `PushToken` row exists for that user.
+Push does not work in Expo Go, and an emulator needs Play Services.
+
+### 3. Verify — do not skip step 2 of this list
+
+1. Sign in → the permission prompt appears → **Allow** → accept the OS dialog.
+2. **Confirm a `PushToken` row exists for that user.** This is the step that
+   catches a silent FCM misconfiguration: if `getExpoPushTokenAsync()` fails,
+   sign-in still succeeds, no row is written, and the server cheerfully sends to
+   nobody. Same failure shape as the SMTP and CRLF problems in CLAUDE.md —
+   confirm the row, never assume it.
 3. From the web app as staff, change that report's status.
-4. Lock the phone. The banner should appear saying only that there is an update.
+4. Lock the phone. The banner appears, saying only that there is an update.
 5. Tap it → the app opens that report.
 6. Sign out → confirm the `PushToken` row is gone.
+7. **Offline sign-out** (deferred from the code work, which could not test it
+   without this build): sign in, enable airplane mode, sign out. It must return
+   to the login screen with no error and no hang.
+8. **Decline path:** fresh install → **Don't allow** → confirm the prompt does
+   not return on the next launch, and that the Profile toggle turns it back on.
 
-After this build, OTA works again and is pinned to the **new** fingerprint.
-Re-check with `eas fingerprint:compare --build-id <new build id>` before the
-next `eas update`.
+### 4. Re-pin OTA to the new fingerprint
 
-## Step 6 — Update the manuscript
+```bash
+eas fingerprint:compare --build-id <new build id>
+```
+
+Expected: no differences. A CRLF difference here silently stops updates reaching
+the build — see the `.gitattributes` entries, which now cover
+`mobile/google-services.json` as well.
+
+### 5. Rewrite the manuscript
 
 `notification.service.js` used to say push was out of scope, and the paper's
-limitations section says the same. Once this ships, that is no longer true —
-it becomes a limitation you identified and then closed, which is a better
-story, but it does have to be rewritten rather than left.
+limitations section says the same. Once this is verified that is no longer true:
+it becomes a limitation identified and then closed, which is a better story, but
+it has to be rewritten rather than left.
+
+---
+
+## What was built (app half)
+
+| File | Role |
+|---|---|
+| `mobile/src/lib/pushDecision.js` | Pure: when to prompt, what Allow does, the per-user preference key. The only push code with unit tests (9). |
+| `mobile/src/lib/pushPreference.js` | Stores the resident's choice in SecureStore, keyed per user. |
+| `mobile/src/lib/push.js` | The native module behind a lazy guard; token register/unregister. |
+| `mobile/src/components/PushPermissionPrompt.js` | The non-dismissable modal. |
+| `mobile/src/context/AuthContext.js` | Registers on sign-in, forgets the device on sign-out. |
+| `mobile/src/navigation/ResidentNavigator.js` | Mounts the prompt; opens the report a banner refers to. |
+| `mobile/src/screens/resident/ProfileScreen.js` | The toggle that makes a decline reversible. |
+
+### Three things that will look like bugs and are not
+
+**1. `POST_NOTIFICATIONS` does not appear in `expo config --type introspect`.**
+It is declared in the library's own
+`node_modules/expo-notifications/android/src/main/AndroidManifest.xml`, and
+Android's manifest merger folds it into the app manifest at build time.
+`expo config` only introspects app-level config. **Do not "fix" this by adding
+the permission to `app.json`.**
+
+**2. The availability probe is `requireOptionalNativeModule`, not
+`TurboModuleRegistry.get`.** `MapPicker.js` uses the latter and is right to:
+maplibre ships a *classic* React Native module. `expo-notifications` is an *Expo*
+module and registers with `expo-modules-core`'s own registry, so asking
+TurboModuleRegistry for those names returns null **even in a build that contains
+them** — which would pin `isAvailable()` to false and leave push silently dead
+forever. Do not "align" the two files.
+
+**3. The banner says almost nothing, deliberately.**
+```
+Your report has an update
+Tap to view.
+```
+No reference, no status, no staff note: a push banner is readable on a **locked**
+phone, and this system encrypts reporter identity at rest and takes whistleblower
+reports. The reference travels in `data`, invisible until the app opens it.
+`backend/tests/pushNotifications.test.js` asserts all three absences, so making
+the banner "more useful" fails the suite rather than slipping through.
+
+## FCM setup, as actually performed
+
+Recorded because the original version of this document was **incomplete** — it
+omitted `google-services.json` and the `app.json` entry, without which the app is
+never registered with FCM and token registration fails.
+
+1. Firebase project `cenrowatch-mobile-app` (Analytics off).
+2. Android app registered with package **`com.aishiii.cenrowatch`** — must match
+   `expo.android.package` exactly. Debug SHA-1 left blank; it is only needed for
+   Google Sign-In, Dynamic Links and Phone Auth, not FCM.
+3. `google-services.json` at `mobile/google-services.json`, committed. It carries
+   no private key and ships inside the APK regardless, so it is not a secret.
+   Pinned `text eol=lf` in `.gitattributes` alongside the other fingerprint inputs.
+4. `expo.android.googleServicesFile: "./google-services.json"` in `app.json`.
+5. Service-account private key generated and uploaded via
+   `eas credentials` → Android → production → Google Service Account → FCM V1.
+   **That key is a real secret and is not in the repo.**
+
+The app never imports Firebase, and the API never talks to it: `push.service.js`
+sends one HTTPS POST to `exp.host`, and Expo relays to FCM using the credential
+stored in EAS. Firebase here is a delivery pipe, not an integration.
