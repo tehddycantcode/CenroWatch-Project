@@ -182,6 +182,18 @@ export const api = {
     list: (token, limit = 20) => request(`/notifications?limit=${limit}`, { token }),
     markRead: (id, token) => request(`/notifications/${id}/read`, { method: 'PATCH', token }),
     markAllRead: (token) => request('/notifications/read-all', { method: 'PATCH', token }),
+
+    // Push devices. The server keeps one row per ExpoPushToken and sends a
+    // report update to every row belonging to the report's owner, so these two
+    // are what decide whether a phone hears anything at all.
+    //
+    // unregisterDevice carries its token in the BODY of a DELETE, which is what
+    // the endpoint reads (notification.controller.js). request() already sends
+    // a body for any method, so this needs nothing special.
+    registerDevice: (payload, token) =>
+      request('/notifications/devices', { method: 'POST', body: payload, token }),
+    unregisterDevice: (payload, token) =>
+      request('/notifications/devices', { method: 'DELETE', body: payload, token }),
   },
 
   // Email confirmation. All three require the token: the soft gate means the
