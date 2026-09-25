@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ClipboardList, CircleCheck } from 'lucide-react';
 import { staffApi } from '@/lib/api';
 import { useCategories } from '@/lib/useCategories';
+import { isOtherCategory, withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '@/lib/otherCategory';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
@@ -76,11 +77,24 @@ export default function LogWalkInPage() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const needsOther = isOtherCategory(form.complaint_type);
+
+  // Changing the type clears anything typed under "Other", so switching back
+  // to a normal category cannot submit a stale detail line.
+  const setType = (e) =>
+    setForm((f) => ({ ...f, complaint_type: e.target.value, type_other: '' }));
+
   function validate() {
     const errs = {};
     if (!form.complaint_type) errs.complaint_type = 'Please choose a complaint type.';
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
     if (form.description.trim().length < 10) errs.description = 'Describe the concern (at least 10 characters).';
+    if (needsOther && !form.type_other.trim()) {
+      errs.type_other = 'Please describe the type of complaint.';
+    }
+    if (withOtherDetail(form.description.trim(), form.type_other).length > DESCRIPTION_MAX) {
+      errs.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
+    }
     return errs;
   }
 
@@ -94,7 +108,9 @@ export default function LogWalkInPage() {
     const fd = new FormData();
     fd.append('complaint_type', form.complaint_type);
     fd.append('barangay_id', form.barangay_id);
-    fd.append('description', form.description.trim());
+    // complaint_type is a foreign key, so the typed detail rides in the
+    // description instead - as its first line. See lib/otherCategory.js.
+    fd.append('description', withOtherDetail(form.description.trim(), form.type_other));
     fd.append('received_via', form.received_via);
     fd.append('is_anonymous', String(anonymous));
     if (!anonymous) {
@@ -148,13 +164,25 @@ export default function LogWalkInPage() {
           {error && <Alert>{error}</Alert>}
 
           <FormField id="complaint_type" label="Complaint type" error={fieldErrors.complaint_type || categoriesError}>
-            <Select id="complaint_type" value={form.complaint_type} onChange={set('complaint_type')}>
+            <Select id="complaint_type" value={form.complaint_type} onChange={setType}>
               <option value="">Select a type</option>
               {complaintTypes.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </Select>
           </FormField>
+
+          {needsOther && (
+            <FormField id="type_other" label="Please specify" error={fieldErrors.type_other}>
+              <Input
+                id="type_other"
+                placeholder="e.g. Dead fish in the creek"
+                maxLength={OTHER_DETAIL_MAX}
+                value={form.type_other}
+                onChange={set('type_other')}
+              />
+            </FormField>
+          )}
 
           <FormField id="barangay_id" label="Barangay" error={fieldErrors.barangay_id}>
             <BarangaySelect value={form.barangay_id} onChange={set('barangay_id')} />

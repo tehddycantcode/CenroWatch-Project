@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { requestApi } from '@/lib/api';
 import { useCategories } from '@/lib/useCategories';
+import { isOtherCategory, withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '@/lib/otherCategory';
 import { FORM_TL } from '@/lib/tagalog';
 import { Sprout } from 'lucide-react';
 import ReportFormShell from '@/components/resident/ReportFormShell';
@@ -33,11 +34,27 @@ export default function ServiceRequestFormPage() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const needsOther = isOtherCategory(form.request_type);
+
+  // Changing the type clears anything typed under "Other", so switching back
+  // to a normal category cannot submit a stale detail line.
+  const setType = (e) =>
+    setForm((f) => ({ ...f, request_type: e.target.value, type_other: '' }));
+
   function validate() {
     const errs = {};
     if (!form.request_type) errs.request_type = 'Please choose a request type.';
+    if (needsOther && !form.type_other.trim()) {
+      errs.type_other = 'Please describe the service you need.';
+    }
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
     if (form.description.trim().length < 10) errs.description = 'Describe your request (at least 10 characters).';
+    // The detail is prepended to the description, and the server caps that at
+    // DESCRIPTION_MAX. Checked here so a long request fails on the field the
+    // resident can actually see, rather than as a 422 about something else.
+    if (withOtherDetail(form.description.trim(), form.type_other).length > DESCRIPTION_MAX) {
+      errs.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
+    }
     return errs;
   }
 
@@ -51,7 +68,9 @@ export default function ServiceRequestFormPage() {
     const fd = new FormData();
     fd.append('request_type', form.request_type);
     fd.append('barangay_id', form.barangay_id);
-    fd.append('description', form.description.trim());
+    // request_type is a foreign key, so the typed detail rides in the
+    // description instead - as its first line. See lib/otherCategory.js.
+    fd.append('description', withOtherDetail(form.description.trim(), form.type_other));
     if (form.requested_quantity) fd.append('requested_quantity', form.requested_quantity);
     if (form.preferred_schedule) fd.append('preferred_schedule', form.preferred_schedule);
     if (doc) fd.append('document', doc);
@@ -90,13 +109,30 @@ export default function ServiceRequestFormPage() {
         hint={FORM_TL.request_type}
         error={fieldErrors.request_type || categoriesError}
       >
-        <Select id="request_type" value={form.request_type} onChange={set('request_type')}>
+        <Select id="request_type" value={form.request_type} onChange={setType}>
           <option value="">Select a service</option>
           {requestTypes.map((t) => (
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </Select>
       </FormField>
+
+      {needsOther && (
+        <FormField
+          id="type_other"
+          label="Please specify"
+          hint={FORM_TL.type_other}
+          error={fieldErrors.type_other}
+        >
+          <Input
+            id="type_other"
+            placeholder="e.g. Tree trimming along the road"
+            maxLength={OTHER_DETAIL_MAX}
+            value={form.type_other}
+            onChange={set('type_other')}
+          />
+        </FormField>
+      )}
 
       <FormField id="barangay_id" label="Barangay" hint={FORM_TL.barangay} error={fieldErrors.barangay_id}>
         <BarangaySelect value={form.barangay_id} onChange={set('barangay_id')} />

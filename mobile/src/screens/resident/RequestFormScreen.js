@@ -3,6 +3,7 @@ import { TextInput, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { useCategories } from '../../lib/useCategories';
+import { isOtherCategory, withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '../../lib/otherCategory';
 import { FORM_TL } from '../../lib/tagalog';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
@@ -34,9 +35,19 @@ export default function RequestFormScreen() {
 
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
 
+  const needsOther = isOtherCategory(form.request_type);
+
+  // Changing the type clears anything typed under "Other", so switching back
+  // to a normal category cannot submit a stale detail line.
+  const setType = (v) => setForm((f) => ({ ...f, request_type: v, type_other: '' }));
+
   function validate() {
     const e = {};
     if (!form.request_type) e.request_type = 'Select a service type.';
+    if (needsOther && !form.type_other.trim()) e.type_other = 'Please describe the service you need.';
+    if (withOtherDetail(form.description.trim(), form.type_other).length > DESCRIPTION_MAX) {
+      e.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
+    }
     if (!form.barangay_id) e.barangay_id = 'Please select a barangay.';
     if (form.description.trim().length < 10) e.description = 'Describe your request (at least 10 characters).';
     if (form.preferred_schedule.trim() && !DATE_RE.test(form.preferred_schedule.trim()))
@@ -52,7 +63,9 @@ export default function RequestFormScreen() {
 
     const fd = new FormData();
     fd.append('request_type', form.request_type);
-    fd.append('description', form.description.trim());
+    // request_type is a foreign key, so the typed detail rides in the
+    // description instead - as its first line. See lib/otherCategory.js.
+    fd.append('description', withOtherDetail(form.description.trim(), form.type_other));
     fd.append('barangay_id', String(form.barangay_id));
     if (form.requested_quantity.trim()) fd.append('requested_quantity', form.requested_quantity.trim());
     if (form.preferred_schedule.trim()) fd.append('preferred_schedule', form.preferred_schedule.trim());
@@ -88,10 +101,23 @@ export default function RequestFormScreen() {
         hint={FORM_TL.request_type}
         options={requestTypes}
         value={form.request_type}
-        onChange={set('request_type')}
+        onChange={setType}
         placeholder="Select a service"
         error={fieldErrors.request_type || categoriesError}
       />
+
+      {needsOther ? (
+        <Field label="Please specify" hint={FORM_TL.type_other} error={fieldErrors.type_other}>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Tree trimming along the road"
+            placeholderTextColor={colors.placeholder}
+            maxLength={OTHER_DETAIL_MAX}
+            value={form.type_other}
+            onChangeText={set('type_other')}
+          />
+        </Field>
+      ) : null}
 
       <BarangayPicker
         items={barangays}

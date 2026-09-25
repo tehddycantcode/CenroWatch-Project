@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { complaintApi } from '@/lib/api';
 import { useCategories } from '@/lib/useCategories';
+import { isOtherCategory, withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '@/lib/otherCategory';
 import { FORM_TL } from '@/lib/tagalog';
 import ReportFormShell from '@/components/resident/ReportFormShell';
 import BarangaySelect from '@/components/resident/BarangaySelect';
@@ -22,7 +23,7 @@ export default function ComplaintFormPage() {
   // form is broken rather than like the list failed to load.
   const { complaintTypes, error: categoriesError } = useCategories();
 
-  const [form, setForm] = useState({ barangay_id: '', complaint_type: '', description: '', observed_at: todayStr() });
+  const [form, setForm] = useState({ barangay_id: '', complaint_type: '', description: '', type_other: '', observed_at: todayStr() });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
   const photoRef = useRef(null);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -32,11 +33,27 @@ export default function ComplaintFormPage() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const needsOther = isOtherCategory(form.complaint_type);
+
+  // Changing the type clears anything typed under "Other", so switching back to
+  // a normal category cannot submit a stale detail line.
+  const setType = (e) =>
+    setForm((f) => ({ ...f, complaint_type: e.target.value, type_other: '' }));
+
   function validate() {
     const errs = {};
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
     if (!form.complaint_type) errs.complaint_type = 'Please choose a complaint type.';
+    if (needsOther && !form.type_other.trim()) {
+      errs.type_other = 'Please describe the type of complaint.';
+    }
     if (form.description.trim().length < 10) errs.description = 'Describe the issue (at least 10 characters).';
+    // The detail is prepended to the description, and the server caps that at
+    // DESCRIPTION_MAX. Checked here so a long report fails on the field the
+    // resident can actually see, rather than as a 422 about something else.
+    if (withOtherDetail(form.description.trim(), form.type_other).length > DESCRIPTION_MAX) {
+      errs.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
+    }
     if (!photoRef.current) errs.photo = 'A photo is required. Please attach at least one.';
     return errs;
   }
@@ -51,7 +68,9 @@ export default function ComplaintFormPage() {
     const fd = new FormData();
     fd.append('barangay_id', form.barangay_id);
     fd.append('complaint_type', form.complaint_type);
-    fd.append('description', form.description.trim());
+    // complaint_type is a foreign key, so the typed detail rides in the
+    // description instead - as its first line. See lib/otherCategory.js.
+    fd.append('description', withOtherDetail(form.description.trim(), form.type_other));
     if (form.observed_at) fd.append('observed_at', form.observed_at);
     if (location.latitude != null) {
       fd.append('latitude', location.latitude);
@@ -93,13 +112,30 @@ export default function ComplaintFormPage() {
         hint={FORM_TL.complaint_type}
         error={fieldErrors.complaint_type || categoriesError}
       >
-        <Select id="complaint_type" value={form.complaint_type} onChange={set('complaint_type')}>
+        <Select id="complaint_type" value={form.complaint_type} onChange={setType}>
           <option value="">Select a type</option>
           {complaintTypes.map((t) => (
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </Select>
       </FormField>
+
+      {needsOther && (
+        <FormField
+          id="type_other"
+          label="Please specify"
+          hint={FORM_TL.type_other}
+          error={fieldErrors.type_other}
+        >
+          <Input
+            id="type_other"
+            placeholder="e.g. Dead fish in the creek"
+            maxLength={OTHER_DETAIL_MAX}
+            value={form.type_other}
+            onChange={set('type_other')}
+          />
+        </FormField>
+      )}
 
       <FormField
         id="barangay_id"

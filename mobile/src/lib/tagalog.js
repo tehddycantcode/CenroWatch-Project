@@ -94,6 +94,7 @@ export const STAT_TL = {
 export const FORM_TL = {
   complaint_type: 'Anong klaseng reklamo?',
   request_type: 'Anong serbisyo ang kailangan mo?',
+  type_other: 'Pakisulat kung ano ito.',
   species_name: 'Anong hayop? Kung alam mo.',
   animal_condition: 'Kumusta ang lagay ng hayop?',
   barangay: 'Piliin ang barangay mo',
