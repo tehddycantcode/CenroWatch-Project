@@ -6,6 +6,8 @@ import { BACK, resolveAuthBackAction } from '../lib/backAction';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import AnonymousReportScreen from '../screens/AnonymousReportScreen';
+import PublicTrackScreen from '../screens/PublicTrackScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ResidentNavigator from './ResidentNavigator';
 
@@ -51,6 +53,13 @@ export default function RootNavigator() {
 
   if (screen === 'register') return <RegisterScreen onNavigate={setScreen} />;
   if (screen === 'forgot') return <ForgotPasswordScreen onNavigate={setScreen} />;
+  // Signed-out reporting. These two are the whole point of the public API
+  // routes: someone without an account - or unwilling to use one - can still
+  // file a complaint and then follow it up by reference number.
+  // resolveAuthBackAction needs no change for them: it already returns GO_LOGIN
+  // for any screen that is not 'login'.
+  if (screen === 'anonymous') return <AnonymousReportScreen onNavigate={setScreen} />;
+  if (screen === 'track-public') return <PublicTrackScreen onNavigate={setScreen} />;
   return <LoginScreen onNavigate={setScreen} />;
 }
 

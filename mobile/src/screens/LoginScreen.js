@@ -121,6 +121,21 @@ export default function LoginScreen({ onNavigate }) {
                   <Text style={styles.link}>Create an account</Text>
                 </Pressable>
               </View>
+
+              {/* Reporting without an account. Deliberately reachable from the
+                  sign-in screen rather than buried: someone reporting a
+                  neighbour or an employer may not want an account tied to it,
+                  and someone who already filed anonymously has no account to
+                  sign into in order to check on it. Mirrors the web app, where
+                  both live in the public header. */}
+              <View style={styles.publicBox}>
+                <Pressable onPress={() => onNavigate('anonymous')} hitSlop={6}>
+                  <Text style={styles.link}>Report anonymously (no account)</Text>
+                </Pressable>
+                <Pressable onPress={() => onNavigate('track-public')} hitSlop={6}>
+                  <Text style={styles.link}>Check a report{'’'}s status</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -159,6 +174,7 @@ const styles = StyleSheet.create({
   checkboxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   checkboxTick: { color: colors.white, fontSize: 13, fontWeight: '800', lineHeight: 16 },
   rememberText: { fontSize: 13, color: colors.muted },
+  publicBox: { alignItems: 'center', gap: 10, marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 6 },
   footerText: { fontSize: 13, color: colors.muted },
   link: { fontSize: 13, color: colors.primary, fontWeight: '700' },

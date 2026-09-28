@@ -163,6 +163,19 @@ export const api = {
     create: (form, token) => requestForm('/complaints', form, token),
     mine: (token) => request('/complaints/mine', { token }),
     get: (trackingId, token) => request(`/complaints/${trackingId}`, { token }),
+
+    // Public whistleblower submission + status lookup. Both are DELIBERATELY
+    // tokenless: they are the routes registered before `authenticate` on the
+    // server, and the whole point is that they work with no account. Passing a
+    // token would also defeat the purpose - so do not "fix" the missing
+    // argument. request() and requestForm() both only set an Authorization
+    // header when a token is truthy, so an omitted one sends none.
+    //
+    // trackPublic is what makes an anonymous report followable at all: an
+    // anonymous complaint has user_id NULL, so complaints.get() above answers
+    // 403 for it even to the person who filed it.
+    createAnonymous: (form) => requestForm('/complaints/anonymous', form),
+    trackPublic: (trackingId) => request(`/complaints/track/${trackingId}`),
   },
   wildlife: {
     create: (form, token) => requestForm('/wildlife', form, token),
@@ -196,8 +209,11 @@ export const api = {
       request('/notifications/devices', { method: 'DELETE', body: payload, token }),
   },
 
-  // Email confirmation. All three require the token: the soft gate means the
-  // resident is signed in while their address is still unconfirmed.
+  // Email confirmation. All three require the token, because confirming happens
+  // AFTER signing in: registration no longer creates a session, and these routes
+  // sit behind `authenticate` on the server. Filing a report now requires a
+  // confirmed address, so this is the path that unblocks it - not optional
+  // housekeeping.
   verifyEmail: (code, token) => request('/auth/verify-email', { method: 'POST', body: { code }, token }),
   resendVerification: (token) => request('/auth/resend-verification', { method: 'POST', token }),
   changeEmail: (email, token) => request('/auth/email', { method: 'PATCH', body: { email }, token }),

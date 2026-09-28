@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
-import { TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { useCategories } from '../../lib/useCategories';
 import { isOtherCategory, withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '../../lib/otherCategory';
-import { FORM_TL } from '../../lib/tagalog';
+import { FORM_TL, COPY_TL } from '../../lib/tagalog';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
 import ReportFormShell, { Field } from '../../components/ReportFormShell';
@@ -12,6 +12,7 @@ import Select from '../../components/Select';
 import BarangayPicker from '../../components/BarangayPicker';
 import PhotoPicker from '../../components/PhotoPicker';
 import LocationField from '../../components/LocationField';
+import Checkbox from '../../components/Checkbox';
 
 // Local YYYY-MM-DD without relying on Intl (Hermes has limited Intl support).
 const todayStr = () => {
@@ -36,6 +37,10 @@ export default function ComplaintFormScreen() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
+  // Kept out of `form` on purpose: it is not a detail about the incident, it
+  // decides who the report belongs to. Separate state means nothing that
+  // spreads `form` can carry it somewhere it does not belong.
+  const [anonymous, setAnonymous] = useState(false);
 
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -79,6 +84,10 @@ export default function ComplaintFormScreen() {
     // Third argument is the multipart filename: the API derives the stored
     // file's extension from it.
     fd.append('photo', photoRef.current.file, photoRef.current.name); // required
+    // String(), because multipart carries no booleans - the server validator's
+    // .toBoolean() turns it back. Always sent, so the value is explicit rather
+    // than inferred from the field being absent.
+    fd.append('is_anonymous', String(anonymous));
 
     setSubmitting(true);
     try {
@@ -105,6 +114,8 @@ export default function ComplaintFormScreen() {
       submitting={submitting}
       error={error}
       success={success}
+      submitLabel={anonymous ? 'Submit Anonymously' : 'Submit Report'}
+      anonymous={anonymous}
     >
       <Select
         label="Complaint type"
@@ -184,6 +195,44 @@ export default function ComplaintFormScreen() {
           }}
         />
       </Field>
+
+      {/* EVERY CLAUSE BELOW IS A PROMISE THE CODE KEEPS - check before editing.
+          user_id is stored NULL, so the report cannot appear in My Reports
+          (that query filters on user_id), no email or push notification is
+          sent (both are addressed by looking the user up), and no audit row
+          records who filed it. The photo paragraph is a WARNING about a
+          limitation, not a promise: nothing strips image metadata today. */}
+      <View style={styles.anonBox}>
+        <Checkbox
+          checked={anonymous}
+          onChange={setAnonymous}
+          accessibilityLabel="File this report anonymously"
+        >
+          File this report anonymously
+        </Checkbox>
+
+        {anonymous ? (
+          <View style={styles.anonDetail}>
+            <Text style={styles.anonStrong}>
+              CENRO will not know who filed this, and that is permanent.
+            </Text>
+            <Text style={styles.anonText}>
+              It will not appear in My Reports, you will get no email or app updates about it,
+              and we cannot link it back to your account later even if you ask us to.
+            </Text>
+            <Text style={styles.anonText}>
+              Save the reference number on the next screen. It is the only way to check the
+              status, and it shows status only - not the photo or CENRO{'’'}s notes.
+            </Text>
+            <Text style={styles.anonText}>
+              A photo is still required. Avoid anything that identifies you: your face, your
+              home, your vehicle, a plate number. Photo files can also carry the location and
+              the phone they were taken with.
+            </Text>
+            <Text style={styles.anonText}>{COPY_TL.anonymousHint}</Text>
+          </View>
+        ) : null}
+      </View>
     </ReportFormShell>
   );
 }
@@ -210,4 +259,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
   },
+  anonBox: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBg,
+    borderRadius: radius.md,
+    padding: 14,
+    gap: 10,
+  },
+  anonDetail: { gap: 8, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },
+  anonStrong: { fontSize: 13, fontWeight: '700', color: colors.text, lineHeight: 19 },
+  anonText: { fontSize: 13, color: colors.muted, lineHeight: 19 },
 });

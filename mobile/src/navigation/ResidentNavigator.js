@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
-import { NavContext } from './navContext';
+import { NavContext, useResidentNav } from './navContext';
 import DashboardScreen from '../screens/resident/DashboardScreen';
 import MyReportsScreen from '../screens/resident/MyReportsScreen';
 import ComplaintFormScreen from '../screens/resident/ComplaintFormScreen';
@@ -11,6 +11,7 @@ import RequestFormScreen from '../screens/resident/RequestFormScreen';
 import TrackReportScreen from '../screens/resident/TrackReportScreen';
 import ProfileScreen from '../screens/resident/ProfileScreen';
 import NotificationsScreen from '../screens/resident/NotificationsScreen';
+import PublicTrackScreen from '../screens/PublicTrackScreen';
 import ReportSheet from '../components/ReportSheet';
 import Icon from '../components/Icon';
 import PushPermissionPrompt from '../components/PushPermissionPrompt';
@@ -44,6 +45,20 @@ const TABS = [
   { key: 'profile', label: 'Profile', icon: 'person-outline', iconActive: 'person' },
 ];
 
+// PublicTrackScreen is shared with the SIGNED-OUT stack, so it takes an
+// onNavigate prop rather than reaching for the resident nav - it has to work
+// where that context does not exist. This wrapper adapts it for use inside the
+// resident stack, where "back" means pop rather than return to sign-in. It
+// renders inside NavContext.Provider, so the hook is safe here.
+//
+// It is reachable because a signed-in resident can file ANONYMOUSLY: that
+// report has user_id NULL, so TrackReportScreen's authenticated lookup answers
+// 403 for it and the public lookup is the only one that works.
+function PublicTrackInStack({ id }) {
+  const { goBack } = useResidentNav();
+  return <PublicTrackScreen onNavigate={goBack} initialId={id} />;
+}
+
 function renderScreen(entry) {
   switch (entry.screen) {
     case 'dashboard':
@@ -58,6 +73,10 @@ function renderScreen(entry) {
       return <RequestFormScreen />;
     case 'track':
       return <TrackReportScreen id={entry.params.id} />;
+    // Deliberately NOT added to TAB_ROOTS or FAB_ROOTS: it is a pushed screen
+    // reached from an anonymous submission's success card, not a destination.
+    case 'track-public':
+      return <PublicTrackInStack id={entry.params.id} />;
     case 'profile':
       return <ProfileScreen />;
     case 'notifications':
