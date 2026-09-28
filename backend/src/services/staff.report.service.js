@@ -7,7 +7,8 @@
 // zero-personal-data rule (R.A. 10173) governs PUBLIC endpoints, not this one,
 // so the footer reminds whoever holds the printout of that duty.
 
-const { GREEN, MUTED, humanize, heading, drawRow, kv, paragraph, createReportDocument } = require('./report.layout');
+const { GREEN, MUTED, humanize, heading, drawRow, kv, paragraph, createReportDocument, attachment } = require('./report.layout');
+const storage = require('./storage');
 
 const fmt = (d) => (d ? new Date(d).toLocaleString('en-PH') : 'Not set');
 const yesNo = (v) => (v ? 'Yes' : 'No');
@@ -98,6 +99,28 @@ function historyBlock(doc, r) {
   }
 }
 
+// THE EVIDENCE SECTION. This exists because the printout is offered as the
+// retained copy of a report, and for an environmental complaint the photograph
+// IS the evidence - it used to be represented by the single line
+// "Photo attached: Yes", which is not a copy of anything.
+//
+// Every path prints something. A missing file, an unreadable one, or a format
+// pdfkit cannot decode (webp/heic/heif are all accepted by the uploader) each
+// produce a stated reason rather than a silent omission, so nobody is handed a
+// page that looks complete while the evidence is absent.
+async function attachmentsBlock(doc, paths, { label = 'Photograph' } = {}) {
+  const list = paths.filter(Boolean);
+  if (!list.length) return;
+
+  heading(doc, list.length > 1 ? 'Attachments' : 'Attachment');
+  for (const [i, p] of list.entries()) {
+    const caption = list.length > 1 ? `${label} ${i + 1} of ${list.length}` : label;
+    // read() answers null instead of throwing when the object is gone.
+    const buf = await storage.read(p);
+    attachment(doc, buf, caption);
+  }
+}
+
 function footer(doc) {
   doc.moveDown(1.5);
   doc.fontSize(8).font('Helvetica').fillColor(MUTED)
@@ -105,7 +128,7 @@ function footer(doc) {
   doc.fillColor('#000');
 }
 
-function writeComplaintReport(doc, c, meta = {}) {
+async function writeComplaintReport(doc, c, meta = {}) {
   titleBlock(doc, 'complaint', c.tracking_id, meta);
   heading(doc, 'Summary');
   kv(doc, [
@@ -127,10 +150,11 @@ function writeComplaintReport(doc, c, meta = {}) {
   reporterBlock(doc, c);
   notesBlock(doc, c);
   historyBlock(doc, c);
+  await attachmentsBlock(doc, [c.photo_path], { label: 'Evidence photograph' });
   footer(doc);
 }
 
-function writeWildlifeReport(doc, w, meta = {}) {
+async function writeWildlifeReport(doc, w, meta = {}) {
   titleBlock(doc, 'wildlife', w.reference_id, meta);
   heading(doc, 'Summary');
   kv(doc, [
@@ -155,10 +179,15 @@ function writeWildlifeReport(doc, w, meta = {}) {
   reporterBlock(doc, w);
   notesBlock(doc, w);
   historyBlock(doc, w);
+  // The turnover photo first, then the chain-of-custody set. Custody photos are
+  // the record of how the animal was handled after collection, so they belong
+  // in a retained copy as much as the original sighting does.
+  await attachmentsBlock(doc, [w.photo_path], { label: 'Turnover photograph' });
+  await attachmentsBlock(doc, w.chain_of_custody_photos || [], { label: 'Chain-of-custody photograph' });
   footer(doc);
 }
 
-function writeRequestReport(doc, r, meta = {}) {
+async function writeRequestReport(doc, r, meta = {}) {
   titleBlock(doc, 'request', r.tracking_id, meta);
   heading(doc, 'Summary');
   kv(doc, [
@@ -180,16 +209,23 @@ function writeRequestReport(doc, r, meta = {}) {
   reporterBlock(doc, r);
   notesBlock(doc, r);
   historyBlock(doc, r);
+  // A supporting document may legitimately be a PDF here (DOC_MIME allows it),
+  // which pdfkit cannot embed. attachment() states that rather than dropping it.
+  await attachmentsBlock(doc, [r.document_path], { label: 'Supporting document' });
   footer(doc);
 }
 
 // One entry point so controllers stay uniform.
 const WRITERS = { complaint: writeComplaintReport, wildlife: writeWildlifeReport, request: writeRequestReport };
 
-function writeReport(doc, kind, record, meta = {}) {
+// ASYNC NOW, because the evidence photos are fetched from storage while the
+// document is being written. Callers MUST await this before doc.end() - ending
+// the document first truncates it mid-attachment and produces a corrupt file
+// that still downloads with a .pdf name.
+async function writeReport(doc, kind, record, meta = {}) {
   const write = WRITERS[kind];
   if (!write) throw new Error(`Unknown report kind: ${kind}`);
-  write(doc, record, meta);
+  await write(doc, record, meta);
 }
 
 function documentFor(kind, ref) {

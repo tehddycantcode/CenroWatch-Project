@@ -56,7 +56,13 @@ function exportReport(kind) {
 
     const doc = reportService.documentFor(kind, ref);
     doc.pipe(res);
-    reportService.writeReport(doc, kind, record, {
+    // AWAITED. writeReport fetches the evidence photos from storage while it
+    // writes, so calling doc.end() without waiting truncates the document
+    // mid-attachment - and the result still arrives as a .pdf download, just a
+    // corrupt one. The headers are already sent by this point, so a failure
+    // here cannot be turned into a JSON error; the attachment helper is written
+    // to never throw for exactly that reason.
+    await reportService.writeReport(doc, kind, record, {
       generatedAt,
       by: `${req.user.first_name || ''} ${req.user.last_name || ''}`.trim() || undefined,
     });

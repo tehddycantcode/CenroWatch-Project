@@ -17,6 +17,10 @@ if (DRIVER === 'local') {
 const save = (subdir, file) => driver.save(subdir, file);
 const fileUrl = (storedPath) => driver.fileUrl(storedPath);
 const remove = (storedPath) => driver.remove(storedPath);
+// Bytes back, for embedding an evidence photo in a generated PDF. Both drivers
+// answer null instead of throwing when the file is missing, so a report whose
+// upload was lost still prints - see report.layout.attachment().
+const read = (storedPath) => driver.read(storedPath);
 
 const FILE_FIELDS = new Set(['photo_path', 'document_path']);
 
@@ -43,4 +47,4 @@ async function signFiles(node) {
   return out;
 }
 
-module.exports = { save, fileUrl, remove, signFiles };
+module.exports = { save, fileUrl, remove, read, signFiles };

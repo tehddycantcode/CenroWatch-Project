@@ -46,4 +46,20 @@ async function remove(storedPath) {
   await fs.promises.unlink(path.join(UPLOAD_ROOT, rel)).catch(() => {});
 }
 
-module.exports = { save, fileUrl, remove };
+// Read the bytes back, for embedding an evidence photo in a generated PDF.
+// Returns null rather than throwing when the file is missing: a report whose
+// upload was lost must still produce a printout, and the document says so.
+//
+// The join is guarded. `storedPath` comes from the database, but a traversal
+// value written there by some future bug must not be able to read outside
+// UPLOAD_ROOT - the /uploads route already blocks traversal before its
+// signature check, and this is the same rule applied at the other reader.
+async function read(storedPath) {
+  if (!storedPath || !storedPath.startsWith('/uploads/')) return null;
+  const rel = storedPath.replace(/^\/uploads\//, '').split('?')[0];
+  const abs = path.resolve(UPLOAD_ROOT, rel);
+  if (abs !== UPLOAD_ROOT && !abs.startsWith(UPLOAD_ROOT + path.sep)) return null;
+  return fs.promises.readFile(abs).catch(() => null);
+}
+
+module.exports = { save, fileUrl, remove, read };
