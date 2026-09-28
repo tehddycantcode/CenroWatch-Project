@@ -80,7 +80,13 @@ export function AuthProvider({ children }) {
   const persist = useCallback(async (tk, usr, remember = true) => {
     rememberedRef.current = remember !== false;
     if (rememberedRef.current) {
-      await SecureStore.setItemAsync(TOKEN_KEY, tk);
+      // GUARDED because SecureStore throws on a non-string value, and that throw
+      // would land after whatever request produced the token had already
+      // succeeded - leaving the account created (or the password changed) while
+      // the app reports a keychain error and the obvious retry hits a conflict.
+      // Skipping the write degrades to a session that lasts this run of the app,
+      // which is recoverable; throwing here is not.
+      if (typeof tk === 'string' && tk) await SecureStore.setItemAsync(TOKEN_KEY, tk);
     } else {
       // Declined: the token lives in memory for this run of the app only, so
       // closing it signs out. The delete matters as much as skipping the write
@@ -121,14 +127,27 @@ export function AuthProvider({ children }) {
     [persist]
   );
 
-  const register = useCallback(
-    async (payload) => {
-      const res = await api.register(payload);
-      await persist(res.data.token, res.data.user);
-      return res.data.user;
-    },
-    [persist]
-  );
+  // REGISTER DOES NOT SIGN ANYONE IN any more. The person is sent to the sign-in
+  // screen instead, so nothing is persisted here: no keychain write, no push
+  // registration, no user in state.
+  //
+  // DELIBERATELY VERSION-AGNOSTIC. It never reads res.data.token, so this
+  // behaves identically against an API that still returns one and an API that
+  // has stopped - which is what lets the server change ship before or after this
+  // update reaches a phone.
+  //
+  // The logout call is not redundant: Android's networking layer is OkHttp and
+  // keeps a cookie jar, so an older API that still answered register with a
+  // Set-Cookie would leave a live session on the device even though this
+  // function stores nothing. Clearing it keeps "you are not signed in" true on
+  // every server version. Not awaited-with-throw: failing to tidy a cookie must
+  // not fail a registration that already succeeded.
+  const register = useCallback(async (payload) => {
+    const res = await api.register(payload);
+    api.logout().catch(() => {});
+    setSessionNotice('Account created. Check your email for a 6-digit code, then sign in.');
+    return res.data.user;
+  }, []);
 
   // `token` is in the dependency list because the body reads it. With the empty
   // array this used to have, unregisterDevice would have closed over the token

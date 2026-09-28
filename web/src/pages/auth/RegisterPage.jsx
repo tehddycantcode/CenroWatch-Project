@@ -79,7 +79,11 @@ export default function RegisterPage() {
         password: form.password,
         privacy_consent: true,
       });
-      navigate(roleHome(u.role), { replace: true });
+      // To SIGN IN, not into the app: registering no longer creates a session.
+      // `replace` so the browser's back button cannot return to a filled-in
+      // form whose email address is now taken (that resubmits into a 409).
+      // The email rides along so the login screen can name the inbox to check.
+      navigate('/login', { replace: true, state: { registered: true, email: u.email } });
     } catch (err) {
       // Map server-side express-validator errors back onto the fields.
       if (Array.isArray(err.errors)) {
