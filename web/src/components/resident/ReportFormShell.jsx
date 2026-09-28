@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, CircleCheck } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
@@ -66,6 +67,15 @@ export default function ReportFormShell({
   anonymous = false,
   children,
 }) {
+  // THE BLOCK LIVES HERE, not in the three form pages. All of
+  // report-complaint, report-wildlife and request-service render through this
+  // shell, so one check covers them and none can be added later without it. The
+  // server refuses the POST either way (middlewares/requireVerifiedEmail.js);
+  // this is so the resident finds out before filling the form in, and has the
+  // code field one click away instead of a 403 to interpret.
+  const { user } = useAuth();
+  const unverified = !!user && !user.email_verified_at;
+
   if (success) return <SuccessCard trackingId={success} anonymous={anonymous} />;
 
   return (
@@ -88,7 +98,19 @@ export default function ReportFormShell({
         <form onSubmit={onSubmit} className="space-y-4 p-6" noValidate>
           {error && <Alert>{error}</Alert>}
           {children}
-          <Button type="submit" className="w-full" loading={submitting}>
+          {unverified && (
+            // The link target is VerifyEmailBanner, which ResidentLayout renders
+            // above this Outlet on every resident page - so it is already on
+            // screen and the anchor just moves focus to it.
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              You need to confirm your email address before you can file this report.{' '}
+              <a href="#verify-email" className="font-semibold underline">
+                Enter your code
+              </a>
+              {' '}at the top of the page, then come back.
+            </div>
+          )}
+          <Button type="submit" className="w-full" loading={submitting} disabled={unverified}>
             {submitLabel}
           </Button>
         </form>
