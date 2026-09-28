@@ -62,11 +62,24 @@ export function LocationBlock({ marker, address }) {
   // than showing nothing while a third party is consulted.
   const road = useRoadRoute(office && to ? to : null);
 
-  const route = office && to ? { from: office, to, geometry: road?.geometry } : null;
-  const airDistance = route ? formatDistance(distanceKm(office, to)) : null;
+  // THE SERVER'S ORIGIN WINS. /staff/route is sent only the destination and
+  // answers with the office it routed from, so `road.from` is by definition the
+  // start of the line on screen. useOfficeLocation() is the client's own copy,
+  // cached for the session, and it goes stale the moment an Admin edits the
+  // office on the Settings page - which produced a map whose route began at the
+  // new office while the marker still sat at the old one. Drawing the marker,
+  // the distance and the directions link from the same value that produced the
+  // line makes that disagreement impossible rather than unlikely.
+  //
+  // The fallback is still needed: with routing unconfigured or unreachable there
+  // is no server answer, and the straight line has to start somewhere.
+  const origin = road?.from ?? office;
+
+  const route = origin && to ? { from: origin, to, geometry: road?.geometry } : null;
+  const airDistance = route ? formatDistance(distanceKm(origin, to)) : null;
   const roadDistance = road ? formatDistance(road.distance_m / 1000) : null;
   const roadTime = road ? formatDuration(road.duration_s) : null;
-  const directions = route ? directionsUrl(office, to) : null;
+  const directions = route ? directionsUrl(origin, to) : null;
 
   if (!hasGeo && !address) return null;
   return (
