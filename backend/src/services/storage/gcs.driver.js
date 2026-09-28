@@ -67,4 +67,19 @@ async function remove(storedPath) {
   await bucket.file(name).delete({ ignoreNotFound: true }).catch(() => {});
 }
 
-module.exports = { save, fileUrl, remove };
+// Read the object back, for embedding an evidence photo in a generated PDF.
+// Returns null rather than throwing when the object is gone or unreachable: a
+// report whose upload was lost must still produce a printout, and the document
+// says so. download() resolves to [Buffer].
+async function read(storedPath) {
+  if (!storedPath || /^https?:\/\//.test(storedPath)) return null;
+  const name = storedPath.replace(/^\/uploads\//, '').split('?')[0];
+  try {
+    const [buf] = await bucket.file(name).download();
+    return buf;
+  } catch {
+    return null;
+  }
+}
+
+module.exports = { save, fileUrl, remove, read };
