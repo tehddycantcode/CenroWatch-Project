@@ -3,6 +3,17 @@
 Date: 2026-08-19
 Status: Approved (brainstormed with user; soft gate + self-service email correction)
 
+> **PARTLY SUPERSEDED 2026-09-28** by branch `feature/verified-reporting-and-anonymity`.
+> The soft gate argued for below (§"Soft gate, not a hard gate") was reversed: confirming
+> the address is now REQUIRED to file a report, enforced by
+> `backend/src/middlewares/requireVerifiedEmail.js`, and registration no longer returns a
+> session at all. Everything else here — the code format, TTL, attempt cap, hashing, and
+> self-service address correction — still describes the system.
+>
+> This document is left as written on purpose. It is the record of a decision as it was
+> actually made, including the reasoning that was later traded away; rewriting it would
+> hide that the policy ever changed. For current behaviour read `docs/PRD-resident.md`.
+
 ## Problem
 
 `register()` in `backend/src/services/auth.service.js` creates the account and

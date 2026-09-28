@@ -166,6 +166,26 @@ The accountability trail. **Every data mutation in the system writes an entry.**
 - Each category shows whether it is currently active. Categories are database rows, not
   code — an Admin can add or retire one without a redeploy.
 
+### 4.7 Own account — `/admin/account` and `/staff/account`
+
+Self-service for the signed-in staff member or Administrator. One page, mounted at both
+paths: whichever console the person is already in supplies the surrounding chrome, so an
+Admin who clicks their name inside the staff workspace gets the staff-layout version.
+
+- Shows their own name, email and role, **read only**. An Administrator maintains those
+  fields from §4.3; there is no profile editing here.
+- **Change password**, requiring the current one. A wrong current password answers 400
+  "Your current password is incorrect."; the new one must be at least 8 characters with a
+  letter and a number.
+- Changing it **signs out every other device** and keeps the current one signed in — the
+  server re-issues this session's token on the same response. Writes a `PASSWORD_CHANGE`
+  audit entry, visible in §4.4.
+- **The way in is the name and role block in the header**, which is a link rather than a
+  nav item. That is deliberate: `AdminLayout`'s header is width-constrained (its own
+  comments record the measurement), and an eleventh nav entry would break it. On a phone
+  the same link lives in the navigation sheet, because the header block is hidden below
+  the `sm` breakpoint.
+
 ---
 
 ## 5. Cross-cutting requirements

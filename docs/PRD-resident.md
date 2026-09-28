@@ -25,11 +25,26 @@ API `https://cenrowatch-project-production.up.railway.app/api/v1`.
 Public registration only ever creates a `Resident`. Staff and Administrator accounts
 cannot be created from inside the running app.
 
-**Email confirmation is a soft gate.** A Resident whose email address is not yet
-confirmed can sign in and file reports normally. The only capability withheld is
-**password reset**, because mailing a reset link to an unproven address is the actual
-risk. Confirmation is a six-digit code; an unconfirmed Resident may also correct a
+**The mobile app offers the same three signed-out surfaces**, reached from its sign-in
+screen rather than a header: create an account, **report anonymously** (no account), and
+**check a report's status** by reference number. The last two were web-only until
+2026-09-28, while the app's own privacy notice already told residents they could report
+anonymously — the copy shipped before the feature did.
+
+**Email confirmation is REQUIRED before filing a report.** A Resident whose address
+is not yet confirmed can sign in, browse, and see reports they filed earlier, but
+`POST` on all three report kinds answers **403** until they enter the six-digit code.
+Password reset is still withheld too, for the original reason: mailing a reset link
+to an unproven address is the real risk. An unconfirmed Resident may correct a
 mistyped address themselves.
+
+This was deliberately a *soft* gate until 2026-09-28, and the change is worth stating
+plainly because it makes the funnel longer: register → sign in → confirm → file, four
+steps before a first report, where it used to be two. The trade was accepted so that
+every report has a reachable reporter. Two things soften it: the confirm-code field is
+rendered on the report form itself, not only on the dashboard, so the refusal and its
+fix are on one screen; and **anonymous reporting needs no account and is never gated**,
+so nobody is left unable to report at all.
 
 ---
 
@@ -130,7 +145,16 @@ Fields: first name, last name, email, contact number (**optional**), barangay, p
 confirm password. The password must be at least 8 characters and contain a letter and a
 number; the confirmation must match.
 
-On success the account is created as a `Resident` and the person is signed in.
+On success the account is created as a `Resident` and the person is sent to
+**`/login`**, **not** signed in. The response deliberately sets no session cookie, so
+this is enforced by the server rather than by the client navigating politely. The
+sign-in screen names the address the confirmation code was emailed to, so arriving
+there does not read as a failure.
+
+(The response body still contains a `token` field, which no client reads. It is kept
+so that mobile builds installed before this change do not crash writing `undefined`
+to the keychain *after* creating the account — see `tests/registerNoSession.test.js`.
+It can be removed once every installed build has updated.)
 
 ### 3.2 Sign in — `/login`
 
@@ -172,9 +196,23 @@ an account that is active **and** has a confirmed email address.
 
 **The photo is mandatory for a signed-in Resident** and is enforced on the server as well
 as in the form — a submission without one is refused with "A photo is required to file a
-complaint." This is the key difference from the anonymous route, where it is optional.
+complaint." That holds **even when the report is filed anonymously**: the rule is not
+conditional on the anonymity flag, deliberately, because a rule that reads a body field
+is one any client can switch off by sending that field. The `/report-anonymous` route,
+which is a different endpoint and needs no account, is where the photo is optional — so
+a whistleblower with no safe way to photograph anything still has a path.
 
-On success the Resident receives a `CMP-YYYY-NNNNN` tracking reference.
+**A signed-in Resident may tick "file this report anonymously."** That stores
+`user_id = NULL`, so the consequences are permanent and are spelled out in the form: the
+report never appears in My Reports, no receipt or status message is sent, and no audit
+row records who filed it — there is nothing stored to link it back with, even on request.
+The audit row also stores no IP address, because an anonymous report's IP would otherwise
+match the same resident's `USER_LOGIN` row in the log an Administrator can already read.
+
+On success the Resident receives a `CMP-YYYY-NNNNN` tracking reference. For an anonymous
+report that reference is the only handle that exists, and it resolves through the
+**public** tracker (`/track`), not the resident one — the authenticated lookup answers
+403 on a report with no owner.
 
 ### 4.3 Report a wildlife turnover — `/resident/report-wildlife`
 
@@ -215,9 +253,18 @@ data. No reporter name, contact number, email or address detail appears in any p
 payload — the map, the feed and the tracking result included. Contact numbers, reporter
 names and address details are encrypted at rest.
 
-**Anonymous means anonymous.** A report filed through `/report-anonymous` carries no
-reporter identity at all. The tracking reference shown at submission is the only way to
-follow it.
+**Anonymous means anonymous.** A report is anonymous either because it came through
+`/report-anonymous` (no account involved) or because a signed-in Resident ticked "file
+anonymously" — and the two are stored identically: `user_id = NULL`, no reporter columns,
+an audit row with no performer and **no IP address**. Staff and Administrators see
+"Anonymous" because there is genuinely nothing to show, not because the interface hides
+it. The tracking reference shown at submission is the only way to follow it, and it
+resolves through the public tracker only.
+
+**Known limitation: photo metadata is not stripped.** Uploads are stored as received, so
+an image may still carry EXIF GPS coordinates and the device it was taken on. The forms
+warn about this where anonymity is offered, but the pipeline does not yet remove it — a
+required photo is the main remaining way an anonymous report could identify its filer.
 
 **Endangered species protection.** Coordinates of endangered wildlife are shifted by
 approximately 0.001 degrees (about 110 m) on public endpoints, in a direction derived
@@ -247,7 +294,10 @@ not exist.
 6. **Report categories cannot be renamed** — only retired and replaced. The name is the
    key every report stores, and it also appears in exported PDFs and audit entries that
    cannot be rewritten.
-7. **An unconfirmed email does not block signing in or filing reports.** It blocks
-   password reset only.
+7. **An unconfirmed email DOES block filing a report**, on all three kinds, with a
+   **403**. It also still blocks password reset. It does *not* block signing in, nor
+   reading reports filed earlier, nor the anonymous route — which needs no account and
+   is therefore never gated. (This reversed on 2026-09-28; it used to say the opposite,
+   and a test written against the old wording would now fail correctly.)
 8. **A "not found" tracking result for an unknown reference is correct.** References are
    `CMP-YYYY-NNNNN` with a five-digit sequence.
