@@ -29,6 +29,12 @@ const TINT = {
   request: 'from-emerald-50',
 };
 
+// THESE STAY CLICKABLE FOR AN UNCONFIRMED RESIDENT, deliberately. Filing needs a
+// confirmed address now, but disabling or hiding these cards would leave someone
+// staring at a dead tile with no explanation - and the explanation already lives
+// one click away, on the form itself, right under the banner that fixes it (see
+// components/resident/ReportFormShell.jsx). Letting them reach the form and be
+// told there is the shorter path to actually confirming.
 const actions = [
   { to: '/resident/report-complaint', kind: 'complaint', title: 'Report a Complaint', desc: 'Illegal dumping, burning, noise, pollution...' },
   { to: '/resident/report-wildlife', kind: 'wildlife', title: 'Wildlife Turnover', desc: 'Report or turn over rescued wildlife.' },

@@ -35,9 +35,20 @@ function statusReducer(state, action) {
 // Turns a thrown API error into the message shown in the banner.
 const messageFor = (err) => err.errors?.[0]?.message || err.message;
 
-// Shown until the resident confirms their address. Deliberately a banner and
-// not a gate: the account works either way, so nobody is stopped from filing a
-// report by a slow mailbox.
+// Shown until the resident confirms their address.
+//
+// THIS IS NOW THE ONLY WAY PAST A BLOCK, so it carries more weight than it used
+// to. It was deliberately a banner and not a gate while confirmation was soft -
+// the account worked either way, and the note here said nobody would be stopped
+// from filing by a slow mailbox. Filing now requires a confirmed address
+// (middlewares/requireVerifiedEmail.js), so the copy says so plainly rather than
+// presenting confirmation as housekeeping the resident can put off.
+//
+// It carries id="verify-email" because ReportFormShell links to #verify-email
+// when it blocks a form: that anchor is the resident's route from "you cannot
+// send this" to the field that fixes it. tabIndex={-1} is what lets focus land
+// here on that jump, so a keyboard or screen-reader user arrives at the form
+// control rather than merely scrolling the page.
 export default function VerifyEmailBanner() {
   const { user, updateUser } = useAuth();
   const [code, setCode] = useState('');
@@ -96,12 +107,16 @@ export default function VerifyEmailBanner() {
   }
 
   return (
-    <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
+    <div
+      id="verify-email"
+      tabIndex={-1}
+      className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 scroll-mt-24 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+    >
       <p className="text-sm font-semibold text-amber-900">Confirm your email address</p>
       <p className="text-sm text-amber-900/80">{COPY_TL.confirmEmail}</p>
       <p className="mt-1 text-sm text-amber-900/80">
-        We sent a 6-digit code to <strong>{user.email}</strong>. CENRO sends your report
-        updates there, so confirming it is what lets us reach you.
+        We sent a 6-digit code to <strong>{user.email}</strong>. You need to confirm it
+        before you can file a report, and it is where CENRO sends your updates.
       </p>
       <p className="text-sm text-amber-900/70">{COPY_TL.confirmEmailWhy}</p>
 

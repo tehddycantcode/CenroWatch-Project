@@ -61,17 +61,23 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  // login/register authenticate by Set-Cookie on the response; the token in the
-  // body is the mobile app's copy and is deliberately ignored here.
+  // LOGIN authenticates by Set-Cookie on the response; the token in the body is
+  // the mobile app's copy and is deliberately ignored here.
   const login = useCallback(async (credentials) => {
     const res = await authApi.login(credentials);
     setUser(res.data.user);
     return res.data.user;
   }, []);
 
+  // REGISTER DOES NOT SIGN ANYONE IN. The server sets no cookie on this response,
+  // so there is no session to reflect - and calling setUser here would be worse
+  // than pointless: `isAuthenticated` would flip true with no cookie behind it,
+  // so the app would render as signed in and then 401 on the first real request.
+  //
+  // The new user is returned only so the caller can name the address it was sent
+  // to. Navigating afterwards is the caller's job (see RegisterPage).
   const register = useCallback(async (payload) => {
     const res = await authApi.register(payload);
-    setUser(res.data.user);
     return res.data.user;
   }, []);
 

@@ -1,8 +1,17 @@
 // Email confirmation codes for resident self-registration.
 //
-// Soft gate by design: an unverified account works normally. Verification is
-// enforced only where its absence causes real harm - password reset, which
-// would otherwise mail a link to an address the owner cannot read.
+// CONFIRMATION IS REQUIRED TO FILE A REPORT. This was a soft gate originally -
+// an unverified account worked normally and confirmation was enforced only for
+// password reset, which would otherwise mail a link to an address the owner
+// cannot read. It is now enforced for filing as well, by
+// middlewares/requireVerifiedEmail.js on the create routes of all three report
+// kinds. Reads stay open, and so does the public anonymous route, which has no
+// account to confirm.
+//
+// So this service is on the critical path for a new resident rather than
+// optional housekeeping: register -> sign in -> confirm -> file. If codes stop
+// being delivered, residents cannot report anything, which is a louder failure
+// than it used to be.
 //
 // The stored sha256 is defence in depth, NOT the control. A six-digit code has
 // only 10^6 values and is brute-forceable offline in seconds if the database

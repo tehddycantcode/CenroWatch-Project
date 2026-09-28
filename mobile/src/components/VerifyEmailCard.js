@@ -43,8 +43,16 @@ function statusReducer(state, action) {
   }
 }
 
-// Shown until the resident confirms their address. A card, not a gate - the
-// account works either way, so a slow mailbox never blocks a report.
+// Shown until the resident confirms their address.
+//
+// THIS USED TO BE OPTIONAL AND IS NOT ANY MORE. The note here said a card, not
+// a gate - the account worked either way and a slow mailbox never blocked a
+// report. Filing now requires a confirmed address (the server answers 403), so
+// this card is the only way through it. That is why it renders on the report
+// forms via ReportFormShell as well as on the dashboard: being refused on one
+// screen and told how to fix it on another is how people give up.
+//
+// It renders null once confirmed, so it is safe to mount anywhere.
 export default function VerifyEmailCard() {
   const { user, token, updateUser } = useAuth();
   const [code, setCode] = useState('');

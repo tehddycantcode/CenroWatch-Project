@@ -1,9 +1,21 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { colors, radius } from '../theme';
 
-export default function Checkbox({ checked, onChange, children }) {
+// accessibilityRole/State are what make this announce as a checkbox and report
+// whether it is ticked. Without them a screen reader reads only the label text,
+// so the control sounds like a sentence and its state is invisible - and this is
+// used for privacy consent and for "file anonymously", where the state is the
+// whole meaning. LoginScreen hand-rolls the same props on its own toggle.
+export default function Checkbox({ checked, onChange, children, accessibilityLabel }) {
   return (
-    <Pressable style={styles.row} onPress={() => onChange(!checked)} hitSlop={6}>
+    <Pressable
+      style={styles.row}
+      onPress={() => onChange(!checked)}
+      hitSlop={6}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: !!checked }}
+      accessibilityLabel={accessibilityLabel}
+    >
       <View style={[styles.box, checked && styles.boxChecked]}>
         {checked ? <Text style={styles.tick}>✓</Text> : null}
       </View>

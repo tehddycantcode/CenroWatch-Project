@@ -12,7 +12,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { FormField } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 
 function SuccessCard({ trackingId }) {
@@ -203,11 +205,9 @@ export default function AnonymousReportPage() {
                 </FormField>
 
                 <label className="flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
-                    className="mt-0.5 h-4 w-4"
                   />
                   <span className={fieldErrors.consent ? 'text-destructive' : 'text-muted-foreground'}>
                     I understand this report is submitted anonymously under CENRO&apos;s whistleblower policy,

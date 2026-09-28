@@ -206,7 +206,12 @@ These are design decisions. A test asserting the opposite is testing a product t
 not exist.
 
 1. **Anonymous complaints show "Anonymous" and no contact details.** There is no hidden
-   identity a staff member could reveal — none was ever collected.
+   identity a staff member could reveal — none was ever collected. Since 2026-09-28 this
+   also covers a report a **signed-in** resident chose to file anonymously: the server
+   stores `user_id = NULL` for those too, so the queue and detail views receive no
+   reporter to display and the exported PDF has none to print. Nothing is being masked,
+   and there is no "reveal" that an Administrator could be given — the audit row for such
+   a report records neither a performer nor an IP address.
 2. **A retired complaint category cannot be chosen for a new walk-in report**, though it
    remains valid on reports that already reference it.
 3. **Report categories cannot be renamed**, only retired and replaced. The name is the key

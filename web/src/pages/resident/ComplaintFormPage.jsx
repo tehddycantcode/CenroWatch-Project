@@ -12,6 +12,8 @@ import { FormField } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Link } from 'react-router-dom';
 
 // Local YYYY-MM-DD (en-CA renders ISO date), used as today's default + max.
 const todayStr = () => new Date().toLocaleDateString('en-CA');
@@ -30,6 +32,10 @@ export default function ComplaintFormPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
+  // Not in `form`, because it is not a field about the incident - it changes who
+  // the report belongs to. Kept separate so nothing that spreads `form` can
+  // carry it somewhere it does not belong.
+  const [anonymous, setAnonymous] = useState(false);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -77,6 +83,10 @@ export default function ComplaintFormPage() {
       fd.append('longitude', location.longitude);
     }
     fd.append('photo', photoRef.current); // required
+    // String(), because multipart carries no booleans - the validator's
+    // .toBoolean() turns it back on the server. Sent either way so the value is
+    // always explicit rather than inferred from the field being absent.
+    fd.append('is_anonymous', String(anonymous));
 
     setSubmitting(true);
     try {
@@ -104,7 +114,8 @@ export default function ComplaintFormPage() {
       submitting={submitting}
       error={error}
       success={success}
-      submitLabel="Submit Report"
+      submitLabel={anonymous ? 'Submit Anonymously' : 'Submit Report'}
+      anonymous={anonymous}
     >
       <FormField
         id="complaint_type"
@@ -191,6 +202,49 @@ export default function ComplaintFormPage() {
           }}
         />
       </FormField>
+
+      {/* EVERY CLAUSE BELOW IS A PROMISE THE CODE KEEPS - check before editing.
+          user_id is stored NULL, so: the report cannot appear in My Reports
+          (that query filters on user_id), no receipt or status email is sent
+          (both are addressed by looking the user up), and no audit row records
+          who filed it. "We cannot link it back even if you ask" is literally
+          true - there is nothing stored to link. The last paragraph is a
+          WARNING about a limitation rather than a promise: photo metadata is
+          not stripped anywhere in the pipeline today. */}
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <label className="flex items-start gap-2.5 text-sm font-medium">
+          <Checkbox
+            checked={anonymous}
+            onChange={(e) => setAnonymous(e.target.checked)}
+            aria-describedby="anonymous-consequences"
+          />
+          <span>File this report anonymously</span>
+        </label>
+
+        {anonymous && (
+          <div id="anonymous-consequences" className="mt-3 space-y-2 border-t pt-3 text-sm text-muted-foreground">
+            <p>
+              <strong className="text-foreground">CENRO will not know who filed this, and that is permanent.</strong>{' '}
+              It will not appear in My Reports, you will get no email or app updates about it, and we
+              cannot link it back to your account later even if you ask us to.
+            </p>
+            <p>
+              Save the reference number on the next screen. It is the only way to check the status, and
+              it shows status only &mdash; not the photo or CENRO&apos;s notes.
+            </p>
+            <p>
+              A photo is still required. Avoid anything that identifies you: your face, your home, your
+              vehicle, a plate number. Photo files can also carry the location and the phone they were
+              taken with.
+            </p>
+            <p>
+              <Link to="/report-anonymous" className="font-medium text-primary hover:underline">
+                Prefer to file with no account at all?
+              </Link>
+            </p>
+          </div>
+        )}
+      </div>
     </ReportFormShell>
   );
 }

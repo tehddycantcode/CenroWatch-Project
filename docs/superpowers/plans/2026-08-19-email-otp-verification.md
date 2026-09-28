@@ -1,5 +1,12 @@
 # Email OTP Verification Implementation Plan
 
+> **PARTLY SUPERSEDED 2026-09-28** by branch `feature/verified-reporting-and-anonymity`.
+> The "Architecture: Soft gate" line below no longer holds: confirming the address is now
+> required to file a report, and registration returns no session. The code snippets quoted
+> in this plan therefore no longer match the files they came from. Left unedited on
+> purpose — it records what was built at the time, and rewriting it would erase the fact
+> that the policy changed. Current behaviour: `docs/PRD-resident.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A resident who mistypes their email at registration is told, and can correct it themselves, instead of being locked out of their account forever.

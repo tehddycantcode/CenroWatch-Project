@@ -49,8 +49,10 @@ on the Docker setup.
 - MySQL 8 runs as the local `MySQL80` service on **port 3306**; `DATABASE_URL` points
   at `localhost:3306/cenrowatch_db`. `backend/node_modules` EXISTS — run `npm test`,
   `npx prisma ...` and node scripts directly, no Docker involved.
-- Verified 2026-09-08: `npm test` green (34 tests), 18 barangays / 6 users / 164
-  audit logs / 4 settings present.
+- Verified 2026-09-28: `npm test` green — **29 suites / 399 tests**, 18 barangays /
+  7 users / 4 settings present. (An earlier note here said "34 tests", which was
+  the figure before the suite grew; quoting it as current understates coverage by
+  an order of magnitude. Count with `npm test`, do not quote this line.)
 
 ### Docker setup (Koshi's machine)
 - Containers `cenrowatch_api` (port 5000) and `cenrowatch_db` (MySQL 8, host port
@@ -455,9 +457,62 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   testsprite-backend/*.py` execs each file with `TARGET_URL` and
   `__AUTH_HEADERS__` injected exactly as TestSprite does. It caught both shape
   bugs above for free; each cloud run is ~0.2 credits off a 150/mo Free budget.
+- **REMOVING A FIELD FROM A RESPONSE CAN CRASH AN INSTALLED APK *AFTER* THE WRITE
+  SUCCEEDS.** Making registration stop creating a session looks like two edits:
+  drop `setSessionCookie`, drop `token` from the body. The second one is a trap.
+  `mobile/src/context/AuthContext.js` fed `res.data.token` straight to
+  `SecureStore.setItemAsync`, which **throws on a non-string** — so an APK built
+  before the change would create the account, then reject inside the keychain
+  write, show a storage error, and send the person to retry into a 409 for an
+  email that now exists. They end up with an account they cannot tell they have,
+  and the server logs look perfectly healthy. Dropping the COOKIE alone is enough
+  for web (it authenticates by cookie only and cannot read the token anyway), so
+  the two halves ship separately: cookie now, field later, once every installed
+  build has taken the OTA. Generally: when a client persists a response field,
+  removing that field is a breaking change for every build already in the wild,
+  and the failure lands after the side effect rather than instead of it. Guard the
+  writer too (`if (typeof tk === 'string' && tk)`), so the class of bug cannot
+  recur. `backend/tests/registerNoSession.test.js` asserts `token` is STILL
+  present, so "finishing the job" fails a test instead of a phone.
+- **A grep for a policy is worth more than a grep for a symbol when reversing a
+  decision.** Making email confirmation a hard gate meant six code comments and
+  six doc passages became false, in files the change never otherwise touched —
+  including `CLAUDE.md` itself and a PRD constraint list headed "a test asserting
+  the opposite is testing a product that does not exist". Searching for the
+  *claim* (`soft gate`, `does not block`, `never blocks a report`) found all of
+  them; searching for the identifiers involved would have found none. Dated
+  design docs under `docs/superpowers/` were deliberately left alone with a
+  "Superseded" note instead of being rewritten — editing them would erase the
+  fact that the policy ever changed.
 
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
+- **Post-sprint work on branch `feature/verified-reporting-and-anonymity`
+  (2026-09-28), five items, NOT yet deployed:**
+  - Registration no longer creates a session; both clients send a new resident to
+    the sign-in screen. `token` stays in the register response deliberately — see
+    the Lessons entry about SecureStore.
+  - Email confirmation is a HARD GATE on filing (see the rewritten note below).
+  - A signed-in resident can tick "file anonymously" on the complaint form. TRUE
+    anonymity: `user_id = NULL`, no reporter columns, audit row with no performer
+    and **no IP** (an anonymous row's IP would otherwise join to that resident's
+    own `USER_LOGIN` row in the log an Admin can already read). Consequence the UI
+    states plainly: not in My Reports, no notifications, and the success card links
+    to the PUBLIC tracker, because the authenticated lookup 403s on a null owner.
+  - Mobile gained anonymous reporting and a public status lookup, both reachable
+    from the sign-in screen. **Bundle-verified and unit-tested only — NOT run on a
+    device**; do that in Expo Go (SDK 56) and run `eas fingerprint:compare` before
+    `eas update`.
+  - Admin and CENRO_Staff can change their own password at `/admin/account` and
+    `/staff/account`. Zero backend work — `POST /auth/change-password` was never
+    role-gated. The way in is the name block in each header, which costs no header
+    width; `AdminLayout` has none to spare (see the measured note in that file).
+  - Fixed a live crash: `AnonymousReportPage` used `<Input>` with no import, so
+    picking the "Other" category destroyed the whole form. Reproduced on the
+    deployed site first. No test runner and no build catches this shape.
+  - **Known limitation, not fixed:** uploads are stored as received, so photo EXIF
+    (GPS, device) survives. That is the largest remaining way an "anonymous" report
+    can identify its filer. The forms warn about it; the pipeline does not strip it.
 - Backend: Admin-only `/admin` API. `GET /admin/analytics` (Prisma groupBy + JS
   bucketing, no raw SQL): users by role/active, report totals, status breakdowns,
   by complaint/request type, per-barangay counts (with coords), 6-month trend, SLA
@@ -471,9 +526,17 @@ Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
   System Settings (inline edit). All-reports views reuse the staff queue pages.
   Routes nested under `<ProtectedRoute roles={['Admin']}>`.
 - Post-Sprint-4 (branch `feature/email-otp-verification`): email confirmation by
-  six-digit code. SOFT GATE — an unconfirmed resident signs in and files reports
-  normally; the only thing withheld is a password reset, because mailing a reset
-  link to an unproven address is the actual risk. `User.email_verified_at` +
+  six-digit code. **HARD GATE ON FILING since 2026-09-28** (branch
+  `feature/verified-reporting-and-anonymity`) — this section used to read "SOFT
+  GATE, an unconfirmed resident signs in and files reports normally", and that is
+  now wrong. `middlewares/requireVerifiedEmail.js` returns **403** on the create
+  routes of all three report kinds (complaints, wildlife, requests). Password
+  reset is still withheld too, for the original reason. What is deliberately NOT
+  gated: every GET (an unconfirmed resident must keep seeing reports filed before
+  the gate existed) and `POST /complaints/anonymous` (no account to confirm, and
+  it is the honest fallback for someone refused). The guard is NOT scoped by role
+  — it asserts a property of the credential, and every non-Resident is verified by
+  construction, so it is a no-op for them. `User.email_verified_at` +
   `EmailVerificationToken` (hashed code, TTL, attempts spent BEFORE compare).
   Authenticated `POST /auth/verify-email`, `POST /auth/resend-verification`,
   `PATCH /auth/email` (self-service typo fix while unverified). Admin escape hatch

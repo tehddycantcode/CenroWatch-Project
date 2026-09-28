@@ -1,23 +1,47 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, CircleCheck } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { IconChip } from '@/components/ui/icon-chip';
 
-function SuccessCard({ trackingId }) {
+function SuccessCard({ trackingId, anonymous }) {
+  // WHERE THIS LINKS IS NOT COSMETIC. /resident/track/:id calls
+  // getMyComplaintByTracking, which throws 403 when complaint.user_id !== the
+  // caller - and an anonymous report has user_id NULL, so it 403s for everyone
+  // including the person who just filed it. Sending them there would make the
+  // last screen of a successful submission a permission error. The public
+  // lookup takes the same reference and needs no account.
+  const trackTo = anonymous ? `/track?id=${trackingId}` : `/resident/track/${trackingId}`;
+
   return (
     <div className="mx-auto max-w-xl">
       <Card className="space-y-4 p-8 text-center">
         <div className="flex justify-center">
           <IconChip icon={CircleCheck} tone="forest" size="lg" />
         </div>
-        <h2 className="font-display text-2xl">Report submitted</h2>
-        <p className="text-muted-foreground">Your tracking number is</p>
+        <h2 className="font-display text-2xl">
+          {anonymous ? 'Anonymous report submitted' : 'Report submitted'}
+        </h2>
+        <p className="text-muted-foreground">
+          {anonymous ? 'Write this reference down before you leave this page.' : 'Your tracking number is'}
+        </p>
         <div className="text-2xl font-bold tracking-wide text-primary">{trackingId}</div>
+        {anonymous && (
+          // Deliberately specific about what tracking will and will not show.
+          // getPublicComplaintStatus returns the status, type, barangay and
+          // dates only - no photo and no status history - so promising "track
+          // this report" without qualification would overstate it.
+          <p className="text-sm text-muted-foreground">
+            It is the only way to check this report, and it shows the status only, not the
+            photo or CENRO&apos;s notes. This report is not in My Reports and we cannot email
+            you about it.
+          </p>
+        )}
         <div className="flex flex-wrap justify-center gap-3 pt-2">
-          <Link to={`/resident/track/${trackingId}`}>
-            <Button>Track this report</Button>
+          <Link to={trackTo}>
+            <Button>{anonymous ? 'Check its status' : 'Track this report'}</Button>
           </Link>
           <Link to="/resident/dashboard">
             <Button variant="outline">Back to dashboard</Button>
@@ -38,9 +62,21 @@ export default function ReportFormShell({
   error,
   success,
   submitLabel = 'Submit',
+  // Set by the complaint form when the resident ticked "file anonymously".
+  // Only affects the success screen; the submission itself is the caller's job.
+  anonymous = false,
   children,
 }) {
-  if (success) return <SuccessCard trackingId={success} />;
+  // THE BLOCK LIVES HERE, not in the three form pages. All of
+  // report-complaint, report-wildlife and request-service render through this
+  // shell, so one check covers them and none can be added later without it. The
+  // server refuses the POST either way (middlewares/requireVerifiedEmail.js);
+  // this is so the resident finds out before filling the form in, and has the
+  // code field one click away instead of a 403 to interpret.
+  const { user } = useAuth();
+  const unverified = !!user && !user.email_verified_at;
+
+  if (success) return <SuccessCard trackingId={success} anonymous={anonymous} />;
 
   return (
     <div className="mx-auto max-w-xl">
@@ -62,7 +98,19 @@ export default function ReportFormShell({
         <form onSubmit={onSubmit} className="space-y-4 p-6" noValidate>
           {error && <Alert>{error}</Alert>}
           {children}
-          <Button type="submit" className="w-full" loading={submitting}>
+          {unverified && (
+            // The link target is VerifyEmailBanner, which ResidentLayout renders
+            // above this Outlet on every resident page - so it is already on
+            // screen and the anchor just moves focus to it.
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              You need to confirm your email address before you can file this report.{' '}
+              <a href="#verify-email" className="font-semibold underline">
+                Enter your code
+              </a>
+              {' '}at the top of the page, then come back.
+            </div>
+          )}
+          <Button type="submit" className="w-full" loading={submitting} disabled={unverified}>
             {submitLabel}
           </Button>
         </form>

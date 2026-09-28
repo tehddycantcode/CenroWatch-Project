@@ -106,7 +106,16 @@ async function createComplaint(userId, input, photoPath, ctx = {}, options = {})
       barangay_id: input.barangay_id,
       anonymous: isAnonymous,
     },
-    ipAddress: ctx.ipAddress || null,
+    // NO IP ON AN ANONYMOUS REPORT, and this is load-bearing rather than tidy.
+    // A signed-in resident who ticks "file anonymously" has a USER_LOGIN audit
+    // row from the same session, minutes earlier, carrying the same IP - in the
+    // same table an Admin can already page through at /admin/audit-logs. Keeping
+    // it here would reduce the anonymity this row exists to provide to a single
+    // join, so the column is left empty on purpose. writeAuditLog already
+    // defaults ipAddress to null, so this is a first-class value and not a hole;
+    // the mutation is still audited, just not attributed. Per-IP rate limiting
+    // is in-memory (apiLimiter) and never read this column.
+    ipAddress: isAnonymous ? null : ctx.ipAddress || null,
   });
 
   // Email the resident a receipt for what they just filed. Anonymous reports

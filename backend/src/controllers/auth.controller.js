@@ -5,16 +5,29 @@ const authService = require('../services/auth.service');
 const verificationService = require('../services/emailVerification.service');
 const { setSessionCookie, clearSessionCookie } = require('../utils/sessionCookie');
 
-// register/login hand the same JWT to both clients: the web app receives it as
-// an HttpOnly cookie it can never read (so an XSS cannot steal the session),
-// while `token` stays in the body for the mobile app, which has no cookie jar
-// and sends it back as a Bearer header. See utils/sessionCookie.js.
+// LOGIN hands the same JWT to both clients: the web app receives it as an
+// HttpOnly cookie it can never read (so an XSS cannot steal the session), while
+// `token` stays in the body for the mobile app, which sends it back as a Bearer
+// header. See utils/sessionCookie.js.
+//
+// REGISTRATION DELIBERATELY CREATES NO SESSION. A new resident is sent to the
+// sign-in screen instead of being signed in, and setting a cookie here would
+// make that impossible to honour on the web: both LoginPage and RegisterPage
+// redirect an authenticated visitor to their role's home, so the redirect would
+// bounce straight back into the app.
+//
+// `token` IS STILL RETURNED, and that is not an oversight - see
+// tests/registerNoSession.test.js. An already-installed APK reads it and passes
+// it to SecureStore.setItemAsync, which throws on a non-string. Removing it
+// would make every installed build fail AFTER creating the account, and the
+// obvious retry then collides with a 409 for an email that now exists. It is
+// the same JWT the cookie used to carry, no client reads it any more, and it can
+// go once every installed build has taken the update.
 const register = asyncHandler(async (req, res) => {
   const { user, token } = await authService.register(req.body, { ipAddress: req.ip });
-  setSessionCookie(res, token);
   res.status(201).json({
     success: true,
-    message: 'Registration successful.',
+    message: 'Registration successful. Please sign in.',
     data: { user, token },
   });
 });
@@ -76,8 +89,10 @@ const changePassword = asyncHandler(async (req, res) => {
   });
 });
 
-// All three require `authenticate`: the soft gate means the resident is
-// already signed in while their address is still unconfirmed.
+// All three require `authenticate`, so confirming happens AFTER signing in:
+// registration no longer creates a session, and filing a report now requires a
+// confirmed address. The path is register -> sign in -> confirm -> file, and the
+// banner/card on the clients is what carries someone through it.
 const verifyEmail = asyncHandler(async (req, res) => {
   await verificationService.verifyCode(req.user.user_id, req.body.code, { ipAddress: req.ip });
   const user = await authService.getProfile(req.user.user_id);

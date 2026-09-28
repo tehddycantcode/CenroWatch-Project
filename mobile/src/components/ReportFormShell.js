@@ -7,9 +7,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
+import { useAuth } from '../context/AuthContext';
 import { useResidentNav } from '../navigation/navContext';
 import ScreenHeader from './ScreenHeader';
 import ErrorBanner from './ErrorBanner';
+import VerifyEmailCard from './VerifyEmailCard';
 import Button from './Button';
 
 // Field label + optional hint/error wrapper, so every form row looks the same.
@@ -44,9 +46,17 @@ export default function ReportFormShell({
   error,
   success,
   submitLabel = 'Submit Report',
+  // Set by the complaint form when the resident ticked "file anonymously".
+  // Changes the success screen only; sending the flag is the caller's job.
+  anonymous = false,
   children,
 }) {
   const { navigate, switchTab } = useResidentNav();
+  // Filing needs a confirmed address (the server answers 403 otherwise). One
+  // check here covers the complaint, wildlife and request forms, since all three
+  // render through this shell.
+  const { user } = useAuth();
+  const unverified = !!user && !user.email_verified_at;
 
   if (success) {
     return (
@@ -56,15 +66,27 @@ export default function ReportFormShell({
           <View style={styles.check}>
             <Text style={styles.checkMark}>✓</Text>
           </View>
-          <Text style={styles.successTitle}>Report submitted</Text>
+          <Text style={styles.successTitle}>
+            {anonymous ? 'Anonymous report submitted' : 'Report submitted'}
+          </Text>
           <Text style={styles.successText}>
-            Thank you. Keep this tracking number to follow your report&apos;s progress.
+            {anonymous
+              ? 'Write this reference down before you leave this screen. It is the only way to check the report, and it shows the status only - not the photo or CENRO’s notes. This report is not in My Reports and we cannot notify you about it.'
+              : 'Thank you. Keep this tracking number to follow your report’s progress.'}
           </Text>
           <View style={styles.idPill}>
             <Text style={styles.idText}>{success}</Text>
           </View>
           <View style={{ width: '100%', gap: 12, marginTop: 8 }}>
-            <Button title="Track this report" onPress={() => navigate('track', { id: success })} />
+            {/* WHICH SCREEN THIS OPENS IS NOT COSMETIC. 'track' calls
+                complaints.get(), which the server answers 403 for whenever the
+                report's user_id is not the caller - and an anonymous report has
+                user_id NULL, so it 403s even for the person who just filed it.
+                The public lookup takes the same reference and needs no account. */}
+            <Button
+              title={anonymous ? 'Check its status' : 'Track this report'}
+              onPress={() => navigate(anonymous ? 'track-public' : 'track', { id: success })}
+            />
             <Button title="Back to dashboard" variant="outline" onPress={() => switchTab('dashboard')} />
           </View>
         </View>
@@ -94,8 +116,23 @@ export default function ReportFormShell({
 
           <View style={{ gap: 18, marginTop: 18 }}>
             <ErrorBanner message={error} />
+            {/* The card is the only way past the block, so it goes ON the form
+                rather than only on the dashboard - being told "confirm your
+                email" on a different screen from the one that is refusing is
+                what makes people give up. It renders nothing once confirmed. */}
+            <VerifyEmailCard />
             {children}
-            <Button title={submitLabel} onPress={onSubmit} loading={submitting} />
+            {unverified ? (
+              <Text style={styles.blockedNote}>
+                Confirm your email address above before you can send this report.
+              </Text>
+            ) : null}
+            <Button
+              title={submitLabel}
+              onPress={onSubmit}
+              loading={submitting}
+              disabled={unverified}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -120,6 +157,7 @@ const styles = StyleSheet.create({
   checkMark: { color: colors.primary, fontSize: 32, fontWeight: '900' },
   successTitle: { fontSize: 22, fontWeight: '800', color: colors.text },
   successText: { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 21 },
+  blockedNote: { fontSize: 13, color: colors.muted, lineHeight: 19, marginTop: -6 },
   idPill: {
     backgroundColor: colors.forest,
     borderRadius: radius.md,

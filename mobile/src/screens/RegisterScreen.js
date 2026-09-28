@@ -75,6 +75,13 @@ export default function RegisterScreen({ onNavigate }) {
         password: form.password,
         privacy_consent: true,
       });
+      // THIS NAVIGATION IS LOAD-BEARING. There was none here before, because
+      // registering signed the person in and RootNavigator swapped trees the
+      // moment `isAuthenticated` flipped. It no longer flips, so without this
+      // line a successful registration leaves them sitting on a filled-in form
+      // with no feedback at all - the account exists and nothing says so.
+      // AuthContext.register sets the sessionNotice that LoginScreen shows.
+      onNavigate('login');
     } catch (err) {
       if (Array.isArray(err.errors)) {
         const mapped = {};

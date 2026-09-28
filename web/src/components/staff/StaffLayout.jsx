@@ -61,10 +61,15 @@ export default function StaffLayout() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <div className="text-sm font-medium leading-tight">{user?.first_name} {user?.last_name}</div>
+            {/* The name block is the way in to /staff/account, rather than a
+                sixth nav link. There is room for one here, but AdminLayout has
+                none (see the width note in that file) and the two consoles
+                should put this in the same place. A link on text that already
+                exists costs no width in either. */}
+            <Link to="/staff/account" className="hidden rounded-md text-right sm:block" title="Account settings">
+              <div className="text-sm font-medium leading-tight hover:underline">{user?.first_name} {user?.last_name}</div>
               <div className="text-xs text-muted-foreground">{ROLE_LABELS[user?.role] || 'CENRO Staff'}</div>
-            </div>
+            </Link>
             {/* Icon-only on phones, for the same width reason as the wordmark. */}
             <button
               type="button"
@@ -76,12 +81,17 @@ export default function StaffLayout() {
               <span className="hidden text-sm font-medium sm:inline">Log out</span>
             </button>
             <MobileNav id="staff-nav" items={navItems}>
-              <div className="text-sm font-medium leading-tight">
-                {user?.first_name} {user?.last_name}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {ROLE_LABELS[user?.role] || 'CENRO Staff'}
-              </div>
+              {/* The block above is `hidden sm:block`, so on a phone this sheet
+                  is the ONLY route to the account page. The sheet closes itself
+                  on a pathname change (see mobile-nav.jsx), so no onClick. */}
+              <Link to="/staff/account" className="block">
+                <div className="text-sm font-medium leading-tight hover:underline">
+                  {user?.first_name} {user?.last_name}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {ROLE_LABELS[user?.role] || 'CENRO Staff'}
+                </div>
+              </Link>
             </MobileNav>
           </div>
         </div>

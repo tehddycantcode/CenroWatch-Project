@@ -44,6 +44,16 @@ describe('resolveAuthBackAction (signed out)', () => {
     expect(resolveAuthBackAction('forgot')).toBe(BACK.GO_LOGIN);
   });
 
+  // The signed-out stack grew two more screens: anonymous reporting and the
+  // public status lookup, both opened from Login. The rule already covered them
+  // by treating anything that is not 'login' as GO_LOGIN, so this pins that
+  // behaviour rather than changing it - back from either must return to sign-in,
+  // not close the app on someone who came to report something.
+  test('returns to sign-in from the public reporting screens too', () => {
+    expect(resolveAuthBackAction('anonymous')).toBe(BACK.GO_LOGIN);
+    expect(resolveAuthBackAction('track-public')).toBe(BACK.GO_LOGIN);
+  });
+
   test('exits from the sign-in screen itself', () => {
     expect(resolveAuthBackAction('login')).toBe(BACK.EXIT);
   });

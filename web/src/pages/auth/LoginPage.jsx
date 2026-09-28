@@ -26,6 +26,12 @@ export default function LoginPage() {
   // SESSION_EXPIRED_EVENT). ProtectedRoute deep links share the same state.from.
   const expired = Boolean(location.state?.expired);
 
+  // Set by RegisterPage, which now lands here instead of in the app. Without
+  // this the person arrives at a sign-in form with no explanation of why they
+  // were not simply let in, and no reason to go and read their email.
+  const justRegistered = Boolean(location.state?.registered);
+  const registeredEmail = location.state?.email;
+
   // Already signed in — go straight to the role home.
   if (isAuthenticated) return <Navigate to={roleHome(user.role)} replace />;
 
@@ -66,6 +72,12 @@ export default function LoginPage() {
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         {error ? (
           <Alert>{error}</Alert>
+        ) : justRegistered ? (
+          <Alert variant="info">
+            Account created. We emailed a 6-digit code
+            {registeredEmail ? <> to <strong>{registeredEmail}</strong></> : null}. Sign in, then
+            confirm it &mdash; you will need a confirmed address before you can file a report.
+          </Alert>
         ) : expired ? (
           <Alert variant="info">Your session has expired. Please sign in again.</Alert>
         ) : null}
