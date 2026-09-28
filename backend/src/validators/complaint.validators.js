@@ -51,6 +51,19 @@ const createComplaintRules = [
     .bail()
     .custom((v) => new Date(v) <= new Date()).withMessage('The observed date cannot be in the future.')
     .toDate(),
+  // "File this anonymously", from a resident who IS signed in. Multipart sends
+  // booleans as the strings 'true'/'false', so .toBoolean() is what lets the
+  // controller compare against `true` instead of parsing the string itself.
+  // Same rule as the staff walk-in form (see staff.validators.js).
+  //
+  // There is deliberately no `consent` field alongside it, unlike
+  // createAnonymousComplaintRules below. That route needs one because its
+  // submitter has agreed to nothing and has no account to have agreed in; a
+  // signed-in resident already carries privacy_consent from registration, and
+  // `consent` is validated but never persisted anyway. Asking them to confirm
+  // the same consent twice is friction with nothing behind it - the checkbox
+  // itself is the act.
+  body('is_anonymous').optional().isBoolean().withMessage('Invalid anonymous flag.').toBoolean(),
 ];
 
 // Anonymous submissions reuse the same fields but must explicitly acknowledge
