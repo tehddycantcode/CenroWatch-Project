@@ -10,6 +10,7 @@ import { colors, radius } from '../../theme';
 import ReportFormShell, { Field } from '../../components/ReportFormShell';
 import Select from '../../components/Select';
 import BarangayPicker from '../../components/BarangayPicker';
+import DatePicker from '../../components/DatePicker';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -151,14 +152,14 @@ export default function RequestFormScreen() {
         />
       </Field>
 
-      <Field label="Preferred date" hint={`Optional: format YYYY-MM-DD. / ${FORM_TL.schedule}`} error={fieldErrors.preferred_schedule}>
-        <TextInput
-          style={styles.input}
-          placeholder="2026-06-25"
-          placeholderTextColor={colors.placeholder}
+      <Field label="Preferred date" hint={`Optional. / ${FORM_TL.schedule}`} error={fieldErrors.preferred_schedule}>
+        {/* No min or max: the API accepts any valid date here and the web form
+            is unrestricted too, so a mobile-only rule would be an
+            inconsistency someone hits later. */}
+        <DatePicker
           value={form.preferred_schedule}
-          onChangeText={set('preferred_schedule')}
-          keyboardType="numbers-and-punctuation"
+          onChange={set('preferred_schedule')}
+          placeholder="Select a date (optional)"
         />
       </Field>
     </ReportFormShell>

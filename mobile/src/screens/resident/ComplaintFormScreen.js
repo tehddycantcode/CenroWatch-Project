@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { useCategories } from '../../lib/useCategories';
 import { isOtherCategory, withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '../../lib/otherCategory';
+import { todayISO } from '../../lib/calendar';
 import { FORM_TL, COPY_TL } from '../../lib/tagalog';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
@@ -11,16 +12,14 @@ import ReportFormShell, { Field } from '../../components/ReportFormShell';
 import Select from '../../components/Select';
 import BarangayPicker from '../../components/BarangayPicker';
 import PhotoPicker from '../../components/PhotoPicker';
+import DatePicker from '../../components/DatePicker';
 import LocationField from '../../components/LocationField';
 import Checkbox from '../../components/Checkbox';
 
-// Local YYYY-MM-DD without relying on Intl (Hermes has limited Intl support).
-const todayStr = () => {
-  const d = new Date();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${m}-${day}`;
-};
+// todayISO lives in lib/calendar now, alongside the rest of the picker's date
+// arithmetic and with tests. It formats the LOCAL calendar day rather than the
+// UTC one, which is the whole point: at UTC+8, a UTC-based version returns
+// yesterday for anyone filing before 08:00.
 
 export default function ComplaintFormScreen() {
   // Categories come from the API, not a compiled-in array, so a new one
@@ -30,7 +29,7 @@ export default function ComplaintFormScreen() {
   const { token } = useAuth();
   const barangays = useBarangays();
 
-  const [form, setForm] = useState({ complaint_type: '', type_other: '', description: '', barangay_id: '', address_details: '', observed_at: todayStr() });
+  const [form, setForm] = useState({ complaint_type: '', type_other: '', description: '', barangay_id: '', address_details: '', observed_at: todayISO() });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
   const photoRef = useRef(null);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -172,15 +171,14 @@ export default function ComplaintFormScreen() {
         />
       </Field>
 
-      <Field label="Date issue was observed" hint={`When you saw it (YYYY-MM-DD). Defaults to today. / ${FORM_TL.observed_at}`} error={fieldErrors.observed_at}>
-        <TextInput
-          style={styles.input}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={colors.placeholder}
+      <Field label="Date issue was observed" hint={`When you saw it. Defaults to today. / ${FORM_TL.observed_at}`} error={fieldErrors.observed_at}>
+        {/* max=today because the API refuses an observed date in the future;
+            the calendar should not offer one either. */}
+        <DatePicker
           value={form.observed_at}
-          onChangeText={set('observed_at')}
-          autoCapitalize="none"
-          keyboardType="numbers-and-punctuation"
+          onChange={set('observed_at')}
+          max={todayISO()}
+          placeholder="Select the date"
         />
       </Field>
 
