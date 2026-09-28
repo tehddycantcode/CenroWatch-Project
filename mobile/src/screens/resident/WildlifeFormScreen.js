@@ -58,6 +58,7 @@ export default function WildlifeFormScreen() {
     if (!form.species_name.trim()) e.species_name = 'Species name is required.';
     if (!form.animal_condition) e.animal_condition = 'Select the animal condition.';
     if (!form.barangay_id) e.barangay_id = 'Please select a barangay.';
+    if (location.latitude == null || location.longitude == null) e.location = 'Please pin the location on the map.';
     if (form.description.trim().length < 10) e.description = 'Describe the sighting (at least 10 characters).';
     return e;
   }
@@ -178,8 +179,8 @@ export default function WildlifeFormScreen() {
         </Checkbox>
       </View>
 
-      <Field label="Location" hint={`Optional: pin where it was found. / ${FORM_TL.location}`}>
-        <LocationField value={location} onChange={setLocation} />
+      <Field label="Location" hint={`Required: pin where it was found. / ${FORM_TL.location}`} error={fieldErrors.location}>
+        <LocationField value={location} onChange={setLocation} required />
       </Field>
 
       <Field label="Photo" hint={`Optional: helps identify the species. / ${FORM_TL.photo}`}>

@@ -49,6 +49,7 @@ export default function ComplaintFormPage() {
   function validate() {
     const errs = {};
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
+    if (location.latitude == null || location.longitude == null) errs.location = 'Please pin the location on the map.';
     if (!form.complaint_type) errs.complaint_type = 'Please choose a complaint type.';
     if (needsOther && !form.type_other.trim()) {
       errs.type_other = 'Please describe the type of complaint.';
@@ -186,8 +187,8 @@ export default function ComplaintFormPage() {
         />
       </FormField>
 
-      <FormField label="Location" hint={`Optional: pin where it happened. / ${FORM_TL.location}`}>
-        <LocationField value={location} onChange={setLocation} />
+      <FormField label="Location" hint={`Required: pin where it happened. / ${FORM_TL.location}`} error={fieldErrors.location}>
+        <LocationField value={location} onChange={setLocation} required />
       </FormField>
 
       <FormField

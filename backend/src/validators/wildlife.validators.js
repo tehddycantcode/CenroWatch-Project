@@ -31,12 +31,18 @@ const createWildlifeRules = [
   body('is_endangered')
     .optional()
     .customSanitizer((v) => v === true || v === 'true' || v === '1' || v === 1),
+  // REQUIRED since 2026-09-29, same as complaints - see the note in
+  // complaint.validators.js. Where an animal was found matters more here than
+  // anywhere else: it is what the endangered-species obfuscation operates on,
+  // and a turnover with no coordinates simply drops off the map.
   body('latitude')
-    .optional({ values: 'falsy' })
+    .notEmpty().withMessage('Pin the location on the map.')
+    .bail()
     .isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude.')
     .toFloat(),
   body('longitude')
-    .optional({ values: 'falsy' })
+    .notEmpty().withMessage('Pin the location on the map.')
+    .bail()
     .isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude.')
     .toFloat(),
   body('address_details')

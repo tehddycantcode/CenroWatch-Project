@@ -13,7 +13,7 @@ import { FORM_TL } from '../lib/tagalog';
 // not in Expo Go. MapPicker degrades to a message if the MapTiler key is missing,
 // and "Use my location" keeps working either way - so a report can always be
 // filed with coordinates even if the map itself cannot draw.
-export default function LocationField({ value, onChange }) {
+export default function LocationField({ value, onChange, required = false }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   // Bumped only by a GPS fix. MapPicker moves its camera when this changes, so
@@ -73,7 +73,7 @@ export default function LocationField({ value, onChange }) {
             </Text>
           </View>
         ) : (
-          <Text style={styles.hint}>No location pinned (optional)</Text>
+          <Text style={styles.hint}>{required ? 'No location pinned yet' : 'No location pinned (optional)'}</Text>
         )}
       </View>
 

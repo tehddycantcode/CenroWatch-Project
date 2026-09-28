@@ -31,12 +31,24 @@ const createComplaintRules = [
     .notEmpty().withMessage('Description is required.')
     .bail()
     .isLength({ min: 10, max: 5000 }).withMessage('Description must be 10–5000 characters.'),
+  // REQUIRED since 2026-09-29. A complaint with no place attached is the least
+  // actionable thing CENRO can receive - staff cannot inspect what they cannot
+  // find - so every resident-facing form now insists on a pin. notEmpty rather
+  // than exists: the forms send multipart, so an unpinned map arrives as an
+  // empty STRING, not as an absent key, and `exists` would wave that through.
+  //
+  // The staff walk-in route is deliberately NOT changed (staff.validators.js):
+  // someone at the counter often cannot give coordinates, and blocking intake
+  // on a field nobody present can fill would stop the report being recorded.
+  // tests/locationRequired.test.js pins both halves of that decision.
   body('latitude')
-    .optional({ values: 'falsy' })
+    .notEmpty().withMessage('Pin the location on the map.')
+    .bail()
     .isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude.')
     .toFloat(),
   body('longitude')
-    .optional({ values: 'falsy' })
+    .notEmpty().withMessage('Pin the location on the map.')
+    .bail()
     .isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude.')
     .toFloat(),
   body('address_details')

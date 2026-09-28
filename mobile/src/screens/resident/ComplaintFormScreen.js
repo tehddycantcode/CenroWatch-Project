@@ -58,6 +58,7 @@ export default function ComplaintFormScreen() {
       e.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
     }
     if (!form.barangay_id) e.barangay_id = 'Please select a barangay.';
+    if (location.latitude == null || location.longitude == null) e.location = 'Please pin the location on the map.';
     if (form.description.trim().length < 10) e.description = 'Describe the concern (at least 10 characters).';
     if (!photoRef.current) e.photo = 'A photo is required. Please attach at least one.';
     return e;
@@ -183,8 +184,8 @@ export default function ComplaintFormScreen() {
         />
       </Field>
 
-      <Field label="Location" hint={`Optional: pin where it happened. / ${FORM_TL.location}`}>
-        <LocationField value={location} onChange={setLocation} />
+      <Field label="Location" hint={`Required: pin where it happened. / ${FORM_TL.location}`} error={fieldErrors.location}>
+        <LocationField value={location} onChange={setLocation} required />
       </Field>
 
       <Field label="Photo (required)" hint={`Attach at least one photo as evidence. / ${FORM_TL.photo}`} error={fieldErrors.photo}>

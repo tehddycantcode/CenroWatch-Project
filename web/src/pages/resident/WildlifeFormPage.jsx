@@ -60,6 +60,7 @@ export default function WildlifeFormPage() {
     const errs = {};
     if (!form.species_name.trim()) errs.species_name = 'Species name is required.';
     if (!form.animal_condition) errs.animal_condition = 'Select the animal condition.';
+    if (location.latitude == null || location.longitude == null) errs.location = 'Please pin the location on the map.';
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
     if (form.description.trim().length < 10) errs.description = 'Describe the sighting (at least 10 characters).';
     return errs;
@@ -170,8 +171,8 @@ export default function WildlifeFormPage() {
         <span>I believe this is an endangered or protected species (flags it for priority review).</span>
       </label>
 
-      <FormField label="Location" hint={`Optional: pin where it was found. / ${FORM_TL.location}`}>
-        <LocationField value={location} onChange={setLocation} />
+      <FormField label="Location" hint={`Required: pin where it was found. / ${FORM_TL.location}`} error={fieldErrors.location}>
+        <LocationField value={location} onChange={setLocation} required />
       </FormField>
 
       <FormField label="Photo" hint={`Optional: helps identify the species. / ${FORM_TL.photo}`}>

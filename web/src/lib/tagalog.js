@@ -95,7 +95,7 @@ export const FORM_TL = {
   barangay: 'Piliin ang barangay mo',
   description: 'Ano ang nangyari? Ilagay ang oras, amoy, o gaano na katagal.',
   observed_at: 'Kailan mo ito nakita?',
-  location: 'Pwedeng laktawan. Ituro sa mapa kung saan ito nangyari.',
+  location: 'Kailangan. Ituro sa mapa kung saan ito nangyari.',
   photo: 'Maglagay ng kahit isang litrato bilang patunay.',
   document: 'Pwedeng laktawan. Pwede kang maglagay ng sulat o dokumento.',
   quantity: 'Ilan ang kailangan mo?',

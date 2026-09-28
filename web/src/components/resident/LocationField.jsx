@@ -2,9 +2,14 @@ import { useState } from 'react';
 import MapView from '@/components/MapView';
 import { Button } from '@/components/ui/button';
 
-// Optional location for a report: tap the map to drop a pin, or use the device's
-// current location. Stores { latitude, longitude }.
-export default function LocationField({ value, onChange }) {
+// Location for a report: tap the map to drop a pin, or use the device's current
+// location. Stores { latitude, longitude }.
+//
+// `required` only changes the empty-state wording. It exists because this
+// component is shared with the staff walk-in form, where a pin is genuinely
+// optional, so the copy cannot simply be rewritten. Enforcement lives in each
+// form's validate(), and in the API.
+export default function LocationField({ value, onChange, required = false }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -48,7 +53,7 @@ export default function LocationField({ value, onChange }) {
           {has ? (
             <span className="text-foreground">📍 {value.latitude.toFixed(5)}, {value.longitude.toFixed(5)}</span>
           ) : (
-            <span className="text-muted-foreground">Tap the map to pin a location (optional)</span>
+            <span className="text-muted-foreground">{required ? 'Tap the map to pin the location' : 'Tap the map to pin a location (optional)'}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
