@@ -1,5 +1,5 @@
 import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Trash2, Bird, ClipboardList, PenSquare, LogOut } from 'lucide-react';
+import { LayoutGrid, Trash2, Bird, ClipboardList, PenSquare, LogOut, CircleUser } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { ROLE_LABELS } from '@/lib/roles';
 import { cn } from '@/lib/utils';
@@ -61,14 +61,28 @@ export default function StaffLayout() {
           </nav>
 
           <div className="flex items-center gap-3">
-            {/* The name block is the way in to /staff/account, rather than a
-                sixth nav link. There is room for one here, but AdminLayout has
-                none (see the width note in that file) and the two consoles
-                should put this in the same place. A link on text that already
-                exists costs no width in either. */}
-            <Link to="/staff/account" className="hidden rounded-md text-right sm:block" title="Account settings">
-              <div className="text-sm font-medium leading-tight hover:underline">{user?.first_name} {user?.last_name}</div>
-              <div className="text-xs text-muted-foreground">{ROLE_LABELS[user?.role] || 'CENRO Staff'}</div>
+            {/* The way in to /staff/account, rather than a sixth nav link: there
+                is room for one here, but AdminLayout has none (see the width note
+                in that file) and the two consoles should put this in the same
+                place. The icon and border are not decoration - the first version
+                was bare text with a hover underline and nobody could find it,
+                because nobody hovers their own name to check whether it is a
+                link. Kept identical to AdminLayout so the habit transfers. */}
+            <Link
+              to="/staff/account"
+              title="Account settings"
+              aria-label="Your account and password"
+              className="hidden min-w-0 shrink-0 items-center gap-2 rounded-md border px-2 py-1 transition-colors hover:bg-accent sm:flex"
+            >
+              <CircleUser className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="min-w-0 max-w-[11rem] text-right">
+                <span className="block truncate text-sm font-medium leading-tight">
+                  {user?.first_name} {user?.last_name}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {ROLE_LABELS[user?.role] || 'CENRO Staff'}
+                </span>
+              </span>
             </Link>
             {/* Icon-only on phones, for the same width reason as the wordmark. */}
             <button
@@ -81,16 +95,26 @@ export default function StaffLayout() {
               <span className="hidden text-sm font-medium sm:inline">Log out</span>
             </button>
             <MobileNav id="staff-nav" items={navItems}>
-              {/* The block above is `hidden sm:block`, so on a phone this sheet
-                  is the ONLY route to the account page. The sheet closes itself
-                  on a pathname change (see mobile-nav.jsx), so no onClick. */}
-              <Link to="/staff/account" className="block">
-                <div className="text-sm font-medium leading-tight hover:underline">
-                  {user?.first_name} {user?.last_name}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {ROLE_LABELS[user?.role] || 'CENRO Staff'}
-                </div>
+              {/* The block above is `hidden sm:flex`, so on a phone this sheet is
+                  the ONLY route to the account page - which makes it the place it
+                  is most likely to be missed. Hence the explicit "Account and
+                  password" label rather than just the name: inside a list of nav
+                  links, a name on its own reads as a heading, not a destination.
+                  The sheet closes itself on a pathname change (see
+                  mobile-nav.jsx), so no onClick. */}
+              <Link
+                to="/staff/account"
+                className="-mx-1 flex items-center gap-2.5 rounded-md px-1 py-1 transition-colors hover:bg-accent"
+              >
+                <CircleUser className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium leading-tight">
+                    {user?.first_name} {user?.last_name}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    Account and password
+                  </span>
+                </span>
               </Link>
             </MobileNav>
           </div>
