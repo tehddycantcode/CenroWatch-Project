@@ -1,7 +1,7 @@
 import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid, MapPin, Trash2, Bird, ClipboardList,
-  Users, Archive, ScrollText, Tags, Settings, LogOut,
+  Users, Archive, ScrollText, Tags, Settings, LogOut, CircleUser,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { ROLE_LABELS } from '@/lib/roles';
@@ -97,26 +97,33 @@ export default function AdminLayout() {
           </nav>
 
           <div className="flex min-w-0 shrink-0 items-center gap-3">
-            {/* max-w caps this at 160px. "System Administrator" measures 144px
-                and is unaffected; a longer name is clipped rather than allowed
-                to wrap, which is what used to push the 64px bar out of shape.
-                IT IS ALSO THE LINK TO /admin/account, and that is deliberate:
-                an eleventh nav item would break the arithmetic measured above
-                (the row already sits at ~1203px against 1280), while a link on
-                text that is already here costs exactly 0px. No padding and no
-                background on the anchor, for the same reason. Do not "improve"
-                this into a nav entry. */}
+            {/* THE LINK TO /admin/account. An eleventh nav item would break the
+                arithmetic measured above (the row sits at ~1203px against 1280),
+                so the account page hangs off the name block instead.
+                IT MUST STILL LOOK LIKE A CONTROL. The first version of this was
+                bare text with only a hover underline, and it was undiscoverable -
+                nobody hovers their own name to see if it is clickable, so the
+                page may as well not have existed. The icon and the border are
+                what make it findable, and they are affordable: re-measured at
+                1280 with them, the row is 1161px against 1265px available and the
+                bar is still exactly h-16. max-w is 11rem because 9rem clipped
+                "System Administrator" to "System Administrat...", which looks
+                broken rather than tidy. Re-measure here if the nav ever grows. */}
             <Link
               to="/admin/account"
               title="Account settings"
-              className="hidden min-w-0 max-w-[10rem] rounded-md text-right sm:block"
+              aria-label="Your account and password"
+              className="hidden min-w-0 shrink-0 items-center gap-2 rounded-md border px-2 py-1 transition-colors hover:bg-accent sm:flex"
             >
-              <div className="truncate text-sm font-medium leading-tight hover:underline">
-                {user?.first_name} {user?.last_name}
-              </div>
-              <div className="truncate text-xs text-muted-foreground">
-                {ROLE_LABELS[user?.role] || 'Administrator'}
-              </div>
+              <CircleUser className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="min-w-0 max-w-[11rem] text-right">
+                <span className="block truncate text-sm font-medium leading-tight">
+                  {user?.first_name} {user?.last_name}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {ROLE_LABELS[user?.role] || 'Administrator'}
+                </span>
+              </span>
             </Link>
             {/* Icon-only on phones, for the same width reason as the wordmark. */}
             <button
@@ -129,16 +136,26 @@ export default function AdminLayout() {
               <span className="hidden whitespace-nowrap text-sm font-medium sm:inline">Log out</span>
             </button>
             <MobileNav id="admin-nav" items={navItems}>
-              {/* The block above is `hidden sm:block`, so on a phone this sheet
-                  is the ONLY route to the account page. The sheet closes itself
-                  on a pathname change (see mobile-nav.jsx), so no onClick. */}
-              <Link to="/admin/account" className="block">
-                <div className="text-sm font-medium leading-tight hover:underline">
-                  {user?.first_name} {user?.last_name}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {ROLE_LABELS[user?.role] || 'Administrator'}
-                </div>
+              {/* The block above is `hidden sm:flex`, so on a phone this sheet is
+                  the ONLY route to the account page - which makes it the place it
+                  is most likely to be missed. Hence the explicit "Account and
+                  password" label rather than just the name: inside a list of nav
+                  links, a name on its own reads as a heading, not a destination.
+                  The sheet closes itself on a pathname change (see
+                  mobile-nav.jsx), so no onClick. */}
+              <Link
+                to="/admin/account"
+                className="-mx-1 flex items-center gap-2.5 rounded-md px-1 py-1 transition-colors hover:bg-accent"
+              >
+                <CircleUser className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium leading-tight">
+                    {user?.first_name} {user?.last_name}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    Account and password
+                  </span>
+                </span>
               </Link>
             </MobileNav>
           </div>
