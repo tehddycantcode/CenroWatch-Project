@@ -117,7 +117,7 @@ async function attachmentsBlock(doc, paths, { label = 'Photograph' } = {}) {
     const caption = list.length > 1 ? `${label} ${i + 1} of ${list.length}` : label;
     // read() answers null instead of throwing when the object is gone.
     const buf = await storage.read(p);
-    attachment(doc, buf, caption);
+    await attachment(doc, buf, caption);
   }
 }
 

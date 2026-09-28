@@ -78,46 +78,78 @@ function paragraph(doc, text, opts = {}) {
 const EMBEDDABLE = new Set(['image/jpeg', 'image/png']);
 
 /**
- * @returns {string|null} null when the buffer can be embedded, otherwise a
- * sentence explaining why not, ready to print.
+ * Get a buffer pdfkit can actually draw, converting when it has to.
+ *
+ * JPEG and PNG pass through UNTOUCHED - the printout should be the photograph
+ * as filed, not a re-encoding of it, and most uploads are already one of the
+ * two. webp, heic and heif are converted to JPEG, because pdfkit cannot decode
+ * them and "Not shown here" on a real photograph is a hole in a document that
+ * is offered as the retained copy of a report.
+ *
+ * @returns {Promise<{buf: Buffer, convertedFrom?: string}|{refusal: string}>}
  */
-function embedRefusal(buf) {
-  if (!buf || !buf.length) return 'the file could not be read from storage';
+async function prepareEmbeddable(buf) {
+  if (!buf || !buf.length) return { refusal: 'the file could not be read from storage' };
   const mime = sniffMime(buf);
-  if (!mime) return 'the file is not a recognised image';
-  if (EMBEDDABLE.has(mime)) return null;
-  if (mime === 'application/pdf') return 'it is a PDF document, not an image';
-  return `${mime} images cannot be embedded in a PDF`;
+  if (!mime) return { refusal: 'the file is not a recognised image' };
+  if (mime === 'application/pdf') return { refusal: 'it is a PDF document, not an image' };
+  if (EMBEDDABLE.has(mime)) return { buf };
+
+  try {
+    // Required lazily: sharp is a native module worth ~30 MB, and the common
+    // path above never needs it. require() caches, so this costs once.
+    const sharp = require('sharp');
+    // failOn 'none' so a slightly malformed but readable photo still prints -
+    // a strict decode would reject images the resident's phone was happy with.
+    const out = await sharp(buf, { failOn: 'none' }).jpeg({ quality: 85 }).toBuffer();
+    return { buf: out, convertedFrom: mime };
+  } catch {
+    return { refusal: `the ${mime} image could not be converted for printing` };
+  }
 }
 
 // Draw one attachment, captioned. Never throws: a report whose photo is
-// missing, unreadable or in an unsupported format must still print.
-function attachment(doc, buf, caption) {
-  const refusal = embedRefusal(buf);
-  ensureSpace(doc, refusal ? 30 : 230);
+// missing, unreadable or undecodable must still print.
+async function attachment(doc, buf, caption) {
+  const prepared = await prepareEmbeddable(buf);
+  ensureSpace(doc, prepared.refusal ? 30 : 230);
 
   doc.fontSize(9).font('Helvetica-Bold').fillColor(MUTED).text(caption, doc.page.margins.left, doc.y);
   doc.moveDown(0.2);
   doc.fillColor('#000');
 
-  if (refusal) {
-    paragraph(doc, `Not shown here - ${refusal}. The original is held in the system.`, { size: 9, color: MUTED });
+  if (prepared.refusal) {
+    paragraph(doc, `Not shown here - ${prepared.refusal}. The original is held in the system.`, {
+      size: 9,
+      color: MUTED,
+    });
     doc.moveDown(0.4);
     return false;
   }
 
   const width = Math.min(320, doc.page.width - doc.page.margins.left - doc.page.margins.right);
   try {
-    doc.image(buf, doc.page.margins.left, doc.y, { fit: [width, 220], align: 'left' });
+    doc.image(prepared.buf, doc.page.margins.left, doc.y, { fit: [width, 220], align: 'left' });
     // `fit` scales within the box, so advancing by the box height is correct
     // whatever the source aspect ratio - measuring the drawn height would mean
     // decoding the image twice.
     doc.y += 226;
     doc.x = doc.page.margins.left;
+    if (prepared.convertedFrom) {
+      // Stated, because the printed image is then not byte-for-byte what was
+      // filed. On a document used as a record, a silent re-encode is the kind
+      // of thing that should not be discovered later.
+      paragraph(doc, `Converted from ${prepared.convertedFrom} for printing. The original is held in the system.`, {
+        size: 8,
+        color: MUTED,
+      });
+      doc.moveDown(0.3);
+    }
     return true;
-  } catch (err) {
-    // Belt and braces: embedRefusal already screened the format, so reaching
-    // here means a corrupt file that carried a valid signature.
+  } catch {
+    // Belt and braces: the format was screened above, so reaching here means a
+    // file that carried a valid signature and corrupt contents - which is what
+    // the tiny seeded placeholder photos on this database actually are.
     paragraph(doc, 'Not shown here - the image file is damaged. The original is held in the system.', {
       size: 9,
       color: MUTED,
@@ -134,5 +166,5 @@ function createReportDocument(title = 'CENROWATCH Analytics Report') {
 
 module.exports = {
   GREEN, MUTED, humanize, ensureSpace, heading, drawRow, kv, paragraph,
-  createReportDocument, embedRefusal, attachment,
+  createReportDocument, prepareEmbeddable, attachment,
 };
