@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 
 const authenticate = require('../middlewares/authenticate');
+const requireVerifiedEmail = require('../middlewares/requireVerifiedEmail');
 const validate = require('../middlewares/validate');
 const { diskUpload } = require('../middlewares/upload');
 const { createWildlifeRules } = require('../validators/wildlife.validators');
@@ -14,7 +15,10 @@ const upload = diskUpload('wildlife');
 
 router.use(authenticate);
 
-router.post('/', upload.single('photo'), createWildlifeRules, validate, controller.create);
+// Filing needs a confirmed address; see middlewares/requireVerifiedEmail.js for
+// why it sits after multer. READS STAY OPEN, so an unconfirmed resident does not
+// lose sight of turnovers they reported before the gate existed.
+router.post('/', upload.single('photo'), requireVerifiedEmail, createWildlifeRules, validate, controller.create);
 router.get('/mine', controller.listMine);
 router.get('/:referenceId', controller.getByRef);
 

@@ -80,6 +80,15 @@ async function authenticate(req, res, next) {
         barangay_id: true,
         is_active: true,
         password_changed_at: true,
+        // LOAD-BEARING, and not merely informational. requireVerifiedEmail gates
+        // filing a report on this field, so it has to be here - in this same
+        // query, which costs nothing extra - rather than fetched again per
+        // request. Do NOT strip it below the way password_changed_at is
+        // stripped: undefined is falsy, so removing it would make the gate
+        // refuse EVERY request with nothing to point at.
+        // tests/emailVerificationGate.test.js asserts this select directly, so
+        // that edit fails there instead of in production.
+        email_verified_at: true,
       },
     });
 
