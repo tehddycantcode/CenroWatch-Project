@@ -99,15 +99,25 @@ export default function AdminLayout() {
           <div className="flex min-w-0 shrink-0 items-center gap-3">
             {/* max-w caps this at 160px. "System Administrator" measures 144px
                 and is unaffected; a longer name is clipped rather than allowed
-                to wrap, which is what used to push the 64px bar out of shape. */}
-            <div className="hidden min-w-0 max-w-[10rem] text-right sm:block">
-              <div className="truncate text-sm font-medium leading-tight">
+                to wrap, which is what used to push the 64px bar out of shape.
+                IT IS ALSO THE LINK TO /admin/account, and that is deliberate:
+                an eleventh nav item would break the arithmetic measured above
+                (the row already sits at ~1203px against 1280), while a link on
+                text that is already here costs exactly 0px. No padding and no
+                background on the anchor, for the same reason. Do not "improve"
+                this into a nav entry. */}
+            <Link
+              to="/admin/account"
+              title="Account settings"
+              className="hidden min-w-0 max-w-[10rem] rounded-md text-right sm:block"
+            >
+              <div className="truncate text-sm font-medium leading-tight hover:underline">
                 {user?.first_name} {user?.last_name}
               </div>
               <div className="truncate text-xs text-muted-foreground">
                 {ROLE_LABELS[user?.role] || 'Administrator'}
               </div>
-            </div>
+            </Link>
             {/* Icon-only on phones, for the same width reason as the wordmark. */}
             <button
               type="button"
@@ -119,12 +129,17 @@ export default function AdminLayout() {
               <span className="hidden whitespace-nowrap text-sm font-medium sm:inline">Log out</span>
             </button>
             <MobileNav id="admin-nav" items={navItems}>
-              <div className="text-sm font-medium leading-tight">
-                {user?.first_name} {user?.last_name}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {ROLE_LABELS[user?.role] || 'Administrator'}
-              </div>
+              {/* The block above is `hidden sm:block`, so on a phone this sheet
+                  is the ONLY route to the account page. The sheet closes itself
+                  on a pathname change (see mobile-nav.jsx), so no onClick. */}
+              <Link to="/admin/account" className="block">
+                <div className="text-sm font-medium leading-tight hover:underline">
+                  {user?.first_name} {user?.last_name}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {ROLE_LABELS[user?.role] || 'Administrator'}
+                </div>
+              </Link>
             </MobileNav>
           </div>
         </div>

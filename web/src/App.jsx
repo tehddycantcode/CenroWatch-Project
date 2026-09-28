@@ -28,6 +28,7 @@ import WildlifeQueuePage from '@/pages/staff/WildlifeQueuePage';
 import WildlifeDetailPage from '@/pages/staff/WildlifeDetailPage';
 import RequestsQueuePage from '@/pages/staff/RequestsQueuePage';
 import RequestDetailPage from '@/pages/staff/RequestDetailPage';
+import AccountPage from '@/pages/staff/AccountPage';
 import AdminLayout from '@/components/admin/AdminLayout';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminAnalyticsPage from '@/pages/admin/AdminAnalyticsPage';
@@ -97,6 +98,10 @@ export default function App() {
         <Route path="/staff/wildlife/:id" element={<WildlifeDetailPage />} />
         <Route path="/staff/requests" element={<RequestsQueuePage />} />
         <Route path="/staff/requests/:id" element={<RequestDetailPage />} />
+        {/* Self-service account + password. The SAME page is mounted under the
+            admin group below: which layout wraps it is the only difference, and
+            it should match the console the person is already looking at. */}
+        <Route path="/staff/account" element={<AccountPage />} />
       </Route>
 
       {/* Admin interface (Sprint 4) — nested under AdminLayout, Admin-only.
@@ -122,6 +127,7 @@ export default function App() {
         <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
         <Route path="/admin/categories" element={<AdminCategoriesPage />} />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
+        <Route path="/admin/account" element={<AccountPage />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />
