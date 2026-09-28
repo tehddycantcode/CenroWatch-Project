@@ -487,12 +487,27 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
 - **pdfkit embeds JPEG and PNG ONLY, and the uploader is more permissive than
   that.** `Image.open` tests exactly two magic-byte signatures and otherwise
   throws `Unknown image format.`, while `middlewares/upload.js` accepts webp,
-  heic and heif too (plus `application/pdf` for a request's document). So a
-  perfectly valid attachment can be impossible to place in a generated PDF.
-  `report.layout.embedRefusal()` screens for this and the document PRINTS the
-  reason; never silently omit an attachment, because the export is offered as
-  the retained copy of a report and a page that looks complete while the
-  evidence is missing is the worst possible outcome.
+  heic and heif too (plus `application/pdf` for a request's document).
+  `report.layout.prepareEmbeddable()` bridges the gap by converting webp/heic/
+  heif to JPEG with **sharp**, passing JPEG and PNG through untouched, and
+  printing a stated reason only for what genuinely cannot be shown. Never
+  silently omit an attachment: the export is offered as the retained copy of a
+  report, and a page that looks complete while the evidence is missing is the
+  worst possible outcome.
+  **"Say it cannot be shown" was the FIRST attempt and it was not good enough.**
+  It shipped, and a production complaint with a webp photo printed
+  "Not shown here - image/webp images cannot be embedded in a PDF" on the page
+  meant to BE the record. Measuring settled it: 9 of 10 production photos were
+  JPEG and 1 was webp, and that share grows (Android share paths and Chrome's
+  "copy image" emit webp; iPhones emit heic). When a degraded path is on the
+  critical purpose of a feature, measure how often it fires before accepting it.
+  sharp 0.35.5 / libvips 8.18.7 decodes jpeg, png, webp, tiff, gif, svg and
+  heif — covering every accepted format — but **HEIF support depends on how
+  libvips was built**, so a test pins it; an install without libheif would
+  silently start refusing every iPhone photo. It is required lazily so the
+  common path never loads a ~30 MB native module, and the Docker base
+  (`node:20-bookworm-slim`, glibc) takes the prebuilt linux-x64 binary with no
+  extra packages.
   **Format screening is not enough: a file can carry a valid signature and still
   be corrupt.** Three of the six seeded complaint photos on the native database
   are tiny placeholders with a correct PNG header and truncated data — png-js
