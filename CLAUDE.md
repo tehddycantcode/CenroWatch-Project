@@ -484,6 +484,28 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   design docs under `docs/superpowers/` were deliberately left alone with a
   "Superseded" note instead of being rewritten — editing them would erase the
   fact that the policy ever changed.
+- **pdfkit embeds JPEG and PNG ONLY, and the uploader is more permissive than
+  that.** `Image.open` tests exactly two magic-byte signatures and otherwise
+  throws `Unknown image format.`, while `middlewares/upload.js` accepts webp,
+  heic and heif too (plus `application/pdf` for a request's document). So a
+  perfectly valid attachment can be impossible to place in a generated PDF.
+  `report.layout.embedRefusal()` screens for this and the document PRINTS the
+  reason; never silently omit an attachment, because the export is offered as
+  the retained copy of a report and a page that looks complete while the
+  evidence is missing is the worst possible outcome.
+  **Format screening is not enough: a file can carry a valid signature and still
+  be corrupt.** Three of the six seeded complaint photos on the native database
+  are tiny placeholders with a correct PNG header and truncated data — png-js
+  only discovers that while inflating, so pdfkit throws at draw time, well past
+  any magic-byte check. `attachment()` therefore try/catches the draw as well.
+  Both paths are covered in `tests/reportPhotoEmbed.test.js`, which asserts
+  against the REAL pdfkit rather than a stub so a library upgrade that changes
+  format support fails the suite instead of quietly dropping evidence photos.
+  Two smaller traps from the same work: pdfkit defers PNG inflation until the
+  document is finalised, so a doc that is merely built reports success and then
+  throws ASYNCHRONOUSLY outside your test; and pdfkit subsets its fonts and
+  writes glyph ids as hex, so `(text) Tj` will not find your strings in the
+  output — do not try to verify wording by grepping the produced PDF.
 
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
