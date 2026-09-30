@@ -385,7 +385,7 @@ Place beside the existing category loops.
       // coordinates are hidden on the public map. `update: s` would silently
       // revert their work on the next deploy, with nothing in the log to
       // distinguish "unchanged" from "reverted". It is the same reason the
-      // complaintType loop below hand-picks the fields it updates.
+      // complaintType loop above hand-picks the fields it updates.
       //
       // To change the seeded content of a species that already exists, edit it
       // in the admin screen - not here.
