@@ -814,7 +814,13 @@ Expected: FAIL — `resolveSpecies is not a function`.
 
 - [ ] **Step 3: Add `resolveSpecies` to the service**
 
-Append to `backend/src/services/species.service.js`, before `module.exports`:
+First add the import this task's code needs — Task 3 imported only `prisma`:
+
+```js
+const HttpError = require('../utils/httpError');
+```
+
+Then append, before `module.exports`:
 
 ```js
 // The three exclusive categories, mirroring the SpeciesCategory enum. Duplicated
@@ -1028,7 +1034,13 @@ Expected: FAIL — `svc.createSpecies is not a function`.
 
 - [ ] **Step 3: Implement the writes**
 
-Append to `backend/src/services/species.service.js` before `module.exports`:
+First add the import this task's code needs — earlier tasks imported only `prisma` and `HttpError`:
+
+```js
+const { writeAuditLog } = require('../utils/audit');
+```
+
+Then append, before `module.exports`:
 
 ```js
 const BIOME_VALUES = ['Forest', 'Freshwater', 'Lakeshore_Wetland', 'Agricultural', 'Urban', 'Cave'];
