@@ -31,7 +31,7 @@ Every task's requirements implicitly include all of these.
 - **Validation failures in this API are 422, not 400.** Assert 422.
 - **Node is not on a fresh shell's PATH.** Prefix commands with:
   `$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine')`
-- **Run `git status` immediately before every commit** and commit only the intended paths (`git commit -- <paths>`). The user keeps untracked `.agents/`, `.claude/`, `skills-lock.json`; never stage `uploads/`, `dist/`, or `_*.mjs` scaffolds.
+- **Run `git status` immediately before every commit** and commit only the intended paths — `git commit -m "<msg>" -- <paths>`, with `-m` **before** the `--`, since everything after `--` is read as a pathspec. The user keeps untracked `.agents/`, `.claude/`, `skills-lock.json`; never stage `uploads/`, `dist/`, or `_*.mjs` scaffolds.
 - **Scope any test cleanup by captured id, never by a predicate.** Audit history is not recoverable.
 - **`AdminLayout.jsx:13-24` already holds 10 nav items against a measured ~1203px/1280px budget.** Do not add an 11th. Species is reached from the Categories page.
 
@@ -234,7 +234,7 @@ Expected: PASS, same count as before plus nothing. This migration is purely addi
 ```bash
 git status --short
 git add backend/prisma/schema.prisma backend/prisma/migrations
-git commit -- backend/prisma/schema.prisma backend/prisma/migrations -m "Add the species catalogue table"
+git commit -m "Add the species catalogue table" -- backend/prisma/schema.prisma backend/prisma/migrations
 ```
 
 ---
@@ -428,7 +428,7 @@ Expected: PASS.
 ```bash
 rm backend/_check-species.mjs
 git status --short
-git commit -- backend/prisma/seed.js -m "Seed the wildlife species catalogue"
+git commit -m "Seed the wildlife species catalogue" -- backend/prisma/seed.js
 ```
 
 ---
@@ -610,7 +610,7 @@ Expected: PASS (4 tests).
 ```bash
 git status --short
 git add backend/src/services/species.service.js backend/tests/species.service.test.js
-git commit -- backend/src/services/species.service.js backend/tests/species.service.test.js -m "Add the species catalogue read paths"
+git commit -m "Add the species catalogue read paths" -- backend/src/services/species.service.js backend/tests/species.service.test.js
 ```
 
 ---
@@ -871,7 +871,7 @@ Expected: PASS (13 tests).
 ```bash
 git status --short
 git add backend/src/services/species.service.js backend/tests/speciesResolution.test.js
-git commit -- backend/src/services/species.service.js backend/tests/speciesResolution.test.js -m "Derive a wildlife report's category and endangered status from the species"
+git commit -m "Derive a wildlife report's category and endangered status from the species" -- backend/src/services/species.service.js backend/tests/speciesResolution.test.js
 ```
 
 ---
@@ -1143,7 +1143,7 @@ Expected: PASS.
 
 ```bash
 git status --short
-git commit -- backend/src/services/species.service.js backend/tests/species.service.test.js -m "Let an Admin manage the species catalogue"
+git commit -m "Let an Admin manage the species catalogue" -- backend/src/services/species.service.js backend/tests/species.service.test.js
 ```
 
 ---
@@ -1260,7 +1260,7 @@ Expected: `{"success":true,"data":{"species":[{"name":"Philippine Duck",...`. Co
 ```bash
 git status --short
 git add backend/src/controllers/species.controller.js backend/src/routes/species.routes.js
-git commit -- backend/src/controllers/species.controller.js backend/src/routes/species.routes.js backend/src/routes/index.js backend/tests/routing.test.js -m "Serve the species catalogue to the report forms"
+git commit -m "Serve the species catalogue to the report forms" -- backend/src/controllers/species.controller.js backend/src/routes/species.routes.js backend/src/routes/index.js backend/tests/routing.test.js
 ```
 
 ---
@@ -1393,7 +1393,7 @@ Expected: PASS.
 ```bash
 git status --short
 git add backend/src/validators/species.validators.js
-git commit -- backend/src/validators/species.validators.js backend/src/controllers/admin.controller.js backend/src/routes/admin.routes.js -m "Add admin endpoints for the species catalogue"
+git commit -m "Add admin endpoints for the species catalogue" -- backend/src/validators/species.validators.js backend/src/controllers/admin.controller.js backend/src/routes/admin.routes.js
 ```
 
 ---
@@ -1555,7 +1555,7 @@ Run: `npm test`
 
 ```bash
 git status --short  # confirm backend/uploads/ is NOT staged
-git commit -- backend/src/services/species.service.js backend/src/controllers/admin.controller.js backend/src/routes/admin.routes.js backend/tests/species.service.test.js -m "Let an Admin upload a reference photo per species"
+git commit -m "Let an Admin upload a reference photo per species" -- backend/src/services/species.service.js backend/src/controllers/admin.controller.js backend/src/routes/admin.routes.js backend/tests/species.service.test.js
 ```
 
 ---
@@ -1773,7 +1773,7 @@ File one wildlife report through the running API with `species_name=Philippine C
 
 ```bash
 git status --short
-git commit -- backend/src/services/wildlife.service.js backend/src/validators/wildlife.validators.js backend/tests/speciesResolution.test.js -m "Derive a wildlife report's category and priority from the species catalogue"
+git commit -m "Derive a wildlife report's category and priority from the species catalogue" -- backend/src/services/wildlife.service.js backend/src/validators/wildlife.validators.js backend/tests/speciesResolution.test.js
 ```
 
 ---
@@ -1928,7 +1928,7 @@ Run: `npm test`
 ```bash
 git status --short
 git add backend/tests/wildlifeEndangeredOverride.test.js
-git commit -- backend/tests/wildlifeEndangeredOverride.test.js backend/src/services/staff.wildlife.service.js backend/src/validators/staff.validators.js -m "Let staff correct a wildlife report's endangered flag"
+git commit -m "Let staff correct a wildlife report's endangered flag" -- backend/tests/wildlifeEndangeredOverride.test.js backend/src/services/staff.wildlife.service.js backend/src/validators/staff.validators.js
 ```
 
 ---
@@ -2099,7 +2099,7 @@ Expected: PASS.
 ```bash
 git status --short
 git add backend/scripts/audit-species-names.mjs backend/prisma/schema.prisma backend/prisma/migrations
-git commit -- backend/scripts/audit-species-names.mjs backend/prisma/schema.prisma backend/prisma/migrations -m "Tie wildlife reports to the species catalogue"
+git commit -m "Tie wildlife reports to the species catalogue" -- backend/scripts/audit-species-names.mjs backend/prisma/schema.prisma backend/prisma/migrations
 ```
 
 > **Deploy note for whoever ships this.** Run the audit against Railway and the Docker database and backfill there too, **before** deploying these two migrations. `prisma migrate status` does not surface checksum drift, so a clean status is not evidence the databases agree — hash the migration files to check.
@@ -2179,7 +2179,7 @@ Expected: clean. **Remember this does not catch an undefined JSX identifier** �
 
 ```bash
 git status --short
-git commit -- web/src/lib/api.js -m "Add the species API to the web client"
+git commit -m "Add the species API to the web client" -- web/src/lib/api.js
 ```
 
 ---
@@ -2260,7 +2260,7 @@ Expected: clean.
 ```bash
 git status --short
 git add web/src/lib/useSpecies.js
-git commit -- web/src/lib/useSpecies.js -m "Add a web hook for the species catalogue"
+git commit -m "Add a web hook for the species catalogue" -- web/src/lib/useSpecies.js
 ```
 
 ---
@@ -2399,7 +2399,7 @@ Sign in as Admin. Create a species, edit it, retire it, upload a photo. Confirm 
 ```bash
 git status --short
 git add web/src/pages/admin/AdminSpeciesPage.jsx
-git commit -- web/src/pages/admin/AdminSpeciesPage.jsx web/src/App.jsx web/src/pages/admin/AdminCategoriesPage.jsx -m "Add an admin screen for the species catalogue"
+git commit -m "Add an admin screen for the species catalogue" -- web/src/pages/admin/AdminSpeciesPage.jsx web/src/App.jsx web/src/pages/admin/AdminCategoriesPage.jsx
 ```
 
 ---
@@ -2616,7 +2616,7 @@ In a browser as a verified resident: pick a common species (confirm the read-onl
 
 ```bash
 git status --short
-git commit -- web/src/pages/resident/WildlifeFormPage.jsx -m "Group the species picker and derive the category on the web form"
+git commit -m "Group the species picker and derive the category on the web form" -- web/src/pages/resident/WildlifeFormPage.jsx
 ```
 
 ---
@@ -2688,7 +2688,7 @@ Then open `/wildlife` signed out: species render from the API, badges are colour
 
 ```bash
 git status --short
-git commit -- web/src/pages/public/WildlifePage.jsx web/src/lib/species.js -m "Read the public species guide from the catalogue"
+git commit -m "Read the public species guide from the catalogue" -- web/src/pages/public/WildlifePage.jsx web/src/lib/species.js
 ```
 
 ---
@@ -2766,7 +2766,7 @@ Then in Expo Go, open the complaint, request and anonymous forms and confirm the
 
 ```bash
 git status --short
-git commit -- mobile/src/components/Select.js -m "Let the mobile picker show grouped options"
+git commit -m "Let the mobile picker show grouped options" -- mobile/src/components/Select.js
 ```
 
 ---
@@ -2884,7 +2884,7 @@ Expected: both clean.
 ```bash
 git status --short
 git add mobile/src/lib/useSpecies.js
-git commit -- mobile/src/lib/useSpecies.js mobile/src/api/client.js mobile/src/lib/reports.js -m "Fetch the species catalogue in the mobile app"
+git commit -m "Fetch the species catalogue in the mobile app" -- mobile/src/lib/useSpecies.js mobile/src/api/client.js mobile/src/lib/reports.js
 ```
 
 ---
@@ -3069,7 +3069,7 @@ Then in **Expo Go on the SDK 56 build** against the LAN API: both groups and the
 
 ```bash
 git status --short
-git commit -- mobile/src/screens/resident/WildlifeFormScreen.js -m "Group the species picker and derive the category on the mobile form"
+git commit -m "Group the species picker and derive the category on the mobile form" -- mobile/src/screens/resident/WildlifeFormScreen.js
 ```
 
 > **Before publishing the OTA:** run `eas fingerprint:compare --build-id <id>`. CRLF silently turns a successful `eas update` into one that reaches nobody, with no error — check bytes with `tr -cd '\r' | wc -c`, never `grep`. Then `eas update --channel preview --message "..." --environment preview`.
@@ -3152,7 +3152,7 @@ As staff, open an `Other` report. Confirm it reads "Treated as endangered", clic
 
 ```bash
 git status --short
-git commit -- web/src/pages/staff/WildlifeDetailPage.jsx -m "Let staff correct a wildlife report's endangered flag from the detail page"
+git commit -m "Let staff correct a wildlife report's endangered flag from the detail page" -- web/src/pages/staff/WildlifeDetailPage.jsx
 ```
 
 ---
