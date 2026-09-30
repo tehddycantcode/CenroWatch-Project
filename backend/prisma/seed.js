@@ -241,7 +241,17 @@ async function main() {
   for (const s of species) {
     await prisma.species.upsert({
       where: { name: s.name },
-      update: s,
+      // CREATE-ONLY, deliberately. The seed runs on every deploy, and unlike a
+      // barangay, EVERY species field is the Admin's to edit from the Species
+      // screen - including is_endangered, which decides whether a report's
+      // coordinates are hidden on the public map. `update: s` would silently
+      // revert their work on the next deploy, with nothing in the log to
+      // distinguish "unchanged" from "reverted". It is the same reason the
+      // complaintType loop below hand-picks the fields it updates.
+      //
+      // To change the seeded content of a species that already exists, edit it
+      // in the admin screen - not here.
+      update: {},
       create: s,
     });
   }
