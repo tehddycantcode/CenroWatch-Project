@@ -29,6 +29,7 @@ Every task's requirements implicitly include all of these.
 - **Never accept a Prisma "reset the database?" prompt.** The answer is always no. Say no and fix the actual cause.
 - **Stop the backend dev server before `prisma migrate`, `prisma generate`, or `npm install`** — a running `node src/server.js` locks the query-engine DLL and `postinstall` runs `prisma generate`.
 - **Validation failures in this API are 422, not 400.** Assert 422.
+- **`npx prisma db seed` is NOT wired up in this repo** (`package.json` has no `prisma.seed` key) and it fails *silently* — it prints the dotenv banner, runs nothing, and exits 0. Run `node prisma/seed.js` instead. A task that "seeded" with `db seed` and saw a clean exit has seeded nothing.
 - **Node is not on a fresh shell's PATH.** Prefix commands with:
   `$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine')`
 - **Run `git status` immediately before every commit** and commit only the intended paths — `git commit -m "<msg>" -- <paths>`, with `-m` **before** the `--`, since everything after `--` is read as a pathspec. The user keeps untracked `.agents/`, `.claude/`, `skills-lock.json`; never stage `uploads/`, `dist/`, or `_*.mjs` scaffolds.
