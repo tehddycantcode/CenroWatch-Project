@@ -220,9 +220,12 @@ model Species {
   name             String           @unique @db.VarChar(200)
   scientific_name  String?          @db.VarChar(200)
   local_name       String?          @db.VarChar(200)   // e.g. "musang"
-  category         SpeciesCategory
-  biome            SpeciesBiome
-  indicator        SpeciesIndicator
+  // NULLABLE, all three. The catalogue holds one sentinel row, `Other`, which
+  // has no taxonomy at all - see "The Other row" below. Real species always
+  // carry these, enforced by the validator rather than by the column.
+  category         SpeciesCategory?
+  biome            SpeciesBiome?
+  indicator        SpeciesIndicator?
   hazard           SpeciesHazard    @default(None)
   // EXPLICIT, not derived from `indicator`. DENR/legal protected status does not
   // map cleanly onto IUCN categories, and this boolean drives public-map
@@ -252,7 +255,10 @@ model Species {
   // --- item 1/2/3: species becomes a catalogue reference -------------------
   species_name     String  @db.VarChar(200)   // UNCHANGED type; FK added below
   species_category SpeciesCategory?           // WAS VarChar(100). Server-derived.
-  species          Species? @relation(fields: [species_name], references: [name])
+  // REQUIRED relation, exactly like Complaint.type - the scalar FK field is
+  // required, so the relation must be too. Restrict, so a species with reports
+  // against it cannot be deleted and make that history unreadable.
+  species          Species @relation(fields: [species_name], references: [name], onUpdate: Cascade, onDelete: Restrict)
 
   // --- item 4: how the animal arrives -------------------------------------
   turnover_method  WildlifeTurnoverMethod?
@@ -274,6 +280,28 @@ model Species {
 **Do not drop `is_endangered` / `is_priority_review` from `WildlifeTurnover`.** They stay as the
 *snapshot* of the decision made at intake. Deriving them live from `Species` would mean an admin
 editing a species row silently rewrites the obfuscation of historical reports.
+
+### 4.3a The `Other` row — how an uncatalogued species is stored
+
+`species_name` is a required FK, so **a value the resident types cannot be stored in it** — that
+would break the key and let residents invent catalogue entries. This project already solved exactly
+this problem for complaint and request categories, and wildlife follows it rather than inventing a
+second answer:
+
+- The catalogue holds a **real seeded row named `Other`** with `category`, `biome` and `indicator`
+  all `NULL`, `is_endangered = true` (the fail-safe decision in §3) and `hazard = None`.
+- A resident choosing it stores `species_name = 'Other'`, and **the species they typed is folded into
+  the description as its first line** — `Other: Sea turtle\n\n<description>` — so it is the first
+  thing staff read. This mirrors `withOtherDetail()` in `mobile/src/lib/otherCategory.js` /
+  `web/src/lib/otherCategory.js` exactly, including the combined-length guard against the
+  5000-character description limit.
+- Because the `Other` row has no `category`, the **resident picks one** (`Bird`/`Mammal`/`Reptile`)
+  and it is stored on the report. That is the only case where a human picks a category.
+
+**Consequence for the specify box:** detection keys off the literal seeded name `Other`, so an Admin
+renaming that row breaks the specify box. `otherCategory.js` documents this coupling for complaints
+and keeps the string in one place; the wildlife helper must do the same. **Do not make the `Other`
+row editable or retirable** — guard it in `species.service.js`.
 
 ### 4.4 `WildlifeStatus` gains exactly one value
 
@@ -339,6 +367,9 @@ enum WildlifeStatus {
 becomes `indicator: Native, hazard: Venomous`. Biome and `is_endangered` are new judgements — see
 §10. Photos are **not** seeded (admin-uploaded per §3); `photo_credit` carries over for any that are.
 
+**Plus the `Other` sentinel row** (§4.3a): `name: 'Other'`, `category`/`biome`/`indicator` all
+`null`, `is_endangered: true`, `sort_order: 999` so it sorts last in both groups' wake.
+
 **Existing reports** — untouched. `species_category` values that are already `Bird`/`Mammal`/
 `Reptile` map straight onto the enum; anything else needs the §8 audit.
 
@@ -357,11 +388,13 @@ becomes `indicator: Native, hazard: Venomous`. Biome and `is_endangered` are new
 
 - `wildlife.validators.js` — **remove the `species_category` body rule entirely.** The field is no
   longer accepted from clients. Add a comment saying so, or someone will restore it.
-- `wildlife.service.js` `createTurnover()` — look the species up by name; set `species_category`
-  from the row. Unknown species → category comes from the resident's 3-way pick (below).
-- `species_name` must be validated against the catalogue **or** flagged as free text. Rule: if the
-  submitted name matches a `Species` row, use its category/endangered/hazard; otherwise treat as
-  "Other" (§ item 3).
+- `wildlife.service.js` `createTurnover()` — look the species up by name and copy `species_category`
+  from the row. **Resolution rule, in order:** the row's `category` if it has one; otherwise the
+  resident's 3-way pick; otherwise 422.
+- `species_name` must name an **active** catalogue row, or 422 — the same `isSelectable` check
+  `category.service.js` already provides for complaint types. A retired species stays valid on the
+  reports that already reference it but must not be selectable on a new one. Free text never reaches
+  this column; see §4.3a.
 
 **Web / Mobile** — the Category input is **deleted**. In its place, a **read-only confirmation**:
 
@@ -388,9 +421,10 @@ before the column becomes an enum. §8.
 
 - `wildlife.service.js` — `is_endangered` is **derived from the `Species` row**, not read from the
   body. `wildlife.validators.js` drops the `is_endangered` rule.
-- Unknown/"Other" species → `is_endangered = true` (decision §3), so `is_priority_review = true`,
-  status `Priority_Review`, and `gis.service.js` obfuscates. **No change to `gis.service.js`** — it
-  reads the stored boolean and keeps doing so.
+- The `Other` row carries `is_endangered = true` (decision §3), so the ordinary derivation yields
+  `is_priority_review = true` and status `Priority_Review` for an uncatalogued animal with **no
+  special-casing anywhere** — the fail-safe is a property of one seeded row, not a branch.
+  **No change to `gis.service.js`** — it reads the stored boolean and keeps doing so.
 - Staff need a way to **downgrade** a wrongly-flagged "Other": add `is_endangered` to
   `wildlifeUpdateRules` and to `staff.wildlife.service.js` `update()`, with an audit action of its
   own (`WILDLIFE_ENDANGERED_OVERRIDE`) — changing a privacy control deserves its own trail, not a
@@ -720,7 +754,8 @@ Seven migrations, in this order. Every one `--create-only` with PascalCase table
      catalogue. Any value with no row **blocks the FK**.
    - Resolution: add the missing name as an **inactive** `Species` row
      (`is_active = false`) — preserving history without offering it on new forms. Do **not** edit
-     historical `species_name` values.
+     historical `species_name` values. This is what lets the relation be **required** (§4.3): once
+     every historical value has a row, no report is left pointing at nothing.
    - Run this audit on **all three databases** — native 3306, Docker 3307, Railway. They hold
      different data, and the Docker database has previously been found missing rows entirely.
 4. **`wildlife_species_category_enum`** — `species_category` `VarChar(100)` → `SpeciesCategory?`.
