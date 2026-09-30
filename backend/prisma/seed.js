@@ -72,6 +72,121 @@ const requestTypes = [
   { name: 'Other_Service', sort_order: 5, sla_setting_key: null, sla_fallback_minutes: null },
 ];
 
+// Wildlife species catalogue. Migrated from web/src/lib/species.js, which was a
+// frozen array compiled into the web bundle and invisible to mobile.
+//
+// biome and is_endangered are NEW judgements - they were not in the old array.
+// is_endangered decides public-map coordinate obfuscation, so it is a legal
+// DENR/protected-species call rather than an IUCN label: `indicator` carries the
+// IUCN-flavoured standing separately. The values below are the conservative
+// reading and are flagged for verification in the spec (section 10, item 5).
+const species = [
+  {
+    name: 'Philippine Duck', scientific_name: 'Anas luzonica',
+    category: 'Bird', biome: 'Lakeshore_Wetland', indicator: 'Vulnerable',
+    hazard: 'None', is_endangered: true, sort_order: 1,
+    photo_credit: 'Ken Billington, CC BY-SA 3.0',
+    body_description: 'A medium-sized dabbling duck with a cinnamon head, black crown and stripe through the eye, and a blue-grey bill. Endemic to the Philippines.',
+    handling_note: 'Do not capture. Report sightings so CENRO can monitor wetland populations.',
+  },
+  {
+    name: 'Philippine Eagle-Owl', scientific_name: 'Bubo philippensis',
+    category: 'Bird', biome: 'Forest', indicator: 'Endemic',
+    hazard: 'Powerful_Bite_Or_Talons', is_endangered: true, sort_order: 2,
+    photo_credit: 'Aimee Valencia, CC BY-SA 4.0',
+    body_description: "The country's largest owl. Rufous-brown plumage, prominent ear tufts, large orange eyes. Found only in the Philippines, near rivers and forest edges.",
+    handling_note: 'If found grounded or injured, keep your distance and arrange a turnover. Talons are powerful.',
+  },
+  {
+    name: 'Large Flying Fox', scientific_name: 'Pteropus vampyrus',
+    category: 'Mammal', biome: 'Forest', indicator: 'Near_Threatened',
+    hazard: 'Disease_Risk', is_endangered: true, sort_order: 3,
+    photo_credit: 'NobbiP, CC BY-SA 3.0',
+    body_description: 'A very large fruit bat with a fox-like reddish-brown head, dark wings and a wingspan up to 1.5 m. Roosts in colonies in tall trees.',
+    handling_note: 'Never handle bats with bare hands (rabies risk). Report roosts or grounded individuals.',
+  },
+  {
+    name: 'Asian Palm Civet', scientific_name: 'Paradoxurus hermaphroditus',
+    local_name: 'musang',
+    category: 'Mammal', biome: 'Urban', indicator: 'Native',
+    hazard: 'Aggressive', is_endangered: false, sort_order: 4,
+    photo_credit: 'Bernard DUPONT, CC BY-SA 2.0',
+    body_description: 'A cat-sized nocturnal mammal, shaggy grey-brown coat with dark spots and stripes, a black mask across the face and a long tail.',
+    handling_note: 'Do not keep as a pet. It may bite if cornered. Turn over to CENRO for safe release.',
+  },
+  {
+    name: 'Asian Water Monitor', scientific_name: 'Varanus salvator',
+    local_name: 'bayawak',
+    category: 'Reptile', biome: 'Freshwater', indicator: 'Native',
+    hazard: 'Powerful_Bite_Or_Talons', is_endangered: false, sort_order: 5,
+    photo_credit: 'Carlos Delgado, CC BY-SA 4.0',
+    body_description: 'A large semi-aquatic lizard, up to 2 m, dark grey-brown with yellow spots and bands, a long forked tongue and a strong flattened tail.',
+    handling_note: 'Usually harmless if left alone, but it can bite and lash with its tail. If trapped in a property, request a turnover rather than harming it.',
+  },
+  {
+    name: 'Reticulated Python', scientific_name: 'Malayopython reticulatus',
+    local_name: 'sawa',
+    category: 'Reptile', biome: 'Freshwater', indicator: 'Native',
+    hazard: 'Aggressive', is_endangered: false, sort_order: 6,
+    photo_credit: 'Mariluna, CC BY-SA 3.0',
+    body_description: "The world's longest snake. Olive to tan with a bold black net-like (reticulated) pattern and a thin dark line along the top of the head. Non-venomous.",
+    handling_note: 'Do not attempt to catch large individuals. Keep people and pets back and call for a turnover.',
+  },
+  {
+    name: 'Philippine Cobra', scientific_name: 'Naja philippinensis',
+    local_name: 'ulupong',
+    category: 'Reptile', biome: 'Agricultural', indicator: 'Native',
+    hazard: 'Venomous', is_endangered: false, sort_order: 7,
+    photo_credit: 'Mario Lutz, CC BY-SA 3.0',
+    body_description: 'A stocky snake, uniform light to medium brown, about 1 m long. Rears up and spreads a hood when threatened. HIGHLY VENOMOUS and able to spit venom.',
+    handling_note: 'Do NOT approach. Move people away, keep it in sight from a safe distance, and report immediately.',
+  },
+  {
+    name: 'Black-crowned Night Heron', scientific_name: 'Nycticorax nycticorax',
+    category: 'Bird', biome: 'Lakeshore_Wetland', indicator: 'Common',
+    hazard: 'None', is_endangered: false, sort_order: 8,
+    photo_credit: 'ramidos, CC BY 4.0',
+    body_description: 'A stocky, short-necked wading bird with a black crown and back, pale grey wings, white underparts and red eyes. Often seen at dusk.',
+    handling_note: 'A healthy part of the wetland ecosystem. Report only if injured or entangled.',
+  },
+  {
+    name: 'Collared Kingfisher', scientific_name: 'Todiramphus chloris',
+    category: 'Bird', biome: 'Lakeshore_Wetland', indicator: 'Common',
+    hazard: 'None', is_endangered: false, sort_order: 9,
+    photo_credit: 'JJ Harrison, CC BY-SA 3.0',
+    body_description: 'A bright turquoise-blue and white kingfisher with a broad white collar, a heavy black bill and a white stripe above the eye.',
+    handling_note: 'Protect creekside vegetation where they nest. Report injured birds.',
+  },
+  {
+    name: 'Southeast Asian Box Turtle', scientific_name: 'Cuora amboinensis',
+    local_name: 'pagong',
+    category: 'Reptile', biome: 'Freshwater', indicator: 'Vulnerable',
+    hazard: 'None', is_endangered: true, sort_order: 10,
+    photo_credit: 'Cuora (English Wikipedia), CC BY-SA 3.0',
+    body_description: 'A semi-aquatic turtle with a high domed dark-olive shell and three yellow stripes on each side of a black head. The shell closes fully.',
+    handling_note: 'Never buy or sell. Turn over to CENRO for assessment and release.',
+  },
+  // THE SENTINEL ROW. species_name is a required foreign key, so a name a
+  // resident types cannot be stored in it - the same problem ComplaintType
+  // solves with a real "Other" category and otherCategory.js folding the typed
+  // detail into the description's first line. Wildlife follows that.
+  //
+  // No category/biome/indicator: an unidentified animal has no taxonomy.
+  // is_endangered is TRUE, which is what makes the fail-safe for an unknown
+  // animal a property of this row rather than a branch in the service - it is
+  // routed to Priority_Review and its location is obfuscated on the public map.
+  //
+  // DO NOT rename or retire this row. species.service.js refuses both, because
+  // the specify box and resolveSpecies()'s fallback both key off this literal
+  // name.
+  {
+    name: 'Other', category: null, biome: null, indicator: null,
+    hazard: 'None', is_endangered: true, sort_order: 999,
+    body_description: null,
+    handling_note: 'Treat any unidentified animal as potentially dangerous and possibly protected. Keep your distance, keep children and pets away, and do not attempt to handle it.',
+  },
+];
+
 async function main() {
   console.log('Seeding barangays...');
   const sites = barangays.map((b) => [b.longitude, b.latitude]);
@@ -122,6 +237,16 @@ async function main() {
     });
   }
   console.log(`  ${complaintTypes.length} complaint types, ${requestTypes.length} request types seeded.`);
+
+  for (const s of species) {
+    await prisma.species.upsert({
+      where: { name: s.name },
+      update: s,
+      create: s,
+    });
+  }
+  console.log(`  ${species.length} species seeded (including the "Other" sentinel).`);
+
   console.log('Seed complete.');
 }
 
