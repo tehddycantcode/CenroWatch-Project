@@ -1139,6 +1139,11 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
   if (isSentinel && data.is_active === false) {
     throw new HttpError(422, 'The "Other" entry cannot be retired. Residents need it to report an animal that is not in the catalogue.');
   }
+  // THE SINGLE MOST LOAD-BEARING GUARD IN THIS FILE. The whole fail-safe for an
+  // unidentified animal is this one row's boolean, and RE-SEEDING CANNOT REPAIR
+  // IT: the species upsert is create-only by design, so a flipped flag survives
+  // every deploy. Recovery is this screen or raw SQL - which is exactly why the
+  // flag must not be flippable from here in the first place.
   if (isSentinel && data.is_endangered === false) {
     throw new HttpError(422, 'The "Other" entry must stay marked endangered. It is what hides the location of an animal nobody has identified yet.');
   }
@@ -1618,6 +1623,24 @@ The behaviour change. After this, a client cannot set either value.
 **Interfaces:**
 - Consumes: `resolveSpecies` (Task 4), `isOtherCategory`/`withOtherDetail` conventions from `web/src/lib/otherCategory.js`.
 - Produces: no new exports. `createTurnover(userId, input, photoPath, ctx)` keeps its signature; `input.species_category` and `input.is_endangered` are no longer read.
+
+**Two requirements carried in from the Task 4 review:**
+
+1. **Do not wrap `resolveSpecies` in a try/catch with a default.** The fail-safe depends on a thrown lookup propagating so that nothing is inserted — the report fails *closed*. A `catch` that substitutes a default would invert it silently, storing an unverified species as not-endangered and publishing its exact coordinates. Add a test that pins it:
+
+```js
+  test('A LOOKUP FAILURE MUST NOT BE SWALLOWED', async () => {
+    // Fails CLOSED on purpose. If this call ever gains a catch-with-default, an
+    // unresolvable species would be stored as not-endangered and its exact
+    // coordinates published on the public map. Better to lose the request and
+    // let the resident retry than to file a report with the protection removed.
+    prisma.species.findUnique.mockRejectedValue(new Error('db down'));
+    await expect(createTurnover(7, base, null, {})).rejects.toThrow();
+    expect(createSequential).not.toHaveBeenCalled();
+  });
+```
+
+2. **`unlisted` is unbounded at the service boundary** — only `species_name` carries a 200-character cap, and nothing caps what an old client may send. `foldUnlistedSpecies` must keep the combined description inside **both** the validator's 10–5000 rule and the column. The 5000-cap test below covers the upper bound; confirm the folded text cannot also fall *under* 10 characters, which it cannot while a description is already required.
 
 - [ ] **Step 1: Write the failing tests**
 
