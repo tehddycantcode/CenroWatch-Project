@@ -476,6 +476,9 @@ jest.mock('../src/utils/prisma', () => ({
     findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(),
     update: jest.fn(), count: jest.fn(),
   },
+  // listAll counts usage with a groupBy on the plain species_name column,
+  // because WildlifeTurnover has no `species` relation until a later task.
+  wildlifeTurnover: { groupBy: jest.fn() },
 }));
 jest.mock('../src/utils/audit', () => ({ writeAuditLog: jest.fn() }));
 
@@ -487,6 +490,7 @@ beforeEach(() => {
   prisma.species.findUnique.mockResolvedValue(null);
   prisma.species.findMany.mockResolvedValue([]);
   prisma.species.count.mockResolvedValue(5);
+  prisma.wildlifeTurnover.groupBy.mockResolvedValue([]);
 });
 
 describe('listActive - what the report forms and the public page read', () => {
@@ -515,11 +519,18 @@ describe('listActive - what the report forms and the public page read', () => {
 describe('listAll - the admin view', () => {
   test('reports how many reports use each species', async () => {
     prisma.species.findMany.mockResolvedValue([
-      { species_id: 1, name: 'Philippine Duck', _count: { turnovers: 3 } },
+      { species_id: 1, name: 'Philippine Duck' },
+      { species_id: 2, name: 'Other' },
+    ]);
+    prisma.wildlifeTurnover.groupBy.mockResolvedValue([
+      { species_name: 'Philippine Duck', _count: { _all: 3 } },
     ]);
     const out = await svc.listAll();
     expect(out.species[0].in_use).toBe(3);
-    expect(out.species[0]._count).toBeUndefined();
+    // A species nothing references reports 0, not undefined - the admin screen
+    // renders this number directly, and `undefined` would print as blank where
+    // an Admin is deciding whether retiring it affects existing records.
+    expect(out.species[1].in_use).toBe(0);
   });
 
   test('includes retired species, which listActive hides', async () => {
@@ -551,9 +562,9 @@ Create `backend/src/services/species.service.js`:
 // against it cannot be removed without making that history unreadable, and the
 // FK is RESTRICT so the database refuses it outright.
 
+// Only what this file uses so far. Task 4 adds `HttpError`, Task 5 adds
+// `writeAuditLog`, Task 8 adds `storage` - each with the code that needs it.
 const prisma = require('../utils/prisma');
-const HttpError = require('../utils/httpError');
-const { writeAuditLog } = require('../utils/audit');
 
 // The sentinel row seeded by prisma/seed.js. species_name is a required foreign
 // key, so free text a resident types cannot go in it - this is the row that
@@ -599,12 +610,24 @@ async function listActive() {
  * will affect existing records, so it is worth the extra query.
  */
 async function listAll() {
-  const rows = await prisma.species.findMany({
-    orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
-    include: { _count: { select: { turnovers: true } } },
-  });
+  // TWO queries rather than a relation `_count`, because WildlifeTurnover does
+  // not carry a `species` relation yet - the foreign key lands in a later task,
+  // once every historical species_name has a catalogue row to point at. A
+  // groupBy on the plain column needs no relation and is exact. `species_name`
+  // is not an encrypted field, so the field-encryption extension in
+  // utils/prisma.js does not reject grouping by it.
+  const [rows, usage] = await Promise.all([
+    prisma.species.findMany({
+      orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
+    }),
+    prisma.wildlifeTurnover.groupBy({
+      by: ['species_name'],
+      _count: { _all: true },
+    }),
+  ]);
+  const counts = new Map(usage.map((u) => [u.species_name, u._count._all]));
   return {
-    species: rows.map(({ _count, ...row }) => ({ ...row, in_use: _count.turnovers })),
+    species: rows.map((row) => ({ ...row, in_use: counts.get(row.name) || 0 })),
   };
 }
 
@@ -2042,9 +2065,17 @@ node scripts/audit-species-names.mjs
 ```
 Expected: `Safe to add the foreign key.`
 
-- [ ] **Step 5: Add the relation to the schema**
+- [ ] **Step 5: Add BOTH sides of the relation to the schema**
 
-In `WildlifeTurnover`:
+Prisma requires both halves to be declared, so these two edits are one change — the schema is invalid with either alone, and Task 1 deliberately left the back-relation out for that reason.
+
+First, in `Species`, as its last field before the `@@index` lines:
+
+```prisma
+  turnovers WildlifeTurnover[]
+```
+
+Then in `WildlifeTurnover`:
 
 ```prisma
   // REQUIRED relation, exactly like Complaint.type: the scalar FK field is
@@ -2065,6 +2096,8 @@ npx prisma migrate dev --name wildlife_species_fk --create-only
 npx jest tests/migrationCasing.test.js   # must PASS before applying
 npx prisma migrate dev
 ```
+
+> **EXPECT THE CASING BUG HERE.** Task 1's `CREATE TABLE` escaped it, and the reason predicts this migration will not: Prisma emits a new table from the schema's declared name, but an `ALTER TABLE` name is read back from the database — and on case-insensitive Windows MySQL it comes back lowercase. Every prior occurrence documented in `CLAUDE.md` was an `ALTER` on an existing table. This migration alters `WildlifeTurnover`, so assume `` ALTER TABLE `wildlifeturnover` `` and fix it before applying.
 
 - [ ] **Step 7: Change `species_category` to the enum**
 
