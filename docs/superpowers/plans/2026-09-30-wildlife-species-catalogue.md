@@ -1208,7 +1208,7 @@ git commit -m "Let an Admin manage the species catalogue" -- backend/src/service
 - Create: `backend/src/controllers/species.controller.js`
 - Create: `backend/src/routes/species.routes.js`
 - Modify: `backend/src/routes/index.js` (beside `:22`)
-- Modify: `backend/tests/routing.test.js`
+- Create: `backend/tests/speciesRoutes.test.js`
 
 **Interfaces:**
 - Consumes: `speciesService.listActive` (Task 3).
@@ -1216,7 +1216,7 @@ git commit -m "Let an Admin manage the species catalogue" -- backend/src/service
 
 - [ ] **Step 1: Write the failing test**
 
-Read `backend/tests/routing.test.js` first and match its style. Add this, which inspects the species router directly and the mount as source text — both deterministic, unlike matching a compiled Express path regexp:
+Create a DEDICATED file. Do NOT add these to `tests/routing.test.js` - despite the name, that suite is about road routing to OpenRouteService, not Express routes, and burying route assertions there means nobody looking for them finds them. Match the house style of any test file: a short header saying why the suite exists. The assertions inspect the species router directly and the mount as source text — both deterministic, unlike matching a compiled Express path regexp:
 
 ```js
 describe('public species route', () => {
@@ -1244,7 +1244,7 @@ describe('public species route', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx jest tests/routing.test.js`
+Run: `npx jest tests/speciesRoutes.test.js`
 Expected: FAIL — `Cannot find module '../src/routes/species.routes'`.
 
 - [ ] **Step 3: Write the controller**
@@ -1297,7 +1297,7 @@ router.use('/species', require('./species.routes'));
 
 - [ ] **Step 6: Run the test to verify it passes**
 
-Run: `npx jest tests/routing.test.js`
+Run: `npx jest tests/speciesRoutes.test.js`
 Expected: PASS.
 
 - [ ] **Step 7: Verify against the running server**
@@ -1314,7 +1314,7 @@ Expected: `{"success":true,"data":{"species":[{"name":"Philippine Duck",...`. Co
 ```bash
 git status --short
 git add backend/src/controllers/species.controller.js backend/src/routes/species.routes.js
-git commit -m "Serve the species catalogue to the report forms" -- backend/src/controllers/species.controller.js backend/src/routes/species.routes.js backend/src/routes/index.js backend/tests/routing.test.js
+git commit -m "Serve the species catalogue to the report forms" -- backend/src/controllers/species.controller.js backend/src/routes/species.routes.js backend/src/routes/index.js backend/tests/speciesRoutes.test.js
 ```
 
 ---
