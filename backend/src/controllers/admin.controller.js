@@ -106,9 +106,12 @@ const updateCategory = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Category updated.', data: { category } });
 });
 
-// Species catalogue. The PUBLIC species cache on both clients is keyed per
-// session, so a mutation here is only visible after that cache is invalidated -
-// web/src/lib/api.js does that in adminApi.
+// Species catalogue. Both clients cache the PUBLIC species list per session, so
+// a mutation here is NOT visible to a resident until that cache is invalidated.
+// Whatever calls these endpoints has to do it: an Admin retires a species and
+// residents keep being offered it until their tab reloads otherwise. See how
+// adminApi invalidates categoryApi and barangayApi in web/src/lib/api.js for the
+// established shape.
 const listSpecies = asyncHandler(async (req, res) => {
   const data = await speciesService.listAll();
   res.json({ success: true, data });

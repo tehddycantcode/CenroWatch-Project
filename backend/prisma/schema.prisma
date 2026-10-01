@@ -261,9 +261,18 @@ model Species {
   scientific_name String? @db.VarChar(200)
   local_name      String? @db.VarChar(200) // e.g. "musang"
 
-  // NULLABLE, all three. The catalogue holds one sentinel row, `Other`, which
-  // has no taxonomy at all. Real species always carry these, enforced by
-  // species.validators.js rather than by the column.
+  // NULLABLE, all three, at the column level - no migration enforces any of
+  // this. The catalogue holds one sentinel row, `Other`, which has no taxonomy
+  // at all. Of the other two, only `category` is required of a real species,
+  // and only on CREATE - species.validators.js enforces it there (an update
+  // sends only changed fields, so requiring it there would break every edit
+  // that does not touch category). It is required because
+  // species.service.resolveSpecies() auto-assigns `category` onto every
+  // report filed against a species, falling back to whatever the client posts
+  // only when the row's own category is null; a real row left without one
+  // would reopen that client-controlled path. `biome` and `indicator` are
+  // purely descriptive - they enrich the identification card a resident sees,
+  // and stay optional on both create and update.
   category  SpeciesCategory?
   biome     SpeciesBiome?
   indicator SpeciesIndicator?
