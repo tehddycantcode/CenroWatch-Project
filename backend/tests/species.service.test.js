@@ -74,3 +74,98 @@ describe('listAll - the admin view', () => {
     expect(prisma.species.findMany.mock.calls[0][0].where).toBeUndefined();
   });
 });
+
+describe('createSpecies', () => {
+  test('creates an active species and writes an audit row', async () => {
+    const { writeAuditLog } = require('../src/utils/audit');
+    prisma.species.create.mockImplementation(({ data }) => Promise.resolve({ species_id: 7, ...data }));
+    const row = await svc.createSpecies(3, { name: 'Luzon Hornbill', category: 'Bird', biome: 'Forest', indicator: 'Endemic' }, { ipAddress: '1.2.3.4' });
+    expect(row.name).toBe('Luzon Hornbill');
+    expect(writeAuditLog).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'SPECIES_CREATE', targetTable: 'Species', performedBy: 3,
+    }));
+  });
+
+  test('refuses a duplicate name with 409, not a database error', async () => {
+    prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck' });
+    await expect(svc.createSpecies(3, { name: 'Philippine Duck' }, {}))
+      .rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  test('requires a name', async () => {
+    await expect(svc.createSpecies(3, { name: '   ' }, {})).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  test('refuses a category outside the three', async () => {
+    await expect(svc.createSpecies(3, { name: 'Frog', category: 'Amphibian' }, {}))
+      .rejects.toMatchObject({ statusCode: 422 });
+  });
+});
+
+describe('updateSpecies', () => {
+  beforeEach(() => {
+    prisma.species.update.mockImplementation(({ data }) => Promise.resolve({ species_id: 1, ...data }));
+  });
+
+  test('updates editable fields', async () => {
+    prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', is_active: true });
+    const row = await svc.updateSpecies(3, 1, { body_description: 'A duck.' }, {});
+    expect(row.body_description).toBe('A duck.');
+  });
+
+  test('THE NAME IS NOT EDITABLE', async () => {
+    // It is the foreign key every report stores, and it also appears in exported
+    // PDFs and audit payloads that cannot be rewritten - a rename would silently
+    // split one species' history in two. Retire and replace instead.
+    prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', is_active: true });
+    await svc.updateSpecies(3, 1, { name: 'Anas luzonica', body_description: 'x' }, {});
+    expect(prisma.species.update.mock.calls[0][0].data.name).toBeUndefined();
+  });
+
+  test('refuses an update with nothing in it', async () => {
+    prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'X', is_active: true });
+    await expect(svc.updateSpecies(3, 1, {}, {})).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  test('404s on a species that does not exist', async () => {
+    prisma.species.findUnique.mockResolvedValue(null);
+    await expect(svc.updateSpecies(3, 99, { body_description: 'x' }, {}))
+      .rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  test('REFUSES TO RETIRE THE LAST ACTIVE SPECIES', async () => {
+    // Residents would be left with an empty dropdown and no way to file
+    // anything - discovered by a resident, not by the Admin who caused it.
+    prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', is_active: true });
+    prisma.species.count.mockResolvedValue(1);
+    await expect(svc.updateSpecies(3, 1, { is_active: false }, {}))
+      .rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  test('REFUSES TO RETIRE THE "Other" SENTINEL', async () => {
+    // Review Focus 3. Retiring it removes the specify box from the form AND
+    // resolveSpecies()'s only fallback, so every uncatalogued species would
+    // start erroring - with nothing about the Admin's action to explain it.
+    prisma.species.findUnique.mockResolvedValue({ species_id: 11, name: 'Other', is_active: true });
+    prisma.species.count.mockResolvedValue(11);
+    await expect(svc.updateSpecies(3, 11, { is_active: false }, {}))
+      .rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  test('allows harmless edits to the "Other" row', async () => {
+    // Its handling_note is real safety copy worth improving; only retiring it
+    // and changing its endangered flag are refused.
+    prisma.species.findUnique.mockResolvedValue({ species_id: 11, name: 'Other', is_active: true });
+    const row = await svc.updateSpecies(3, 11, { handling_note: 'Keep back.' }, {});
+    expect(row.handling_note).toBe('Keep back.');
+  });
+
+  test('REFUSES to make the "Other" row non-endangered', async () => {
+    // That flag is the fail-safe for every unidentified animal. Clearing it
+    // would start publishing exact locations for exactly the reports we know
+    // least about.
+    prisma.species.findUnique.mockResolvedValue({ species_id: 11, name: 'Other', is_active: true });
+    await expect(svc.updateSpecies(3, 11, { is_endangered: false }, {}))
+      .rejects.toMatchObject({ statusCode: 422 });
+  });
+});

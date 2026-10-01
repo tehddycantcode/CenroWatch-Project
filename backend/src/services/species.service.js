@@ -16,6 +16,7 @@
 // should be reporting instead.
 const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
+const { writeAuditLog } = require('../utils/audit');
 
 // The sentinel row seeded by prisma/seed.js. species_name is a required foreign
 // key, so free text a resident types cannot go in it - this is the row that
@@ -153,7 +154,136 @@ async function resolveSpecies(submittedName, submittedCategory) {
   };
 }
 
+const BIOME_VALUES = ['Forest', 'Freshwater', 'Lakeshore_Wetland', 'Agricultural', 'Urban', 'Cave'];
+const INDICATOR_VALUES = ['Common', 'Native', 'Endemic', 'Near_Threatened', 'Vulnerable', 'Endangered', 'Critically_Endangered'];
+const HAZARD_VALUES = ['None', 'Venomous', 'Aggressive', 'Disease_Risk', 'Powerful_Bite_Or_Talons'];
+
+// A species NAME is displayed verbatim (it is a real common name, not an
+// enum-shaped value like Illegal_Dumping), so it allows spaces and hyphens -
+// unlike category.service's NAME_RE. It still cannot be blank or absurd.
+function cleanName(value) {
+  const name = String(value || '').trim();
+  if (!name) throw new HttpError(422, 'A species name is required.');
+  if (name.length > 200) throw new HttpError(422, 'Species name is too long.');
+  return name;
+}
+
+function enumOrThrow(value, allowed, label) {
+  if (value === undefined || value === null || value === '') return null;
+  const v = String(value).trim();
+  if (!allowed.includes(v)) {
+    throw new HttpError(422, `${label} must be one of: ${allowed.join(', ')}.`);
+  }
+  return v;
+}
+
+const text = (v) => (v === undefined || v === null || String(v).trim() === '' ? null : String(v).trim());
+
+async function createSpecies(adminId, input, ctx = {}) {
+  const name = cleanName(input.name);
+
+  const clash = await prisma.species.findUnique({ where: { name } });
+  if (clash) throw new HttpError(409, 'A species with that name already exists.');
+
+  const row = await prisma.species.create({
+    data: {
+      name,
+      scientific_name: text(input.scientific_name),
+      local_name: text(input.local_name),
+      category: enumOrThrow(input.category, CATEGORY_VALUES, 'Category'),
+      biome: enumOrThrow(input.biome, BIOME_VALUES, 'Biome'),
+      indicator: enumOrThrow(input.indicator, INDICATOR_VALUES, 'Indicator'),
+      hazard: enumOrThrow(input.hazard, HAZARD_VALUES, 'Hazard') || 'None',
+      is_endangered: Boolean(input.is_endangered),
+      body_description: text(input.body_description),
+      handling_note: text(input.handling_note),
+      sort_order: Number.isInteger(input.sort_order) ? input.sort_order : 0,
+    },
+  });
+
+  await writeAuditLog({
+    performedBy: adminId,
+    action: 'SPECIES_CREATE',
+    targetTable: 'Species',
+    targetId: row.species_id,
+    data: { name: row.name, category: row.category, is_endangered: row.is_endangered },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return row;
+}
+
+async function updateSpecies(adminId, id, input, ctx = {}) {
+  const targetId = Number(id);
+  if (!Number.isInteger(targetId)) throw new HttpError(404, 'Species not found.');
+
+  const existing = await prisma.species.findUnique({ where: { species_id: targetId } });
+  if (!existing) throw new HttpError(404, 'Species not found.');
+
+  const isSentinel = existing.name === OTHER_SPECIES;
+
+  const data = {};
+  // The name is deliberately NOT editable. It is the foreign key every report
+  // stores; ON UPDATE CASCADE would rewrite those, but the name also appears in
+  // exported PDFs and audit-log payloads that cannot be rewritten, so a rename
+  // would silently split one species' history in two. Retire it and add a
+  // replacement instead - that keeps both halves legible.
+  if (input.scientific_name !== undefined) data.scientific_name = text(input.scientific_name);
+  if (input.local_name !== undefined) data.local_name = text(input.local_name);
+  if (input.category !== undefined) data.category = enumOrThrow(input.category, CATEGORY_VALUES, 'Category');
+  if (input.biome !== undefined) data.biome = enumOrThrow(input.biome, BIOME_VALUES, 'Biome');
+  if (input.indicator !== undefined) data.indicator = enumOrThrow(input.indicator, INDICATOR_VALUES, 'Indicator');
+  if (input.hazard !== undefined) data.hazard = enumOrThrow(input.hazard, HAZARD_VALUES, 'Hazard') || 'None';
+  if (input.is_endangered !== undefined) data.is_endangered = Boolean(input.is_endangered);
+  if (input.body_description !== undefined) data.body_description = text(input.body_description);
+  if (input.handling_note !== undefined) data.handling_note = text(input.handling_note);
+  if (input.sort_order !== undefined) data.sort_order = Number(input.sort_order) || 0;
+  if (input.is_active !== undefined) data.is_active = Boolean(input.is_active);
+
+  if (Object.keys(data).length === 0) throw new HttpError(422, 'Nothing to change.');
+
+  // THE SENTINEL'S TWO LOAD-BEARING PROPERTIES. Its name is what the specify box
+  // and resolveSpecies()'s fallback key off, and its is_endangered = true is the
+  // fail-safe for every unidentified animal. Both are refused explicitly, with a
+  // message that says why, because nothing about the Admin's action would
+  // otherwise explain the breakage that follows.
+  if (isSentinel && data.is_active === false) {
+    throw new HttpError(422, 'The "Other" entry cannot be retired. Residents need it to report an animal that is not in the catalogue.');
+  }
+  // THE SINGLE MOST LOAD-BEARING GUARD IN THIS FILE. The whole fail-safe for an
+  // unidentified animal is this one row's boolean, and RE-SEEDING CANNOT REPAIR
+  // IT: the species upsert is create-only by design, so a flipped flag survives
+  // every deploy. Recovery is this screen or raw SQL - which is exactly why the
+  // flag must not be flippable from here in the first place.
+  if (isSentinel && data.is_endangered === false) {
+    throw new HttpError(422, 'The "Other" entry must stay marked endangered. It is what hides the location of an animal nobody has identified yet.');
+  }
+
+  // Retiring the last active species would leave the wildlife form with no
+  // options and no way for a resident to file anything - refused rather than
+  // discovered by a resident staring at an empty dropdown.
+  if (data.is_active === false && existing.is_active) {
+    const remaining = await prisma.species.count({ where: { is_active: true } });
+    if (remaining <= 1) {
+      throw new HttpError(422, 'This is the last active species. Add another one before retiring it.');
+    }
+  }
+
+  const row = await prisma.species.update({ where: { species_id: targetId }, data });
+
+  await writeAuditLog({
+    performedBy: adminId,
+    action: 'SPECIES_UPDATE',
+    targetTable: 'Species',
+    targetId: row.species_id,
+    data: { name: row.name, changed: Object.keys(data) },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return row;
+}
+
 module.exports = {
-  OTHER_SPECIES, PUBLIC_FIELDS, CATEGORY_VALUES,
-  listActive, listAll, resolveSpecies,
+  OTHER_SPECIES, PUBLIC_FIELDS, CATEGORY_VALUES, BIOME_VALUES, INDICATOR_VALUES, HAZARD_VALUES,
+  listActive, listAll, resolveSpecies, createSpecies, updateSpecies,
 };
