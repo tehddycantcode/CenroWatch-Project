@@ -160,11 +160,13 @@ const HAZARD_VALUES = ['None', 'Venomous', 'Aggressive', 'Disease_Risk', 'Powerf
 
 // A species NAME is displayed verbatim (it is a real common name, not an
 // enum-shaped value like Illegal_Dumping), so it allows spaces and hyphens -
-// unlike category.service's NAME_RE. It still cannot be blank or absurd.
+// unlike category.service's NAME_RE. It still cannot be blank or absurd, and
+// the cap matches the column (VarChar(200)) so this is a clean 422 instead of
+// a 500 from MySQL.
 function cleanName(value) {
   const name = String(value || '').trim();
   if (!name) throw new HttpError(422, 'A species name is required.');
-  if (name.length > 200) throw new HttpError(422, 'Species name is too long.');
+  if (name.length > 200) throw new HttpError(422, 'Species name must be 200 characters or fewer.');
   return name;
 }
 
@@ -179,27 +181,78 @@ function enumOrThrow(value, allowed, label) {
 
 const text = (v) => (v === undefined || v === null || String(v).trim() === '' ? null : String(v).trim());
 
+// scientific_name and local_name are VarChar(200); body_description and
+// handling_note are Text (no practical cap), so only these two need this.
+// Without it a 201-character value reaches MySQL and 500s, where the species
+// name itself already 422s cleanly at the same length.
+function textCapped(value, maxLength, label) {
+  const s = text(value);
+  if (s && s.length > maxLength) {
+    throw new HttpError(422, `${label} must be ${maxLength} characters or fewer.`);
+  }
+  return s;
+}
+
+// Booleans arrive from more than one kind of caller - an HTTP body a browser's
+// fetch() serialised as real JSON, but also the seed and any one-off script,
+// which may pass a string. JS Boolean(x) treats every non-empty string as
+// true, so Boolean('false') is true: a caller sending the string 'false'
+// would silently REACTIVATE a species it meant to retire, or silently fail to
+// clear a flag, while the save reports success. Accepted only as real
+// booleans or the string/number forms a form body actually produces;
+// anything else is a 422 rather than a guess. This is also why the enum
+// validation above is duplicated here instead of trusted to an HTTP layer:
+// this function is reached from the seed and from scripts too.
+function toBool(value, label) {
+  if (value === true || value === false) return value;
+  if (value === 1 || value === '1' || value === 'true') return true;
+  if (value === 0 || value === '0' || value === 'false') return false;
+  throw new HttpError(422, `${label} must be true or false.`);
+}
+
+// sort_order accepts a real number or the numeric string a form posts. The
+// two rules this replaces disagreed with each other - Number.isInteger(x) ? x
+// : 0 treated any string, including a perfectly good '10', as non-integer and
+// silently zeroed it, while Number(x) || 0 parsed '10' correctly - and both
+// silently turned unparseable input into 0, indistinguishable from an Admin
+// who typed 0 on purpose. One rule now, and garbage is a 422 instead of a
+// silent default.
+function toSortOrder(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) throw new HttpError(422, 'Sort order must be a number.');
+  return Math.trunc(n);
+}
+
 async function createSpecies(adminId, input, ctx = {}) {
   const name = cleanName(input.name);
 
   const clash = await prisma.species.findUnique({ where: { name } });
   if (clash) throw new HttpError(409, 'A species with that name already exists.');
 
-  const row = await prisma.species.create({
-    data: {
-      name,
-      scientific_name: text(input.scientific_name),
-      local_name: text(input.local_name),
-      category: enumOrThrow(input.category, CATEGORY_VALUES, 'Category'),
-      biome: enumOrThrow(input.biome, BIOME_VALUES, 'Biome'),
-      indicator: enumOrThrow(input.indicator, INDICATOR_VALUES, 'Indicator'),
-      hazard: enumOrThrow(input.hazard, HAZARD_VALUES, 'Hazard') || 'None',
-      is_endangered: Boolean(input.is_endangered),
-      body_description: text(input.body_description),
-      handling_note: text(input.handling_note),
-      sort_order: Number.isInteger(input.sort_order) ? input.sort_order : 0,
-    },
-  });
+  const data = {
+    name,
+    scientific_name: textCapped(input.scientific_name, 200, 'Scientific name'),
+    local_name: textCapped(input.local_name, 200, 'Local name'),
+    category: enumOrThrow(input.category, CATEGORY_VALUES, 'Category'),
+    biome: enumOrThrow(input.biome, BIOME_VALUES, 'Biome'),
+    indicator: enumOrThrow(input.indicator, INDICATOR_VALUES, 'Indicator'),
+    hazard: enumOrThrow(input.hazard, HAZARD_VALUES, 'Hazard') || 'None',
+    // Default false/true when omitted, matching the column defaults - but a
+    // value the caller DOES send still goes through toBool(), so a stray
+    // 'false' string cannot flip an endangered species to is_endangered: true
+    // (or the reverse) while the create reports success.
+    is_endangered: input.is_endangered === undefined ? false : toBool(input.is_endangered, 'is_endangered'),
+    // Not in the original brief: without this a species could only ever be
+    // created active, and backfilling historical species as retired would
+    // have to call prisma.species.create directly and bypass this function's
+    // audit trail entirely.
+    is_active: input.is_active === undefined ? true : toBool(input.is_active, 'is_active'),
+    body_description: text(input.body_description),
+    handling_note: text(input.handling_note),
+    sort_order: input.sort_order === undefined ? 0 : toSortOrder(input.sort_order),
+  };
+
+  const row = await prisma.species.create({ data });
 
   await writeAuditLog({
     performedBy: adminId,
@@ -222,23 +275,33 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
 
   const isSentinel = existing.name === OTHER_SPECIES;
 
-  const data = {};
   // The name is deliberately NOT editable. It is the foreign key every report
   // stores; ON UPDATE CASCADE would rewrite those, but the name also appears in
   // exported PDFs and audit-log payloads that cannot be rewritten, so a rename
-  // would silently split one species' history in two. Retire it and add a
-  // replacement instead - that keeps both halves legible.
-  if (input.scientific_name !== undefined) data.scientific_name = text(input.scientific_name);
-  if (input.local_name !== undefined) data.local_name = text(input.local_name);
+  // would silently split one species' history in two. Refused outright rather
+  // than silently dropped: a caller sending only { name } used to get a
+  // confusing "Nothing to change" (false - they changed exactly one thing),
+  // and one bundled with a real edit used to get a 200 with the rename
+  // quietly discarded underneath it. Neither told the Admin what happened.
+  // Retire this row and add a replacement instead - a resubmit of the
+  // CURRENT name (a form that always includes it) is not a rename and is let
+  // through untouched.
+  if (input.name !== undefined && String(input.name).trim() !== existing.name) {
+    throw new HttpError(422, 'A species name cannot be changed, because every report is stored against it. Retire this species and add a replacement instead.');
+  }
+
+  const data = {};
+  if (input.scientific_name !== undefined) data.scientific_name = textCapped(input.scientific_name, 200, 'Scientific name');
+  if (input.local_name !== undefined) data.local_name = textCapped(input.local_name, 200, 'Local name');
   if (input.category !== undefined) data.category = enumOrThrow(input.category, CATEGORY_VALUES, 'Category');
   if (input.biome !== undefined) data.biome = enumOrThrow(input.biome, BIOME_VALUES, 'Biome');
   if (input.indicator !== undefined) data.indicator = enumOrThrow(input.indicator, INDICATOR_VALUES, 'Indicator');
   if (input.hazard !== undefined) data.hazard = enumOrThrow(input.hazard, HAZARD_VALUES, 'Hazard') || 'None';
-  if (input.is_endangered !== undefined) data.is_endangered = Boolean(input.is_endangered);
+  if (input.is_endangered !== undefined) data.is_endangered = toBool(input.is_endangered, 'is_endangered');
   if (input.body_description !== undefined) data.body_description = text(input.body_description);
   if (input.handling_note !== undefined) data.handling_note = text(input.handling_note);
-  if (input.sort_order !== undefined) data.sort_order = Number(input.sort_order) || 0;
-  if (input.is_active !== undefined) data.is_active = Boolean(input.is_active);
+  if (input.sort_order !== undefined) data.sort_order = toSortOrder(input.sort_order);
+  if (input.is_active !== undefined) data.is_active = toBool(input.is_active, 'is_active');
 
   if (Object.keys(data).length === 0) throw new HttpError(422, 'Nothing to change.');
 
@@ -246,7 +309,10 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
   // and resolveSpecies()'s fallback key off, and its is_endangered = true is the
   // fail-safe for every unidentified animal. Both are refused explicitly, with a
   // message that says why, because nothing about the Admin's action would
-  // otherwise explain the breakage that follows.
+  // otherwise explain the breakage that follows. Both checks read `data`, which
+  // has already been through toBool() above - never `input` directly, because
+  // `input.is_endangered === false` would let {"is_endangered": 0} walk
+  // straight past this guard.
   if (isSentinel && data.is_active === false) {
     throw new HttpError(422, 'The "Other" entry cannot be retired. Residents need it to report an animal that is not in the catalogue.');
   }
@@ -271,12 +337,32 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
 
   const row = await prisma.species.update({ where: { species_id: targetId }, data });
 
+  // A field NAME in the audit row ("is_active changed") cannot answer the
+  // question that matters when someone asks about it later: changed from
+  // what, to what? For these two flags that is not recoverable any other way
+  // - the species seed is create-only, so re-seeding cannot restore a flipped
+  // value, and nothing else records the row's prior state.
+  const auditData = { name: row.name, changed: Object.keys(data) };
+  if (data.is_endangered !== undefined) {
+    auditData.is_endangered = { from: existing.is_endangered, to: data.is_endangered };
+  }
+  if (data.is_active !== undefined) {
+    auditData.is_active = { from: existing.is_active, to: data.is_active };
+  }
+
+  // A retirement gets its own action so it is filterable in the audit log
+  // independent of every other edit. Reactivation stays SPECIES_UPDATE (the
+  // from/to above still shows the direction) because only the active ->
+  // inactive transition removes a species from residents' options; going the
+  // other way does not need the same visibility.
+  const action = existing.is_active === true && data.is_active === false ? 'SPECIES_RETIRE' : 'SPECIES_UPDATE';
+
   await writeAuditLog({
     performedBy: adminId,
-    action: 'SPECIES_UPDATE',
+    action,
     targetTable: 'Species',
     targetId: row.species_id,
-    data: { name: row.name, changed: Object.keys(data) },
+    data: auditData,
     ipAddress: ctx.ipAddress || null,
   });
 

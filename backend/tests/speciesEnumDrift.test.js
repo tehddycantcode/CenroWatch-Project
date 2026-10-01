@@ -34,6 +34,9 @@ function enumValues(name) {
 // [ exported constant name, the Prisma enum it must mirror ]
 const CASES = [
   ['CATEGORY_VALUES', 'SpeciesCategory'],
+  ['BIOME_VALUES', 'SpeciesBiome'],
+  ['INDICATOR_VALUES', 'SpeciesIndicator'],
+  ['HAZARD_VALUES', 'SpeciesHazard'],
 ];
 
 describe('species.service value mirrors match their Prisma enum', () => {
