@@ -193,16 +193,18 @@ function textCapped(value, maxLength, label) {
   return s;
 }
 
-// Booleans arrive from more than one kind of caller - an HTTP body a browser's
-// fetch() serialised as real JSON, but also the seed and any one-off script,
-// which may pass a string. JS Boolean(x) treats every non-empty string as
-// true, so Boolean('false') is true: a caller sending the string 'false'
-// would silently REACTIVATE a species it meant to retire, or silently fail to
-// clear a flag, while the save reports success. Accepted only as real
-// booleans or the string/number forms a form body actually produces;
-// anything else is a 422 rather than a guess. This is also why the enum
-// validation above is duplicated here instead of trusted to an HTTP layer:
-// this function is reached from the seed and from scripts too.
+// Booleans arrive from more than one kind of caller. An HTTP body a browser's
+// fetch() serialised as real JSON is the common case, but the HTTP validator
+// is not the only way in - the service is the boundary this invariant
+// belongs to, and a backfill or a later script can call createSpecies/
+// updateSpecies directly without ever passing through a route. JS Boolean(x)
+// treats every non-empty string as true, so Boolean('false') is true: such a
+// caller sending the string 'false' would silently REACTIVATE a species it
+// meant to retire, or silently fail to clear a flag, while the save reports
+// success. Accepted only as real booleans or the string/number forms a form
+// body actually produces; anything else is a 422 rather than a guess. This is
+// also why the enum validation above is duplicated here instead of trusted to
+// an HTTP layer.
 function toBool(value, label) {
   if (value === true || value === false) return value;
   if (value === 1 || value === '1' || value === 'true') return true;
@@ -259,7 +261,7 @@ async function createSpecies(adminId, input, ctx = {}) {
     action: 'SPECIES_CREATE',
     targetTable: 'Species',
     targetId: row.species_id,
-    data: { name: row.name, category: row.category, is_endangered: row.is_endangered },
+    data: { name: row.name, category: row.category, is_endangered: row.is_endangered, is_active: row.is_active },
     ipAddress: ctx.ipAddress || null,
   });
 

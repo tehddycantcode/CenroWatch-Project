@@ -84,6 +84,10 @@ describe('createSpecies', () => {
     expect(writeAuditLog).toHaveBeenCalledWith(expect.objectContaining({
       action: 'SPECIES_CREATE', targetTable: 'Species', performedBy: 3,
       targetId: 7, ipAddress: '1.2.3.4',
+      // A species created already-retired (is_active: false) must say so in
+      // its own SPECIES_CREATE row - otherwise the log records that
+      // something was created, not what was created.
+      data: expect.objectContaining({ is_active: true }),
     }));
   });
 
