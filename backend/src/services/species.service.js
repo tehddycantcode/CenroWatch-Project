@@ -10,8 +10,10 @@
 // against it cannot be removed without making that history unreadable, and the
 // FK is RESTRICT so the database refuses it outright.
 
-// Only what this file uses so far. Task 4 adds `HttpError`, Task 5 adds
-// `writeAuditLog`, Task 8 adds `storage` - each with the code that needs it.
+// Only what this file uses. `prisma` reads and writes the catalogue;
+// `HttpError` reports the one failure mode below that is this service's own
+// (a missing catalogue row), rather than a validation failure a controller
+// should be reporting instead.
 const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 
@@ -82,8 +84,8 @@ async function listAll() {
 
 // The three exclusive categories, mirroring the SpeciesCategory enum. Duplicated
 // here rather than imported because Prisma does not export enum values usable in
-// a plain Set; tests/statusPartitions.test.js reads schema.prisma directly if you
-// need the authoritative list.
+// a plain Set; tests/speciesEnumDrift.test.js reads schema.prisma directly and
+// fails if this list and the enum ever disagree.
 const CATEGORY_VALUES = ['Bird', 'Mammal', 'Reptile'];
 
 /**
@@ -122,8 +124,9 @@ async function resolveSpecies(submittedName, submittedCategory) {
   if (row) {
     return {
       name: row.name,
-      // The row wins. A client-sent category is only a fallback for a row that
-      // has none, which today means the Other sentinel alone.
+      // The row wins. A client-sent category is only consulted for a row whose
+      // own category is null - the seeded Other sentinel is the only such row
+      // today, but an Admin may create others.
       category: row.category || usablePick,
       is_endangered: row.is_endangered,
       hazard: row.hazard,
@@ -133,9 +136,11 @@ async function resolveSpecies(submittedName, submittedCategory) {
 
   const other = await prisma.species.findUnique({ where: { name: OTHER_SPECIES }, select });
   if (!other) {
-    // Unreachable through the app: seed.js creates this row and update()/retire()
-    // both refuse to touch it. Reachable by deleting it in SQL, and the failure
-    // would otherwise be a foreign-key error on an unrelated insert.
+    // Retiring the row cannot reach this branch - retiring only sets
+    // is_active = false, and this lookup does not filter on is_active, so a
+    // retired Other row is still found here. Reachable only by renaming the
+    // row or deleting it outright, both directly in SQL; the failure would
+    // otherwise surface later as a foreign-key error on an unrelated insert.
     throw new HttpError(500, `The species catalogue is missing its "${OTHER_SPECIES}" entry. Re-run the seed.`);
   }
 

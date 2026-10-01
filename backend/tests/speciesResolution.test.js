@@ -58,6 +58,24 @@ describe('a catalogued species decides its own category and status', () => {
     expect(out.is_endangered).toBe(true);
   });
 
+  test('A CATALOGUED COMMON SPECIES IS NOT ENDANGERED', async () => {
+    // The other half of the assertion above, and the one that makes the flag
+    // provably ROW-DERIVED rather than a constant: with only `toBe(true)`
+    // assertions in this file, hardcoding `is_endangered: true` passes the whole
+    // suite. COBRA is declared is_endangered: false precisely so this can fail.
+    catalogue([COBRA]);
+    expect((await resolveSpecies('Philippine Cobra')).is_endangered).toBe(false);
+  });
+
+  test('an extra argument cannot introduce an override channel', async () => {
+    // The test above is named "A CLIENT CANNOT OVERRIDE THE ENDANGERED FLAG" but
+    // passes no override to be ignored. A later task adds a staff-only
+    // is_endangered override; if anyone threads it through this signature as
+    // `submittedEndangered ?? row.is_endangered`, this is what fails.
+    catalogue([COBRA]);
+    expect((await resolveSpecies('Philippine Cobra', null, true)).is_endangered).toBe(false);
+  });
+
   test('carries the hazard through, for the safety guidance in Plan B', async () => {
     catalogue([COBRA]);
     expect((await resolveSpecies('Philippine Cobra')).hazard).toBe('Venomous');
@@ -128,6 +146,20 @@ describe('AN UNKNOWN SPECIES NAME MUST NOT LOSE THE REPORT', () => {
     expect(out.name).toBe('Philippine Duck');
     expect(out.unlisted).toBeNull();
   });
+
+  // The coercion at the top of resolveSpecies is load-bearing, not defensive
+  // noise: without it, `null.trim()` throws and a client that omits the field
+  // gets a 500 instead of a filed report. Prisma also rejects a non-string
+  // `where.name` outright, so the coercion is what keeps it from ever seeing one.
+  test.each([null, undefined, '   ', 42, {}, []])(
+    'falls back to Other for %p instead of throwing',
+    async (bad) => {
+      catalogue([OTHER]);
+      const out = await resolveSpecies(bad);
+      expect(out.name).toBe('Other');
+      expect(out.is_endangered).toBe(true);
+    },
+  );
 });
 
 describe('a catalogue with no Other row', () => {
@@ -135,5 +167,10 @@ describe('a catalogue with no Other row', () => {
     // Only reachable if someone deletes the seeded row directly in SQL.
     catalogue([]);
     await expect(resolveSpecies('Sea turtle')).rejects.toThrow(/catalogue/i);
+    // The message alone would stay green if this 500 became a 422 - which would
+    // report a missing seeded row to a resident as a validation failure on their
+    // own submission. statusCode, not status: status would pass vacuously
+    // against undefined.
+    await expect(resolveSpecies('Sea turtle')).rejects.toMatchObject({ statusCode: 500 });
   });
 });
