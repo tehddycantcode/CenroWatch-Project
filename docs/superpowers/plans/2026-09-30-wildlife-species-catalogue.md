@@ -924,7 +924,10 @@ git commit -m "Derive a wildlife report's category and endangered status from th
 
 **Interfaces:**
 - Consumes: `OTHER_SPECIES`, `CATEGORY_VALUES`, `prisma.species`, `writeAuditLog`.
-- Produces: `createSpecies(adminId, input, ctx): Promise<row>`, `updateSpecies(adminId, id, input, ctx): Promise<row>`. Audit actions `SPECIES_CREATE`, `SPECIES_UPDATE`.
+- Produces: `createSpecies(adminId, input, ctx): Promise<row>`, `updateSpecies(adminId, id, input, ctx): Promise<row>`. Audit actions `SPECIES_CREATE`, `SPECIES_UPDATE`, and **`SPECIES_RETIRE` when `is_active` goes true → false** — the spec names all three (§ "Backend", item 1), and without the third a retirement is not filterable in the audit log at all. A reactivation stays `SPECIES_UPDATE`.
+- `createSpecies` also accepts **`is_active`**, defaulting to `true`. Without it a species can only ever be created active, and Task 11 must backfill seven historical species as *inactive* — which would otherwise have to bypass this service and write no audit row.
+- **The audit payload for an update carries before/after for the two boolean flags**, e.g. `is_endangered: { from: true, to: false }`. Field names alone are not enough for `is_endangered`: it is a privacy control, nothing else in the system retains its previous value (the species seed is create-only), and "who un-hid this species, and from what" has to be answerable from the log.
+- **Booleans are validated, not coerced.** `Boolean('false')` is `true`, so a caller that serialises booleans as strings would *activate* a species it meant to retire. Accept real booleans and the string forms a form body produces; reject anything else with 422. The service is reached from the seed and from scripts, so it cannot defer this to an HTTP validator.
 
 - [ ] **Step 1: Write the failing tests**
 
