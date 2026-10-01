@@ -7,6 +7,7 @@ const archiveService = require('../services/admin.archive.service');
 const reportService = require('../services/admin.report.service');
 const categoryService = require('../services/category.service');
 const barangayService = require('../services/barangay.service');
+const speciesService = require('../services/species.service');
 const { writeAuditLog } = require('../utils/audit');
 
 // Analytics
@@ -105,6 +106,24 @@ const updateCategory = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Category updated.', data: { category } });
 });
 
+// Species catalogue. The PUBLIC species cache on both clients is keyed per
+// session, so a mutation here is only visible after that cache is invalidated -
+// web/src/lib/api.js does that in adminApi.
+const listSpecies = asyncHandler(async (req, res) => {
+  const data = await speciesService.listAll();
+  res.json({ success: true, data });
+});
+
+const createSpecies = asyncHandler(async (req, res) => {
+  const species = await speciesService.createSpecies(req.user.user_id, req.body, { ipAddress: req.ip });
+  res.status(201).json({ success: true, message: 'Species created.', data: { species } });
+});
+
+const updateSpecies = asyncHandler(async (req, res) => {
+  const species = await speciesService.updateSpecies(req.user.user_id, req.params.id, req.body, { ipAddress: req.ip });
+  res.json({ success: true, message: 'Species updated.', data: { species } });
+});
+
 const listBarangays = asyncHandler(async (req, res) => {
   const barangays = await barangayService.listAllBarangays();
   res.json({ success: true, data: { barangays } });
@@ -136,5 +155,6 @@ module.exports = {
   listArchived, archiveReport, restoreReport,
   listAuditLogs, listSettings, updateSetting,
   listCategories, createCategory, updateCategory,
+  listSpecies, createSpecies, updateSpecies,
   listBarangays, createBarangay, updateBarangay,
 };

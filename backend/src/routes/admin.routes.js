@@ -9,6 +9,7 @@ const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
 const v = require('../validators/admin.validators');
+const sv = require('../validators/species.validators');
 const controller = require('../controllers/admin.controller');
 
 router.use(authenticate, authorize('Admin'));
@@ -40,6 +41,14 @@ router.get('/audit-logs', controller.listAuditLogs);
 router.get('/categories', controller.listCategories);
 router.post('/categories/:kind', v.createCategoryRules, validate, controller.createCategory);
 router.patch('/categories/:kind/:id', v.updateCategoryRules, validate, controller.updateCategory);
+
+// Wildlife species catalogue — admin-managed, no redeploy. The report's
+// category and endangered flag are derived from these rows, so editing one
+// changes what NEW reports get; existing reports keep the snapshot they were
+// filed with.
+router.get('/species', controller.listSpecies);
+router.post('/species', sv.createSpeciesRules, validate, controller.createSpecies);
+router.patch('/species/:id', sv.updateSpeciesRules, validate, controller.updateSpecies);
 
 // Barangays. Mutations re-derive every Voronoi boundary, not just the changed
 // row - see barangay.service.rederiveBoundaries.
