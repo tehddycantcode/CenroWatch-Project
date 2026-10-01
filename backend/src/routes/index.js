@@ -20,6 +20,7 @@ router.get('/', (req, res) => {
 router.use('/auth', require('./auth.routes'));
 router.use('/barangays', require('./barangay.routes'));
 router.use('/categories', require('./category.routes'));
+router.use('/species', require('./species.routes'));
 
 // Sprint 2
 router.use('/complaints', require('./complaint.routes'));
