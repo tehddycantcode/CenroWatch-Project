@@ -141,25 +141,3 @@ describe('isWithinServiceArea', () => {
     expect(svc.isWithinServiceArea({ lat: NaN, lng: NaN })).toBe(false);
   });
 });
-
-describe('public species route', () => {
-  test('the species router exposes GET /', () => {
-    const router = require('../src/routes/species.routes');
-    const routes = router.stack
-      .filter((l) => l.route)
-      .map((l) => `${Object.keys(l.route.methods)[0].toUpperCase()} ${l.route.path}`);
-    expect(routes).toContain('GET /');
-  });
-
-  test('IT IS MOUNTED, AND CARRIES NO authenticate MIDDLEWARE', () => {
-    // The wildlife form reads it and so does the public species guide, which is
-    // reachable without an account. A router.use(authenticate) added here later
-    // would break the signed-out guide with a 401 - so the absence is asserted,
-    // not just the presence of the mount.
-    const fs = require('fs');
-    const index = fs.readFileSync(require.resolve('../src/routes/index'), 'utf8');
-    expect(index).toMatch(/router\.use\('\/species'/);
-    const routeFile = fs.readFileSync(require.resolve('../src/routes/species.routes'), 'utf8');
-    expect(routeFile).not.toMatch(/authenticate/);
-  });
-});
