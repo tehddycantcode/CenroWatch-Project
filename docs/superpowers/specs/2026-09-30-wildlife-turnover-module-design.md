@@ -808,6 +808,19 @@ Seven migrations, in this order. Every one `--create-only` with PascalCase table
 11. docs  PRD-resident, PRD-staff-admin, CLAUDE.md
 ```
 
+> **RELEASE CONSTRAINT — the clients' copy outlives the behaviour it describes.** From the moment
+> the derivation ships, both clients still render *"I believe this is an endangered or protected
+> species (flags it for priority review)"* and still post `is_endangered`, which the API now
+> ignores. A resident can tick it for a non-endangered species, believe they have hidden its
+> location, and get exact coordinates on the public map. The **outcome** is correct by the
+> catalogue's policy; the **promise** is not — and this project's standing lesson is that a promise
+> in user-facing copy is a feature commitment.
+>
+> Web closes inside the same deploy, because steps 4–6 ship together. **Mobile cannot**: an OTA
+> lands on each phone at its next launch, and there is no telemetry to say when that has happened.
+> That window is unavoidable, so it has to be a *stated, known* exposure rather than a surprise —
+> publish the mobile OTA as close to the API deploy as possible and do not let it slip.
+
 **Two orderings are not negotiable.** Step 4 must precede step 6 (otherwise the web form sends a
 category the server ignores while still *displaying* it as authoritative — a silent disagreement).
 Step 8 must be a **single deploy** across the API and both status arrays in `web/src/lib/staff.js`,
