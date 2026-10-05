@@ -14,6 +14,17 @@
 
 jest.mock('../src/utils/prisma', () => ({
   species: { findUnique: jest.fn() },
+  barangay: { findUnique: jest.fn() },
+  user: { findUnique: jest.fn() },
+}));
+jest.mock('../src/utils/audit', () => ({ writeAuditLog: jest.fn() }));
+jest.mock('../src/utils/notify', () => ({ notifyReportSubmitted: jest.fn() }));
+jest.mock('../src/utils/sla', () => ({
+  getSlaMinutes: jest.fn(async () => 3218),
+  computeSlaDeadline: jest.fn(async () => new Date('2026-10-08T09:00:00Z')),
+}));
+jest.mock('../src/utils/createSequential', () => ({
+  createSequential: jest.fn(async ({ data }) => ({ turnover_id: 1, reference_id: 'WLD-2026-00001', ...data })),
 }));
 
 const prisma = require('../src/utils/prisma');
@@ -172,5 +183,97 @@ describe('a catalogue with no Other row', () => {
     // own submission. statusCode, not status: status would pass vacuously
     // against undefined.
     await expect(resolveSpecies('Sea turtle')).rejects.toMatchObject({ statusCode: 500 });
+  });
+});
+
+describe('createTurnover uses the catalogue, not the client', () => {
+  const { createSequential } = require('../src/utils/createSequential');
+  const { createTurnover } = require('../src/services/wildlife.service');
+
+  const base = {
+    barangay_id: 1,
+    species_name: 'Philippine Cobra',
+    animal_condition: 'Healthy',
+    description: 'Seen in the rice field behind the barangay hall.',
+    latitude: 14.2756,
+    longitude: 121.1289,
+  };
+
+  beforeEach(() => {
+    prisma.barangay.findUnique.mockResolvedValue({ barangay_id: 1, name: 'Pulo' });
+    prisma.user.findUnique.mockResolvedValue({ email: 'r@example.com', first_name: 'Ana' });
+    catalogue([COBRA, DUCK, OTHER]);
+  });
+
+  const written = () => createSequential.mock.calls[0][0].data;
+
+  test('A LOOKUP FAILURE MUST NOT BE SWALLOWED', async () => {
+    // Fails CLOSED on purpose. If this call ever gains a catch-with-default, an
+    // unresolvable species would be stored as not-endangered and its exact
+    // coordinates published on the public map. Better to lose the request and
+    // let the resident retry than to file a report with the protection removed.
+    prisma.species.findUnique.mockRejectedValue(new Error('db down'));
+    await expect(createTurnover(7, base, null, {})).rejects.toThrow();
+    expect(createSequential).not.toHaveBeenCalled();
+  });
+
+  test('IGNORES a client-sent species_category', async () => {
+    // Review Focus 2. The old web bundle posts this field, and it must be
+    // ignored rather than rejected - a 422 here would break the live site for
+    // the window between the API deploy and the web deploy.
+    await createTurnover(7, { ...base, species_category: 'Bird' }, null, {});
+    expect(written().species_category).toBe('Reptile');
+  });
+
+  test('IGNORES a client-sent is_endangered', async () => {
+    // Same window, and this one is a privacy control: a resident must not be
+    // able to decide whether a rescue site is hidden from a poacher.
+    await createTurnover(7, { ...base, is_endangered: true }, null, {});
+    expect(written().is_endangered).toBe(false);
+    expect(written().is_priority_review).toBe(false);
+    expect(written().status).toBe('Pending_Review');
+  });
+
+  test('a catalogued endangered species is promoted to priority review', async () => {
+    await createTurnover(7, { ...base, species_name: 'Philippine Duck' }, null, {});
+    expect(written().is_endangered).toBe(true);
+    expect(written().is_priority_review).toBe(true);
+    expect(written().status).toBe('Priority_Review');
+  });
+
+  test('an uncatalogued species lands as Other, at priority review', async () => {
+    await createTurnover(7, { ...base, species_name: 'Sea turtle' }, null, {});
+    expect(written().species_name).toBe('Other');
+    expect(written().status).toBe('Priority_Review');
+  });
+
+  test('KEEPS the typed species name, as the first line of the description', async () => {
+    // Mirrors withOtherDetail() in otherCategory.js. Without this the species a
+    // resident actually saw is lost, and the report reads as "Other" with no
+    // indication of what was reported.
+    await createTurnover(7, { ...base, species_name: 'Sea turtle' }, null, {});
+    expect(written().description).toBe(`Other: Sea turtle\n\n${base.description}`);
+  });
+
+  test('does not double-prefix when the client already folded it in', async () => {
+    // Exercises the path a catalogue-aware client uses once it posts
+    // species_name: 'Other' and folds the typed detail in itself, the way the
+    // complaint and request forms already do for their own "Other" type. The
+    // row IS found, so nothing is added here.
+    const desc = 'Other: Sea turtle\n\nSeen near the lakeshore.';
+    await createTurnover(7, { ...base, species_name: 'Other', description: desc }, null, {});
+    expect(written().description).toBe(desc);
+  });
+
+  test('never exceeds the 5000-character description limit', async () => {
+    // The folded line has to fit inside the same cap the validator enforces, or
+    // the insert fails on a column length after validation already passed.
+    await createTurnover(7, { ...base, species_name: 'S'.repeat(200), description: 'd'.repeat(4990) }, null, {});
+    expect(written().description.length).toBeLessThanOrEqual(5000);
+  });
+
+  test('stores the resident-picked category for an Other report', async () => {
+    await createTurnover(7, { ...base, species_name: 'Other', species_category: 'Reptile' }, null, {});
+    expect(written().species_category).toBe('Reptile');
   });
 });

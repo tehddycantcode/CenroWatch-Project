@@ -1,5 +1,6 @@
 // Wildlife turnover business logic. Pattern: routes → controllers → services → prisma.
-// A resident-flagged endangered species is routed to Priority_Review.
+// A species the catalogue marks endangered is routed to Priority_Review - see
+// resolveSpecies() in species.service.js, the only place that decision is made.
 
 const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
@@ -8,6 +9,29 @@ const { createSequential } = require('../utils/createSequential');
 const { getSlaMinutes, computeSlaDeadline } = require('../utils/sla');
 const { withActive } = require('../utils/archive');
 const { notifyReportSubmitted } = require('../utils/notify');
+const { resolveSpecies } = require('./species.service');
+
+// Same cap the validator enforces and the column allows.
+const DESCRIPTION_MAX = 5000;
+
+// Keep an uncatalogued species name in the report, as the description's first
+// line, so it is the first thing staff read. Mirrors withOtherDetail() in
+// otherCategory.js, which does the same for an "Other" complaint type.
+//
+// Runs for any species_name that does not exactly match a catalogue row. That
+// is the common case today: neither the web nor the mobile wildlife form has
+// been wired to the catalogue yet (web/src/pages/resident/WildlifeFormPage.jsx,
+// mobile/src/screens/resident/WildlifeFormScreen.js both still post whatever
+// free text the resident typed or picked from their own static lists), so this
+// runs on most submissions. Once those forms pick from the catalogue and fold
+// their own "Other" detail in - the way the complaint and request forms
+// already do - this keeps doing the same job for whichever installed build
+// has not taken that update yet.
+function foldUnlistedSpecies(description, unlisted) {
+  if (!unlisted) return description;
+  const folded = `Other: ${unlisted}\n\n${description}`;
+  return folded.length <= DESCRIPTION_MAX ? folded : folded.slice(0, DESCRIPTION_MAX);
+}
 
 const DETAIL_SELECT = {
   turnover_id: true,
@@ -69,7 +93,16 @@ async function createTurnover(userId, input, photoPath, ctx = {}) {
   const slaMinutes = await getSlaMinutes('wildlife_sla_minutes', 3218);
   const sla_started_at = submitted_at;
   const sla_deadline = await computeSlaDeadline(submitted_at, slaMinutes);
-  const endangered = !!input.is_endangered;
+
+  // THE CATEGORY AND THE ENDANGERED FLAG ARE DERIVED, NEVER READ FROM THE BODY.
+  // Both used to come from the client - a free-text category box and a
+  // self-declared "I believe this is endangered" checkbox - which made "three
+  // exclusive categories" untrue and left a privacy control (public-map
+  // obfuscation) in the reporter's hands. input.species_category is now only a
+  // fallback for a species row that has no category, which today means the
+  // "Other" sentinel alone; input.is_endangered is ignored entirely.
+  const species = await resolveSpecies(input.species_name, input.species_category);
+  const endangered = species.is_endangered;
 
   const turnover = await createSequential({
     model: 'wildlifeTurnover',
@@ -79,12 +112,12 @@ async function createTurnover(userId, input, photoPath, ctx = {}) {
     data: {
       reported_by: userId,
       barangay_id: input.barangay_id,
-      species_name: input.species_name,
-      species_category: input.species_category || null,
+      species_name: species.name,
+      species_category: species.category,
       is_endangered: endangered,
       is_priority_review: endangered,
       animal_condition: input.animal_condition,
-      description: input.description,
+      description: foldUnlistedSpecies(input.description, species.unlisted),
       photo_path: photoPath || null,
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,

@@ -13,6 +13,13 @@ const createWildlifeRules = [
     .trim()
     .notEmpty().withMessage('Species name is required.')
     .isLength({ max: 200 }).withMessage('Species name is too long.'),
+  // ONLY a fallback for a species with no category of its own (the "Other"
+  // sentinel). For every catalogued species the row wins and this is ignored -
+  // see resolveSpecies. Kept deliberately LENIENT rather than .isIn(...): an
+  // old web bundle still posts whatever the resident typed into the category
+  // box it used to show, and 422ing that would break the live site for the
+  // window between the API deploy and the web deploy. The service drops
+  // anything that is not one of the three.
   body('species_category')
     .optional({ values: 'falsy' })
     .trim()
@@ -27,10 +34,11 @@ const createWildlifeRules = [
     .notEmpty().withMessage('Description is required.')
     .bail()
     .isLength({ min: 10, max: 5000 }).withMessage('Description must be 10–5000 characters.'),
-  // Resident may flag a suspected endangered/protected species -> priority review.
-  body('is_endangered')
-    .optional()
-    .customSanitizer((v) => v === true || v === 'true' || v === '1' || v === 1),
+  // is_endangered IS NO LONGER ACCEPTED. It is derived from the species row,
+  // because it drives public-map coordinate obfuscation and a reporter must not
+  // decide whether a rescue site is hidden. There is no rule here on purpose:
+  // express-validator ignores unknown fields, so an old client sending it is
+  // silently ignored rather than refused. DO NOT "restore" this rule.
   // REQUIRED since 2026-09-29, same as complaints - see the note in
   // complaint.validators.js. Where an animal was found matters more here than
   // anywhere else: it is what the endangered-species obfuscation operates on,
