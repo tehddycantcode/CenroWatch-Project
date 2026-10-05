@@ -381,6 +381,11 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
  * redeploy, and means mobile can reach them (it cannot read web/public).
  *
  * Served through the existing signed /uploads route - no new access path.
+ *
+ * No is_active check, deliberately - a retired species can still take a new
+ * photo. updateSpecies already lets a retired row take ordinary field edits,
+ * and the admin-only listAll() view is exactly where a retired species' photo
+ * would still be seen, so a photo is no different.
  */
 async function setSpeciesPhoto(adminId, id, file, ctx = {}) {
   const targetId = Number(id);
@@ -399,18 +404,32 @@ async function setSpeciesPhoto(adminId, id, file, ctx = {}) {
     data: { photo_path },
   });
 
-  // Best-effort, and AFTER the row points at the new file: if this throws we
-  // have an orphaned file, whereas removing first would risk a species with no
-  // photo at all. Nothing else cleans this directory up, so replacing a photo
-  // ten times must not leave ten files behind.
-  if (existing.photo_path) await storage.remove(existing.photo_path);
+  // Removal happens AFTER the row points at the new file: if it fails we have
+  // an orphaned file, whereas removing first would risk a species with no
+  // photo at all. Wrapped in its own try/catch here, rather than leaning on
+  // the storage driver's internal catch, so a removal failure can never also
+  // cost the Admin their audit entry for a mutation that already succeeded.
+  // Nothing else cleans this directory up, so replacing a photo ten times
+  // must not leave ten files behind.
+  if (existing.photo_path) {
+    try {
+      await storage.remove(existing.photo_path);
+    } catch {
+      // Best-effort AT THIS CALL SITE: an orphaned file is the acceptable
+      // failure, not a 500 for a change that already succeeded.
+    }
+  }
 
   await writeAuditLog({
     performedBy: adminId,
     action: 'SPECIES_PHOTO_SET',
     targetTable: 'Species',
     targetId: row.species_id,
-    data: { name: row.name, photo_path },
+    // Recorded as from/to because once storage.remove() above deletes the
+    // previous file, its path exists nowhere else - without this, finding it
+    // would mean cross-referencing target_id and timestamp against the prior
+    // SPECIES_PHOTO_SET row instead of reading this one.
+    data: { name: row.name, photo_path: { from: existing.photo_path, to: photo_path } },
     ipAddress: ctx.ipAddress || null,
   });
 

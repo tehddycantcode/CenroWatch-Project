@@ -8,6 +8,7 @@ const reportService = require('../services/admin.report.service');
 const categoryService = require('../services/category.service');
 const barangayService = require('../services/barangay.service');
 const speciesService = require('../services/species.service');
+const storage = require('../services/storage');
 const { writeAuditLog } = require('../utils/audit');
 
 // Analytics
@@ -115,22 +116,22 @@ const updateCategory = asyncHandler(async (req, res) => {
 // too.
 const listSpecies = asyncHandler(async (req, res) => {
   const data = await speciesService.listAll();
-  res.json({ success: true, data });
+  res.json({ success: true, data: await storage.signFiles(data) });
 });
 
 const createSpecies = asyncHandler(async (req, res) => {
   const species = await speciesService.createSpecies(req.user.user_id, req.body, { ipAddress: req.ip });
-  res.status(201).json({ success: true, message: 'Species created.', data: { species } });
+  res.status(201).json({ success: true, message: 'Species created.', data: { species: await storage.signFiles(species) } });
 });
 
 const updateSpecies = asyncHandler(async (req, res) => {
   const species = await speciesService.updateSpecies(req.user.user_id, req.params.id, req.body, { ipAddress: req.ip });
-  res.json({ success: true, message: 'Species updated.', data: { species } });
+  res.json({ success: true, message: 'Species updated.', data: { species: await storage.signFiles(species) } });
 });
 
 const setSpeciesPhoto = asyncHandler(async (req, res) => {
   const species = await speciesService.setSpeciesPhoto(req.user.user_id, req.params.id, req.file, { ipAddress: req.ip });
-  res.json({ success: true, message: 'Species photo updated.', data: { species } });
+  res.json({ success: true, message: 'Species photo updated.', data: { species: await storage.signFiles(species) } });
 });
 
 const listBarangays = asyncHandler(async (req, res) => {

@@ -455,12 +455,23 @@ describe('setSpeciesPhoto', () => {
     expect(row.photo_path).toBe('/uploads/species/new.jpg');
   });
 
-  test('REMOVES THE PREVIOUS FILE so replacing a photo does not orphan bytes', async () => {
+  test('REMOVES THE PREVIOUS FILE so replacing a photo does not orphan bytes, and the audit row keeps the path that was removed', async () => {
     // Species photos are replaced far more often than report evidence is, and
-    // nothing else ever cleans this directory up.
+    // nothing else ever cleans this directory up. Once storage.remove() below
+    // deletes the old file, this audit row is the only place its path still
+    // exists, so the payload has to carry both the old and the new path, not
+    // just the new one - the same reason updateSpecies records is_active and
+    // is_endangered as { from, to } rather than just the new value.
+    const { writeAuditLog } = require('../src/utils/audit');
     prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', photo_path: '/uploads/species/old.jpg' });
     await svc.setSpeciesPhoto(3, 1, file, {});
     expect(storage.remove).toHaveBeenCalledWith('/uploads/species/old.jpg');
+    expect(writeAuditLog).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'SPECIES_PHOTO_SET',
+      data: expect.objectContaining({
+        photo_path: { from: '/uploads/species/old.jpg', to: '/uploads/species/new.jpg' },
+      }),
+    }));
   });
 
   test('does NOT remove anything when there was no previous photo', async () => {
@@ -477,5 +488,15 @@ describe('setSpeciesPhoto', () => {
   test('404s on an unknown species', async () => {
     prisma.species.findUnique.mockResolvedValue(null);
     await expect(svc.setSpeciesPhoto(3, 99, file, {})).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  test('a retired species can still receive a photo - this is deliberate, not an oversight', async () => {
+    // Mirrors updateSpecies, which already lets a retired row take ordinary
+    // field edits. The admin-only listAll() view is exactly where a retired
+    // species' reference photo would still be seen, so there is no is_active
+    // guard here to bypass.
+    prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Retired Duck', photo_path: null, is_active: false });
+    const row = await svc.setSpeciesPhoto(3, 1, file, {});
+    expect(row.photo_path).toBe('/uploads/species/new.jpg');
   });
 });
