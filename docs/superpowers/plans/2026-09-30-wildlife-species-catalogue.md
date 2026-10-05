@@ -1256,13 +1256,20 @@ Create `backend/src/controllers/species.controller.js`:
 
 const asyncHandler = require('../utils/asyncHandler');
 const speciesService = require('../services/species.service');
+const storage = require('../services/storage');
 
 // Public: the species a resident may pick on the wildlife form, and the content
 // behind the public species guide. Zero personal data, so it is safe
 // unauthenticated (R.A. 10173).
+//
+// signFiles resolves photo_path into something a client can actually fetch.
+// /uploads refuses a bare stored path with 403 "missing its access token", so
+// without this an <img src={species.photo_path}> renders broken - and signing is
+// a controller's job, never a service's. photo_path is already in signFiles'
+// FILE_FIELDS set, so no change is needed there.
 const listActive = asyncHandler(async (req, res) => {
   const data = await speciesService.listActive();
-  res.status(200).json({ success: true, data });
+  res.status(200).json({ success: true, data: await storage.signFiles(data) });
 });
 
 module.exports = { listActive };
@@ -1474,6 +1481,11 @@ git commit -m "Add admin endpoints for the species catalogue" -- backend/src/val
 **Interfaces:**
 - Consumes: `diskUpload` from `src/middlewares/upload`, `storage.save`/`storage.remove` from `src/services/storage`.
 - Produces: `setSpeciesPhoto(adminId, id, file, ctx): Promise<row>`; `POST /api/v1/admin/species/:id/photo` (multipart, field `photo`). Audit action `SPECIES_PHOTO_SET`.
+- Also modifies `backend/src/controllers/species.controller.js`.
+
+> **EVERY species response that can carry a `photo_path` must pass through `storage.signFiles`** — the public `listActive`, and admin `listSpecies`, `createSpecies`, `updateSpecies` and `setSpeciesPhoto`. `/uploads` answers a **bare stored path with 403** ("missing its access token"), so without this the later tasks' `<img src={species.photo_path}>` renders broken and reads as an upload bug rather than a missing signature. `photo_path` is already in `signFiles`' `FILE_FIELDS` set, so that helper needs no change. Signing stays a **controller** concern — the service keeps returning the bare path, as every other file-returning controller in this codebase does.
+>
+> **Verify it the way that distinguishes working from not:** fetch the path the API returns **directly**, with no signature minted by hand. Minting one yourself proves the signing mechanism works, not that the response carries a usable URL.
 
 - [ ] **Step 1: Write the failing test**
 
