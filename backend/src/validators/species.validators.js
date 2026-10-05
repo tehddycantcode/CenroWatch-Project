@@ -56,8 +56,9 @@ const createSpeciesRules = [
 //
 // `category` IS present here and optional, unlike on create - an update sends
 // only the fields that changed, so making it mandatory would break every edit
-// that does not touch category (e.g. fixing a typo in handling_note). A
-// species that reached this screen already has a category from create.
+// that does not touch category (e.g. fixing a typo in handling_note). A row
+// may legitimately have no category - the seeded `Other` sentinel is the
+// standing example, and this route is exactly how an Admin reaches it.
 const updateSpeciesRules = [
   optionalEnum('category', CATEGORY_VALUES, 'Category'),
   ...shared,
