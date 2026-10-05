@@ -128,6 +128,11 @@ const updateSpecies = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Species updated.', data: { species } });
 });
 
+const setSpeciesPhoto = asyncHandler(async (req, res) => {
+  const species = await speciesService.setSpeciesPhoto(req.user.user_id, req.params.id, req.file, { ipAddress: req.ip });
+  res.json({ success: true, message: 'Species photo updated.', data: { species } });
+});
+
 const listBarangays = asyncHandler(async (req, res) => {
   const barangays = await barangayService.listAllBarangays();
   res.json({ success: true, data: { barangays } });
@@ -159,6 +164,6 @@ module.exports = {
   listArchived, archiveReport, restoreReport,
   listAuditLogs, listSettings, updateSetting,
   listCategories, createCategory, updateCategory,
-  listSpecies, createSpecies, updateSpecies,
+  listSpecies, createSpecies, updateSpecies, setSpeciesPhoto,
   listBarangays, createBarangay, updateBarangay,
 };

@@ -17,6 +17,7 @@
 const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
 const { writeAuditLog } = require('../utils/audit');
+const storage = require('./storage');
 
 // The sentinel row seeded by prisma/seed.js. species_name is a required foreign
 // key, so free text a resident types cannot go in it - this is the row that
@@ -371,7 +372,52 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
   return row;
 }
 
+/**
+ * Replace a species' reference photo.
+ *
+ * These are the "sample pictures" a resident matches the animal against, so
+ * they are admin-uploaded rather than committed to the repo: it keeps a
+ * licensing decision out of the codebase, lets CENRO add a species without a
+ * redeploy, and means mobile can reach them (it cannot read web/public).
+ *
+ * Served through the existing signed /uploads route - no new access path.
+ */
+async function setSpeciesPhoto(adminId, id, file, ctx = {}) {
+  const targetId = Number(id);
+  if (!Number.isInteger(targetId)) throw new HttpError(404, 'Species not found.');
+
+  const existing = await prisma.species.findUnique({
+    where: { species_id: targetId },
+    select: { species_id: true, name: true, photo_path: true },
+  });
+  if (!existing) throw new HttpError(404, 'Species not found.');
+  if (!file) throw new HttpError(422, 'Choose an image to upload.');
+
+  const photo_path = await storage.save('species', file);
+  const row = await prisma.species.update({
+    where: { species_id: targetId },
+    data: { photo_path },
+  });
+
+  // Best-effort, and AFTER the row points at the new file: if this throws we
+  // have an orphaned file, whereas removing first would risk a species with no
+  // photo at all. Nothing else cleans this directory up, so replacing a photo
+  // ten times must not leave ten files behind.
+  if (existing.photo_path) await storage.remove(existing.photo_path);
+
+  await writeAuditLog({
+    performedBy: adminId,
+    action: 'SPECIES_PHOTO_SET',
+    targetTable: 'Species',
+    targetId: row.species_id,
+    data: { name: row.name, photo_path },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return row;
+}
+
 module.exports = {
   OTHER_SPECIES, PUBLIC_FIELDS, CATEGORY_VALUES, BIOME_VALUES, INDICATOR_VALUES, HAZARD_VALUES,
-  listActive, listAll, resolveSpecies, createSpecies, updateSpecies,
+  listActive, listAll, resolveSpecies, createSpecies, updateSpecies, setSpeciesPhoto,
 };

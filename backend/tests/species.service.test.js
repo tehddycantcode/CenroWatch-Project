@@ -17,6 +17,10 @@ jest.mock('../src/utils/prisma', () => ({
   wildlifeTurnover: { groupBy: jest.fn() },
 }));
 jest.mock('../src/utils/audit', () => ({ writeAuditLog: jest.fn() }));
+jest.mock('../src/services/storage', () => ({
+  save: jest.fn(async () => '/uploads/species/new.jpg'),
+  remove: jest.fn(async () => {}),
+}));
 
 const prisma = require('../src/utils/prisma');
 const svc = require('../src/services/species.service');
@@ -433,5 +437,45 @@ describe('updateSpecies', () => {
     const tooLong = 'x'.repeat(201);
     await expect(svc.updateSpecies(3, 1, { scientific_name: tooLong }, {}))
       .rejects.toMatchObject({ statusCode: 422 });
+  });
+});
+
+describe('setSpeciesPhoto', () => {
+  const storage = require('../src/services/storage');
+  const file = { originalname: 'duck.jpg', buffer: Buffer.from('x') };
+
+  beforeEach(() => {
+    prisma.species.update.mockImplementation(({ data }) => Promise.resolve({ species_id: 1, name: 'Philippine Duck', ...data }));
+  });
+
+  test('stores the file and records the path', async () => {
+    prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', photo_path: null });
+    const row = await svc.setSpeciesPhoto(3, 1, file, {});
+    expect(storage.save).toHaveBeenCalledWith('species', file);
+    expect(row.photo_path).toBe('/uploads/species/new.jpg');
+  });
+
+  test('REMOVES THE PREVIOUS FILE so replacing a photo does not orphan bytes', async () => {
+    // Species photos are replaced far more often than report evidence is, and
+    // nothing else ever cleans this directory up.
+    prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', photo_path: '/uploads/species/old.jpg' });
+    await svc.setSpeciesPhoto(3, 1, file, {});
+    expect(storage.remove).toHaveBeenCalledWith('/uploads/species/old.jpg');
+  });
+
+  test('does NOT remove anything when there was no previous photo', async () => {
+    prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'X', photo_path: null });
+    await svc.setSpeciesPhoto(3, 1, file, {});
+    expect(storage.remove).not.toHaveBeenCalled();
+  });
+
+  test('422s when no file was uploaded', async () => {
+    prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'X', photo_path: null });
+    await expect(svc.setSpeciesPhoto(3, 1, null, {})).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  test('404s on an unknown species', async () => {
+    prisma.species.findUnique.mockResolvedValue(null);
+    await expect(svc.setSpeciesPhoto(3, 99, file, {})).rejects.toMatchObject({ statusCode: 404 });
   });
 });

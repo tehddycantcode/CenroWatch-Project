@@ -8,9 +8,12 @@ const router = express.Router();
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
+const { diskUpload } = require('../middlewares/upload');
 const v = require('../validators/admin.validators');
 const sv = require('../validators/species.validators');
 const controller = require('../controllers/admin.controller');
+
+const speciesUpload = diskUpload('species'); // IMAGE_MIME by default; magic-byte sniffed
 
 router.use(authenticate, authorize('Admin'));
 
@@ -49,6 +52,7 @@ router.patch('/categories/:kind/:id', v.updateCategoryRules, validate, controlle
 router.get('/species', controller.listSpecies);
 router.post('/species', sv.createSpeciesRules, validate, controller.createSpecies);
 router.patch('/species/:id', sv.updateSpeciesRules, validate, controller.updateSpecies);
+router.post('/species/:id/photo', speciesUpload.single('photo'), controller.setSpeciesPhoto);
 
 // Barangays. Mutations re-derive every Voronoi boundary, not just the changed
 // row - see barangay.service.rederiveBoundaries.
