@@ -14,9 +14,21 @@
 // RUN THIS ON ALL THREE DATABASES - native 3306, Docker 3307, Railway. They hold
 // different data, and the Docker one has previously been found missing rows
 // entirely.
+//
+// Two known blind spots, documented rather than fixed because neither is
+// dangerous in the direction it errs:
+//   - species_category === '' is skipped by `if (c && ...)` below, so an empty
+//     string never appears in item 2's report. The migration's own `NOT IN`
+//     check does not have the same blind spot - it matches and NULLs '' same
+//     as any other out-of-range value - so this under-reports item 2 without
+//     under-protecting it.
+//   - Item 1's `known.has(name)` comparison is case-sensitive, but MySQL's
+//     column collation is not: a stored name differing only in case from a
+//     catalogue row passes the real foreign key but is still flagged here as
+//     an orphan. This over-reports item 1 - a name this script lists may not
+//     actually need a new row - never under-reports it.
 
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import prisma from '../src/utils/prisma.js';
 
 const CATEGORIES = ['Bird', 'Mammal', 'Reptile'];
 
@@ -42,7 +54,7 @@ for (const t of turnovers) {
 console.log(`Reports: ${turnovers.length}   Catalogue rows: ${known.size}`);
 console.log(`\n1. species_name values with NO catalogue row: ${orphanNames.size}`);
 for (const [name, refs] of orphanNames) {
-  console.log(`   ${JSON.stringify(name)}  (${refs.length}): ${refs.slice(0, 5).join(', ')}${refs.length > 5 ? ' …' : ''}`);
+  console.log(`   ${JSON.stringify(name)}  (${refs.length}): ${refs.slice(0, 5).join(', ')}${refs.length > 5 ? ' ...' : ''}`);
 }
 if (orphanNames.size) {
   console.log('\n   Add each as an INACTIVE species before adding the foreign key:');
@@ -53,8 +65,20 @@ if (orphanNames.size) {
 
 console.log(`\n2. species_category values outside ${CATEGORIES.join('/')}: ${badCategories.size}`);
 for (const [cat, refs] of badCategories) {
-  console.log(`   ${JSON.stringify(cat)}  (${refs.length}): ${refs.slice(0, 5).join(', ')}${refs.length > 5 ? ' …' : ''}`);
+  console.log(`   ${JSON.stringify(cat)}  (${refs.length}): ${refs.slice(0, 5).join(', ')}${refs.length > 5 ? ' ...' : ''}`);
 }
 
+// Both questions matter, and failing either in the wrong direction is bad:
+// item 1 BLOCKS the foreign-key migration outright, while item 2 does not
+// block anything but is DESTRUCTIVE if ignored - the category migration clears
+// every value it reports to NULL. A verdict that only looked at item 1 could
+// call a run "safe" one line above printing a list of values it is about to
+// erase, which is the wrong half to be quiet about.
 console.log(orphanNames.size === 0 ? '\nSafe to add the foreign key.' : '\nFOREIGN KEY WILL FAIL. Resolve item 1 first.');
+if (badCategories.size) {
+  const total = [...badCategories.values()].reduce((n, refs) => n + refs.length, 0);
+  console.log(`WARNING: the category migration will CLEAR ${total} value(s) across ${badCategories.size} distinct string(s) to NULL (item 2 above). Review before running it.`);
+} else {
+  console.log('No out-of-range categories - the category migration is a no-op here.');
+}
 await prisma.$disconnect();

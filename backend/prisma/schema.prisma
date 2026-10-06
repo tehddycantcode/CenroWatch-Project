@@ -262,8 +262,12 @@ model Species {
   local_name      String? @db.VarChar(200) // e.g. "musang"
 
   // NULLABLE, all three, at the column level - no migration enforces any of
-  // this. The catalogue holds one sentinel row, `Other`, which has no taxonomy
-  // at all. Of the other two, only `category` is required of a real species,
+  // this. By design, only the seeded `Other` sentinel is meant to have no
+  // taxonomy at all - that is exactly the case the required-on-CREATE rule
+  // below exists to stop from happening to any other row, not a count of how
+  // many currently lack one (a migration backfill can still leave a row null
+  // outside that rule; see the note in species.service.resolveSpecies).
+  // Of the other two, only `category` is required of a real species,
   // and only on CREATE - species.validators.js enforces it there (an update
   // sends only changed fields, so requiring it there would break every edit
   // that does not touch category). It is required because

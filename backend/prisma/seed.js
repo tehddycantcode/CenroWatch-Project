@@ -166,6 +166,52 @@ const species = [
     body_description: 'A semi-aquatic turtle with a high domed dark-olive shell and three yellow stripes on each side of a black head. The shell closes fully.',
     handling_note: 'Never buy or sell. Turn over to CENRO for assessment and release.',
   },
+  // Legacy species names with no catalogue row of their own: WildlifeTurnover
+  // rows already using these names existed before the species foreign key did
+  // (see scripts/audit-species-names.mjs and the migration this seed mirrors,
+  // 20261006123258_backfill_species_from_reports), and four of the six names
+  // in scripts/seed-demo-gis.js's hardcoded report plan are among them. That
+  // script inserts WildlifeTurnover rows directly, so without a catalogue row
+  // here its insert fails the foreign key on any fresh database. Seeded
+  // inactive - keeps them off the report form a resident sees - and
+  // endangered, the conservative default for a name nobody has reviewed.
+  // Categorised because the taxonomy is unambiguous for all seven; no
+  // biome/indicator beyond that.
+  {
+    name: 'Philippine Eagle', category: 'Bird', biome: null, indicator: null,
+    hazard: 'None', is_endangered: true, is_active: false, sort_order: 11,
+    body_description: null, handling_note: null,
+  },
+  {
+    name: 'Philippine Hawk-Eagle', category: 'Bird', biome: null, indicator: null,
+    hazard: 'None', is_endangered: true, is_active: false, sort_order: 12,
+    body_description: null, handling_note: null,
+  },
+  {
+    name: 'Philippine Serpent Eagle', category: 'Bird', biome: null, indicator: null,
+    hazard: 'None', is_endangered: true, is_active: false, sort_order: 13,
+    body_description: null, handling_note: null,
+  },
+  {
+    name: 'Barn Owl', category: 'Bird', biome: null, indicator: null,
+    hazard: 'None', is_endangered: true, is_active: false, sort_order: 14,
+    body_description: null, handling_note: null,
+  },
+  {
+    name: 'Philippine Hanging Parrot', category: 'Bird', biome: null, indicator: null,
+    hazard: 'None', is_endangered: true, is_active: false, sort_order: 15,
+    body_description: null, handling_note: null,
+  },
+  {
+    name: 'Common Monitor Lizard', category: 'Reptile', biome: null, indicator: null,
+    hazard: 'None', is_endangered: true, is_active: false, sort_order: 16,
+    body_description: null, handling_note: null,
+  },
+  {
+    name: 'Common Water Monitor', category: 'Reptile', biome: null, indicator: null,
+    hazard: 'None', is_endangered: true, is_active: false, sort_order: 17,
+    body_description: null, handling_note: null,
+  },
   // THE SENTINEL ROW. species_name is a required foreign key, so a name a
   // resident types cannot be stored in it - the same problem ComplaintType
   // solves with a real "Other" category and otherCategory.js folding the typed

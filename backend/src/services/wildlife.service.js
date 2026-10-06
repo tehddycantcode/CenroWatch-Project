@@ -104,8 +104,10 @@ async function createTurnover(userId, input, photoPath, ctx = {}) {
   // self-declared "I believe this is endangered" checkbox - which made "three
   // exclusive categories" untrue and left a privacy control (public-map
   // obfuscation) in the reporter's hands. input.species_category is now only a
-  // fallback for a species row that has no category, which today means the
-  // "Other" sentinel alone; input.is_endangered is ignored entirely.
+  // fallback for a species row that has no category - by design that is meant
+  // to be the seeded Other sentinel alone, though nothing stops another row
+  // from landing without one in the meantime (see the note in resolveSpecies).
+  // input.is_endangered is ignored entirely.
   const species = await resolveSpecies(input.species_name, input.species_category);
   const endangered = species.is_endangered;
 

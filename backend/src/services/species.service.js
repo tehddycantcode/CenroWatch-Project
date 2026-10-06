@@ -63,12 +63,12 @@ async function listActive() {
  * will affect existing records, so it is worth the extra query.
  */
 async function listAll() {
-  // TWO queries rather than a relation `_count`, because WildlifeTurnover does
-  // not carry a `species` relation yet - the foreign key lands in a later task,
-  // once every historical species_name has a catalogue row to point at. A
-  // groupBy on the plain column needs no relation and is exact. `species_name`
-  // is not an encrypted field, so the field-encryption extension in
-  // utils/prisma.js does not reject grouping by it.
+  // TWO queries rather than a relation `_count`. WildlifeTurnover does carry a
+  // `species` relation now, so `_count: { select: { turnovers: true } }` would
+  // also work here - but a groupBy on the plain `species_name` column is exact
+  // and needs nothing from the relation, so there is no reason to switch it.
+  // `species_name` is not an encrypted field, so the field-encryption extension
+  // in utils/prisma.js does not reject grouping by it.
   const [rows, usage] = await Promise.all([
     prisma.species.findMany({
       orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
@@ -127,8 +127,11 @@ async function resolveSpecies(submittedName, submittedCategory) {
     return {
       name: row.name,
       // The row wins. A client-sent category is only consulted for a row whose
-      // own category is null - the seeded Other sentinel is the only such row
-      // today, but an Admin may create others.
+      // own category is null. By design that is meant to be the seeded Other
+      // sentinel alone - every other row is supposed to carry a category - but
+      // nothing at the column level enforces it (see the note above the
+      // `category` field), so a row created outside the validator, such as a
+      // migration backfill, can also land here null until an Admin fills it in.
       category: row.category || usablePick,
       is_endangered: row.is_endangered,
       hazard: row.hazard,
