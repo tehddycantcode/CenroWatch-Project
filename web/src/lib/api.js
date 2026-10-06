@@ -175,6 +175,7 @@ export const authApi = {
 // session. Every admin mutation below calls it.
 let barangaysPromise = null;
 let categoriesPromise = null;
+let speciesPromise = null;
 
 export const barangayApi = {
   list: () => {
@@ -202,6 +203,23 @@ export const categoryApi = {
     return categoriesPromise;
   },
   invalidate: () => { categoriesPromise = null; },
+};
+
+// Active wildlife species, meant for the report form's species picker and the
+// public species guide once each is wired to read it instead of the frozen
+// array in web/src/lib/species.js.
+// Public: the response carries zero personal data (R.A. 10173).
+export const speciesApi = {
+  list: () => {
+    if (!speciesPromise) {
+      speciesPromise = apiFetch('/species', { auth: false }).catch((err) => {
+        speciesPromise = null;
+        throw err;
+      });
+    }
+    return speciesPromise;
+  },
+  invalidate: () => { speciesPromise = null; },
 };
 
 // Report APIs — create() takes a FormData (so an optional photo/document attaches).
@@ -338,6 +356,30 @@ export const adminApi = {
         return r;
       }),
   },
+
+  // Wildlife species catalogue. Every mutation invalidates the PUBLIC species
+  // cache, or a species an Admin just retired would keep appearing in the
+  // wildlife form for the rest of the session - and a photo they just
+  // uploaded would not.
+  listSpecies: () => apiFetch('/admin/species'),
+  createSpecies: (payload) =>
+    apiFetch('/admin/species', { method: 'POST', body: payload }).then((r) => {
+      speciesApi.invalidate();
+      return r;
+    }),
+  updateSpecies: (id, payload) =>
+    apiFetch(`/admin/species/${id}`, { method: 'PATCH', body: payload }).then((r) => {
+      speciesApi.invalidate();
+      return r;
+    }),
+  // FormData, so apiFetch must not set a JSON Content-Type - the same path the
+  // report forms already use for a photo.
+  setSpeciesPhoto: (id, form) =>
+    apiFetch(`/admin/species/${id}/photo`, { method: 'POST', body: form }).then((r) => {
+      speciesApi.invalidate();
+      return r;
+    }),
+
   // Soft delete: archived reports leave the working system but stay on record.
   archive: {
     list: () => apiFetch('/admin/archive'),
