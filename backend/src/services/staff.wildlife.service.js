@@ -328,4 +328,8 @@ module.exports = {
   updateTurnover,
   addCustodyPhotos,
   removeCustodyPhoto,
+  // Exposed so tests can pin updateTurnover's update() select by reference,
+  // rather than by a hand-copied shape that would not notice if the real one
+  // changed.
+  DETAIL_SELECT,
 };
