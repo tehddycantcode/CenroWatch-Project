@@ -11,22 +11,27 @@ const { withActive } = require('../utils/archive');
 const { notifyReportSubmitted } = require('../utils/notify');
 const { resolveSpecies } = require('./species.service');
 
-// Same cap the validator enforces and the column allows.
+// Same cap the validator enforces on description. Not a column limit -
+// WildlifeTurnover.description is @db.Text (65,535 bytes), nowhere near the
+// worst case here - this exists to keep the STORED value inside the range the
+// API itself promises to accept, not to avoid a database error.
 const DESCRIPTION_MAX = 5000;
 
 // Keep an uncatalogued species name in the report, as the description's first
 // line, so it is the first thing staff read. Mirrors withOtherDetail() in
 // otherCategory.js, which does the same for an "Other" complaint type.
 //
-// Runs for any species_name that does not exactly match a catalogue row. That
-// is the common case today: neither the web nor the mobile wildlife form has
-// been wired to the catalogue yet (web/src/pages/resident/WildlifeFormPage.jsx,
-// mobile/src/screens/resident/WildlifeFormScreen.js both still post whatever
-// free text the resident typed or picked from their own static lists), so this
-// runs on most submissions. Once those forms pick from the catalogue and fold
-// their own "Other" detail in - the way the complaint and request forms
-// already do - this keeps doing the same job for whichever installed build
-// has not taken that update yet.
+// Runs when species_name matches no catalogue row. Neither the web nor the
+// mobile wildlife form is wired to the catalogue yet
+// (web/src/pages/resident/WildlifeFormPage.jsx,
+// mobile/src/screens/resident/WildlifeFormScreen.js) - but both forms' static
+// dropdown lists (web/src/lib/species.js, mobile/src/lib/reports.js) happen to
+// carry the exact same ten names the catalogue was seeded with, so picking
+// any of those ten resolves against the real row and this returns immediately
+// with nothing to fold. This runs only on each form's "Other (specify)..."
+// free-text branch today - the minority path - and will keep doing the same
+// job for whichever installed build has not taken a future catalogue-aware
+// update once one ships.
 function foldUnlistedSpecies(description, unlisted) {
   if (!unlisted) return description;
   const folded = `Other: ${unlisted}\n\n${description}`;

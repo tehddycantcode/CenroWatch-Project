@@ -39,7 +39,8 @@ const createWildlifeRules = [
   // decide whether a rescue site is hidden. There is no rule here on purpose:
   // express-validator ignores unknown fields, so an old client sending it is
   // silently ignored rather than refused. DO NOT "restore" this rule.
-  // REQUIRED since 2026-09-29, same as complaints - see the note in
+
+  // Latitude/longitude: REQUIRED since 2026-09-29, same as complaints - see the note in
   // complaint.validators.js. Where an animal was found matters more here than
   // anywhere else: it is what the endangered-species obfuscation operates on,
   // and a turnover with no coordinates simply drops off the map.

@@ -239,6 +239,13 @@ describe('createTurnover uses the catalogue, not the client', () => {
     expect(written().is_endangered).toBe(true);
     expect(written().is_priority_review).toBe(true);
     expect(written().status).toBe('Priority_Review');
+    // The Duck is the only fixture here whose category and name differ from the
+    // Other-fallback values, so these two are what stop a hardcoded
+    // `species_category: 'Reptile'` or `species_name: 'Other'` passing the whole
+    // suite. Every other assertion in this block happens to agree with the
+    // fallback.
+    expect(written().species_category).toBe('Bird');
+    expect(written().species_name).toBe('Philippine Duck');
   });
 
   test('an uncatalogued species lands as Other, at priority review', async () => {
@@ -265,11 +272,21 @@ describe('createTurnover uses the catalogue, not the client', () => {
     expect(written().description).toBe(desc);
   });
 
-  test('never exceeds the 5000-character description limit', async () => {
-    // The folded line has to fit inside the same cap the validator enforces, or
-    // the insert fails on a column length after validation already passed.
+  test('never exceeds the 5000-character description limit, and keeps the species name', async () => {
+    // The folded line has to fit inside the same cap the validator enforces.
+    // NOT a column limit - description is @db.Text - so what this protects is
+    // that the stored value stays inside the range the API itself accepts.
+    //
+    // The truncation is SILENT: a resident whose 4,990-character description was
+    // accepted loses up to 209 characters off the end with no marker.
+    //
+    // Asserting the exact length AND the prefix is deliberate. A cap applied to
+    // `unlisted` instead of the tail, or a slice taken from the wrong end, would
+    // satisfy a bare `toBeLessThanOrEqual` while destroying the folded
+    // `Other: ...` line - which is the only reason this function exists.
     await createTurnover(7, { ...base, species_name: 'S'.repeat(200), description: 'd'.repeat(4990) }, null, {});
-    expect(written().description.length).toBeLessThanOrEqual(5000);
+    expect(written().description.length).toBe(5000);
+    expect(written().description.startsWith(`Other: ${'S'.repeat(200)}\n\n`)).toBe(true);
   });
 
   test('stores the resident-picked category for an Other report', async () => {
