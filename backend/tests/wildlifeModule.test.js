@@ -8,9 +8,11 @@
 //   1. Endangered-species coordinates are fuzzed on PUBLIC output. This is a
 //      protection control - a poacher reading the public map must not be handed
 //      a rescue site - and it was described in the manuscript but never tested.
-//   2. A resident flagging a species as endangered promotes the record to
-//      priority review. Nothing asserted that the promotion happens, so a
-//      refactor could quietly drop it and every queue would still look normal.
+//   2. A species the catalogue marks endangered promotes the record to
+//      priority review - species.service.js decides this, not the resident;
+//      see speciesResolution.test.js for that derivation in detail. Nothing
+//      here asserted that the promotion happens, so a refactor could quietly
+//      drop it and every queue would still look normal.
 //   3. Wildlife is the ONLY module whose SLA clock starts at submission rather
 //      than at approval. Complaints and requests are approval-gated; a change
 //      that "unified" the three would silently delay every animal's deadline.
@@ -124,6 +126,7 @@ jest.mock('../src/utils/prisma', () => ({
   barangay: { findUnique: jest.fn() },
   user: { findUnique: jest.fn() },
   systemSetting: { findUnique: jest.fn() },
+  species: { findUnique: jest.fn() },
   $transaction: jest.fn(),
 }));
 jest.mock('../src/utils/audit', () => ({ writeAuditLog: jest.fn() }));
@@ -252,24 +255,42 @@ describe('wildlife intake', () => {
     prisma.barangay.findUnique.mockResolvedValue({ barangay_id: 5, name: 'Butong' });
     prisma.user.findUnique.mockResolvedValue(null); // skip the receipt email
     prisma.systemSetting.findUnique.mockResolvedValue({ setting_value: '3218' });
+    // Default: a catalogued, non-endangered species, matching INPUT's name.
+    // species.service.resolveSpecies() is the real implementation here (only
+    // prisma is mocked), so this is what makes createTurnover's species lookup
+    // resolve at all. Individual tests override it to exercise the endangered
+    // path. See speciesResolution.test.js for the derivation itself in detail.
+    prisma.species.findUnique.mockResolvedValue({
+      name: 'Philippine Serpent Eagle', category: 'Bird', is_endangered: false, hazard: 'None',
+    });
     mockTransaction();
   });
 
-  test('a flagged endangered species is promoted to priority review', async () => {
-    await createTurnover(7, { ...INPUT, is_endangered: true }, null, {});
+  test('a catalogued endangered species is promoted to priority review', async () => {
+    // The flag comes from the species row now, not the client - see
+    // speciesResolution.test.js for the full behaviour. This stub used to be
+    // `{ ...INPUT, is_endangered: true }`; it moved from the input to the
+    // species row because the input field no longer does anything.
+    prisma.species.findUnique.mockResolvedValue({
+      name: 'Philippine Serpent Eagle', category: 'Bird', is_endangered: true, hazard: 'None',
+    });
+    await createTurnover(7, INPUT, null, {});
     expect(written.is_endangered).toBe(true);
     expect(written.is_priority_review).toBe(true);
     expect(written.status).toBe('Priority_Review');
   });
 
-  test('an ordinary turnover is not promoted', async () => {
-    await createTurnover(7, { ...INPUT, is_endangered: false }, null, {});
+  test('an ordinary (non-endangered) turnover is not promoted', async () => {
+    await createTurnover(7, INPUT, null, {});
     expect(written.is_priority_review).toBe(false);
     expect(written.status).toBe('Pending_Review');
   });
 
-  test('omitting the flag entirely is treated as not endangered', async () => {
-    await createTurnover(7, INPUT, null, {});
+  test('a client-sent is_endangered is ignored, even if the species is not', async () => {
+    // Integration-level mirror of speciesResolution.test.js's unit test: the
+    // default stub above is non-endangered, so a client claiming otherwise
+    // must not change what gets written.
+    await createTurnover(7, { ...INPUT, is_endangered: true }, null, {});
     expect(written.is_endangered).toBe(false);
     expect(written.is_priority_review).toBe(false);
   });
@@ -303,7 +324,7 @@ describe('wildlife intake', () => {
 
   test('the turnover is audited', async () => {
     const { writeAuditLog } = require('../src/utils/audit');
-    await createTurnover(7, { ...INPUT, is_endangered: true }, null, {});
+    await createTurnover(7, INPUT, null, {});
     expect(writeAuditLog).toHaveBeenCalledWith(expect.objectContaining({
       action: 'WILDLIFE_CREATE',
       targetTable: 'WildlifeTurnover',
@@ -312,8 +333,14 @@ describe('wildlife intake', () => {
   });
 
   test('the audit entry records the endangered flag but no personal data', async () => {
+    // Stubbed endangered here (the input can no longer drive this - see
+    // above) so the assertion below still proves the audit payload carries
+    // the species-derived flag through.
+    prisma.species.findUnique.mockResolvedValue({
+      name: 'Philippine Serpent Eagle', category: 'Bird', is_endangered: true, hazard: 'None',
+    });
     const { writeAuditLog } = require('../src/utils/audit');
-    await createTurnover(7, { ...INPUT, is_endangered: true }, null, {});
+    await createTurnover(7, INPUT, null, {});
     const { data } = writeAuditLog.mock.calls[0][0];
     expect(data.is_endangered).toBe(true);
     expect(data).not.toHaveProperty('address_details');

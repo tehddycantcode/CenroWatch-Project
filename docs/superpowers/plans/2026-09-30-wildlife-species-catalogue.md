@@ -29,9 +29,10 @@ Every task's requirements implicitly include all of these.
 - **Never accept a Prisma "reset the database?" prompt.** The answer is always no. Say no and fix the actual cause.
 - **Stop the backend dev server before `prisma migrate`, `prisma generate`, or `npm install`** — a running `node src/server.js` locks the query-engine DLL and `postinstall` runs `prisma generate`.
 - **Validation failures in this API are 422, not 400.** Assert 422.
+- **`npx prisma db seed` is NOT wired up in this repo** (`package.json` has no `prisma.seed` key) and it fails *silently* — it prints the dotenv banner, runs nothing, and exits 0. Run `node prisma/seed.js` instead. A task that "seeded" with `db seed` and saw a clean exit has seeded nothing.
 - **Node is not on a fresh shell's PATH.** Prefix commands with:
   `$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine')`
-- **Run `git status` immediately before every commit** and commit only the intended paths (`git commit -- <paths>`). The user keeps untracked `.agents/`, `.claude/`, `skills-lock.json`; never stage `uploads/`, `dist/`, or `_*.mjs` scaffolds.
+- **Run `git status` immediately before every commit** and commit only the intended paths — `git commit -m "<msg>" -- <paths>`, with `-m` **before** the `--`, since everything after `--` is read as a pathspec. The user keeps untracked `.agents/`, `.claude/`, `skills-lock.json`; never stage `uploads/`, `dist/`, or `_*.mjs` scaffolds.
 - **Scope any test cleanup by captured id, never by a predicate.** Audit history is not recoverable.
 - **`AdminLayout.jsx:13-24` already holds 10 nav items against a measured ~1203px/1280px budget.** Do not add an 11th. Species is reached from the Categories page.
 
@@ -234,7 +235,7 @@ Expected: PASS, same count as before plus nothing. This migration is purely addi
 ```bash
 git status --short
 git add backend/prisma/schema.prisma backend/prisma/migrations
-git commit -- backend/prisma/schema.prisma backend/prisma/migrations -m "Add the species catalogue table"
+git commit -m "Add the species catalogue table" -- backend/prisma/schema.prisma backend/prisma/migrations
 ```
 
 ---
@@ -378,7 +379,17 @@ Place beside the existing category loops.
   for (const s of species) {
     await prisma.species.upsert({
       where: { name: s.name },
-      update: s,
+      // CREATE-ONLY, deliberately. The seed runs on every deploy, and unlike a
+      // barangay, EVERY species field is the Admin's to edit from the Species
+      // screen - including is_endangered, which decides whether a report's
+      // coordinates are hidden on the public map. `update: s` would silently
+      // revert their work on the next deploy, with nothing in the log to
+      // distinguish "unchanged" from "reverted". It is the same reason the
+      // complaintType loop above hand-picks the fields it updates.
+      //
+      // To change the seeded content of a species that already exists, edit it
+      // in the admin screen - not here.
+      update: {},
       create: s,
     });
   }
@@ -428,7 +439,7 @@ Expected: PASS.
 ```bash
 rm backend/_check-species.mjs
 git status --short
-git commit -- backend/prisma/seed.js -m "Seed the wildlife species catalogue"
+git commit -m "Seed the wildlife species catalogue" -- backend/prisma/seed.js
 ```
 
 ---
@@ -465,6 +476,9 @@ jest.mock('../src/utils/prisma', () => ({
     findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(),
     update: jest.fn(), count: jest.fn(),
   },
+  // listAll counts usage with a groupBy on the plain species_name column,
+  // because WildlifeTurnover has no `species` relation until a later task.
+  wildlifeTurnover: { groupBy: jest.fn() },
 }));
 jest.mock('../src/utils/audit', () => ({ writeAuditLog: jest.fn() }));
 
@@ -476,6 +490,7 @@ beforeEach(() => {
   prisma.species.findUnique.mockResolvedValue(null);
   prisma.species.findMany.mockResolvedValue([]);
   prisma.species.count.mockResolvedValue(5);
+  prisma.wildlifeTurnover.groupBy.mockResolvedValue([]);
 });
 
 describe('listActive - what the report forms and the public page read', () => {
@@ -504,11 +519,18 @@ describe('listActive - what the report forms and the public page read', () => {
 describe('listAll - the admin view', () => {
   test('reports how many reports use each species', async () => {
     prisma.species.findMany.mockResolvedValue([
-      { species_id: 1, name: 'Philippine Duck', _count: { turnovers: 3 } },
+      { species_id: 1, name: 'Philippine Duck' },
+      { species_id: 2, name: 'Other' },
+    ]);
+    prisma.wildlifeTurnover.groupBy.mockResolvedValue([
+      { species_name: 'Philippine Duck', _count: { _all: 3 } },
     ]);
     const out = await svc.listAll();
     expect(out.species[0].in_use).toBe(3);
-    expect(out.species[0]._count).toBeUndefined();
+    // A species nothing references reports 0, not undefined - the admin screen
+    // renders this number directly, and `undefined` would print as blank where
+    // an Admin is deciding whether retiring it affects existing records.
+    expect(out.species[1].in_use).toBe(0);
   });
 
   test('includes retired species, which listActive hides', async () => {
@@ -540,9 +562,9 @@ Create `backend/src/services/species.service.js`:
 // against it cannot be removed without making that history unreadable, and the
 // FK is RESTRICT so the database refuses it outright.
 
+// Only what this file uses so far. Task 4 adds `HttpError`, Task 5 adds
+// `writeAuditLog`, Task 8 adds `storage` - each with the code that needs it.
 const prisma = require('../utils/prisma');
-const HttpError = require('../utils/httpError');
-const { writeAuditLog } = require('../utils/audit');
 
 // The sentinel row seeded by prisma/seed.js. species_name is a required foreign
 // key, so free text a resident types cannot go in it - this is the row that
@@ -588,12 +610,24 @@ async function listActive() {
  * will affect existing records, so it is worth the extra query.
  */
 async function listAll() {
-  const rows = await prisma.species.findMany({
-    orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
-    include: { _count: { select: { turnovers: true } } },
-  });
+  // TWO queries rather than a relation `_count`, because WildlifeTurnover does
+  // not carry a `species` relation yet - the foreign key lands in a later task,
+  // once every historical species_name has a catalogue row to point at. A
+  // groupBy on the plain column needs no relation and is exact. `species_name`
+  // is not an encrypted field, so the field-encryption extension in
+  // utils/prisma.js does not reject grouping by it.
+  const [rows, usage] = await Promise.all([
+    prisma.species.findMany({
+      orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
+    }),
+    prisma.wildlifeTurnover.groupBy({
+      by: ['species_name'],
+      _count: { _all: true },
+    }),
+  ]);
+  const counts = new Map(usage.map((u) => [u.species_name, u._count._all]));
   return {
-    species: rows.map(({ _count, ...row }) => ({ ...row, in_use: _count.turnovers })),
+    species: rows.map((row) => ({ ...row, in_use: counts.get(row.name) || 0 })),
   };
 }
 
@@ -610,7 +644,7 @@ Expected: PASS (4 tests).
 ```bash
 git status --short
 git add backend/src/services/species.service.js backend/tests/species.service.test.js
-git commit -- backend/src/services/species.service.js backend/tests/species.service.test.js -m "Add the species catalogue read paths"
+git commit -m "Add the species catalogue read paths" -- backend/src/services/species.service.js backend/tests/species.service.test.js
 ```
 
 ---
@@ -780,7 +814,13 @@ Expected: FAIL — `resolveSpecies is not a function`.
 
 - [ ] **Step 3: Add `resolveSpecies` to the service**
 
-Append to `backend/src/services/species.service.js`, before `module.exports`:
+First add the import this task's code needs — Task 3 imported only `prisma`:
+
+```js
+const HttpError = require('../utils/httpError');
+```
+
+Then append, before `module.exports`:
 
 ```js
 // The three exclusive categories, mirroring the SpeciesCategory enum. Duplicated
@@ -871,7 +911,7 @@ Expected: PASS (13 tests).
 ```bash
 git status --short
 git add backend/src/services/species.service.js backend/tests/speciesResolution.test.js
-git commit -- backend/src/services/species.service.js backend/tests/speciesResolution.test.js -m "Derive a wildlife report's category and endangered status from the species"
+git commit -m "Derive a wildlife report's category and endangered status from the species" -- backend/src/services/species.service.js backend/tests/speciesResolution.test.js
 ```
 
 ---
@@ -884,7 +924,10 @@ git commit -- backend/src/services/species.service.js backend/tests/speciesResol
 
 **Interfaces:**
 - Consumes: `OTHER_SPECIES`, `CATEGORY_VALUES`, `prisma.species`, `writeAuditLog`.
-- Produces: `createSpecies(adminId, input, ctx): Promise<row>`, `updateSpecies(adminId, id, input, ctx): Promise<row>`. Audit actions `SPECIES_CREATE`, `SPECIES_UPDATE`.
+- Produces: `createSpecies(adminId, input, ctx): Promise<row>`, `updateSpecies(adminId, id, input, ctx): Promise<row>`. Audit actions `SPECIES_CREATE`, `SPECIES_UPDATE`, and **`SPECIES_RETIRE` when `is_active` goes true → false** — the spec names all three (§ "Backend", item 1), and without the third a retirement is not filterable in the audit log at all. A reactivation stays `SPECIES_UPDATE`.
+- `createSpecies` also accepts **`is_active`**, defaulting to `true`. Without it a species can only ever be created active, and Task 11 must backfill seven historical species as *inactive* — which would otherwise have to bypass this service and write no audit row.
+- **The audit payload for an update carries before/after for the two boolean flags**, e.g. `is_endangered: { from: true, to: false }`. Field names alone are not enough for `is_endangered`: it is a privacy control, nothing else in the system retains its previous value (the species seed is create-only), and "who un-hid this species, and from what" has to be answerable from the log.
+- **Booleans are validated, not coerced.** `Boolean('false')` is `true`, so a caller that serialises booleans as strings would *activate* a species it meant to retire. Accept real booleans and the string forms a form body produces; reject anything else with 422. This belongs in the service, not only in an HTTP validator, because the service is the boundary the invariant belongs to — a backfill or a script can call it directly without passing through a route, and Task 11's backfill will.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -994,7 +1037,13 @@ Expected: FAIL — `svc.createSpecies is not a function`.
 
 - [ ] **Step 3: Implement the writes**
 
-Append to `backend/src/services/species.service.js` before `module.exports`:
+First add the import this task's code needs — earlier tasks imported only `prisma` and `HttpError`:
+
+```js
+const { writeAuditLog } = require('../utils/audit');
+```
+
+Then append, before `module.exports`:
 
 ```js
 const BIOME_VALUES = ['Forest', 'Freshwater', 'Lakeshore_Wetland', 'Agricultural', 'Urban', 'Cave'];
@@ -1093,6 +1142,11 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
   if (isSentinel && data.is_active === false) {
     throw new HttpError(422, 'The "Other" entry cannot be retired. Residents need it to report an animal that is not in the catalogue.');
   }
+  // THE SINGLE MOST LOAD-BEARING GUARD IN THIS FILE. The whole fail-safe for an
+  // unidentified animal is this one row's boolean, and RE-SEEDING CANNOT REPAIR
+  // IT: the species upsert is create-only by design, so a flipped flag survives
+  // every deploy. Recovery is this screen or raw SQL - which is exactly why the
+  // flag must not be flippable from here in the first place.
   if (isSentinel && data.is_endangered === false) {
     throw new HttpError(422, 'The "Other" entry must stay marked endangered. It is what hides the location of an animal nobody has identified yet.');
   }
@@ -1143,7 +1197,7 @@ Expected: PASS.
 
 ```bash
 git status --short
-git commit -- backend/src/services/species.service.js backend/tests/species.service.test.js -m "Let an Admin manage the species catalogue"
+git commit -m "Let an Admin manage the species catalogue" -- backend/src/services/species.service.js backend/tests/species.service.test.js
 ```
 
 ---
@@ -1154,7 +1208,7 @@ git commit -- backend/src/services/species.service.js backend/tests/species.serv
 - Create: `backend/src/controllers/species.controller.js`
 - Create: `backend/src/routes/species.routes.js`
 - Modify: `backend/src/routes/index.js` (beside `:22`)
-- Modify: `backend/tests/routing.test.js`
+- Create: `backend/tests/speciesRoutes.test.js`
 
 **Interfaces:**
 - Consumes: `speciesService.listActive` (Task 3).
@@ -1162,7 +1216,7 @@ git commit -- backend/src/services/species.service.js backend/tests/species.serv
 
 - [ ] **Step 1: Write the failing test**
 
-Read `backend/tests/routing.test.js` first and match its style. Add this, which inspects the species router directly and the mount as source text — both deterministic, unlike matching a compiled Express path regexp:
+Create a DEDICATED file. Do NOT add these to `tests/routing.test.js` - despite the name, that suite is about road routing to OpenRouteService, not Express routes, and burying route assertions there means nobody looking for them finds them. Match the house style of any test file: a short header saying why the suite exists. The assertions inspect the species router directly and the mount as source text — both deterministic, unlike matching a compiled Express path regexp:
 
 ```js
 describe('public species route', () => {
@@ -1190,7 +1244,7 @@ describe('public species route', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx jest tests/routing.test.js`
+Run: `npx jest tests/speciesRoutes.test.js`
 Expected: FAIL — `Cannot find module '../src/routes/species.routes'`.
 
 - [ ] **Step 3: Write the controller**
@@ -1202,13 +1256,20 @@ Create `backend/src/controllers/species.controller.js`:
 
 const asyncHandler = require('../utils/asyncHandler');
 const speciesService = require('../services/species.service');
+const storage = require('../services/storage');
 
 // Public: the species a resident may pick on the wildlife form, and the content
 // behind the public species guide. Zero personal data, so it is safe
 // unauthenticated (R.A. 10173).
+//
+// signFiles resolves photo_path into something a client can actually fetch.
+// /uploads refuses a bare stored path with 403 "missing its access token", so
+// without this an <img src={species.photo_path}> renders broken - and signing is
+// a controller's job, never a service's. photo_path is already in signFiles'
+// FILE_FIELDS set, so no change is needed there.
 const listActive = asyncHandler(async (req, res) => {
   const data = await speciesService.listActive();
-  res.status(200).json({ success: true, data });
+  res.status(200).json({ success: true, data: await storage.signFiles(data) });
 });
 
 module.exports = { listActive };
@@ -1220,8 +1281,15 @@ Create `backend/src/routes/species.routes.js`:
 
 ```js
 // Public wildlife species list — mounted at /api/v1/species.
-// Backs the species picker on both report forms and the public species guide,
-// which used to read a hardcoded array shipped in each client's bundle.
+//
+// Unauthenticated on purpose: it feeds the species picker on both report forms
+// AND the public species guide, which is reachable without an account. The
+// response carries zero personal data (R.A. 10173), and species.service.js
+// restricts it to an explicit field allowlist so a column added to the model
+// later cannot silently widen it.
+//
+// It is what retires the hardcoded species array each client still ships in its
+// own bundle today - adding a species needed a web deploy and an app release.
 
 const express = require('express');
 const router = express.Router();
@@ -1243,7 +1311,7 @@ router.use('/species', require('./species.routes'));
 
 - [ ] **Step 6: Run the test to verify it passes**
 
-Run: `npx jest tests/routing.test.js`
+Run: `npx jest tests/speciesRoutes.test.js`
 Expected: PASS.
 
 - [ ] **Step 7: Verify against the running server**
@@ -1260,7 +1328,7 @@ Expected: `{"success":true,"data":{"species":[{"name":"Philippine Duck",...`. Co
 ```bash
 git status --short
 git add backend/src/controllers/species.controller.js backend/src/routes/species.routes.js
-git commit -- backend/src/controllers/species.controller.js backend/src/routes/species.routes.js backend/src/routes/index.js backend/tests/routing.test.js -m "Serve the species catalogue to the report forms"
+git commit -m "Serve the species catalogue to the report forms" -- backend/src/controllers/species.controller.js backend/src/routes/species.routes.js backend/src/routes/index.js backend/tests/speciesRoutes.test.js
 ```
 
 ---
@@ -1283,10 +1351,11 @@ Create `backend/src/validators/species.validators.js`:
 ```js
 // Admin species-catalogue validators.
 //
-// These are a FIRST pass only: species.service.js re-checks every enum and the
-// name, because the service is also reached from the seed and from scripts. The
-// duplication is deliberate - the validator gives a good 422 per field, the
-// service guarantees the invariant.
+// These are a FIRST pass only: species.service.js re-checks every enum, every
+// boolean and the name itself. The duplication is deliberate and the division is
+// the point - this layer gives a good per-field 422 to whoever is filling in a
+// form, while the service guarantees the invariant for every caller, including
+// one that never passes through a route at all (a backfill, a migration script).
 
 const { body } = require('express-validator');
 const {
@@ -1334,9 +1403,12 @@ module.exports = { createSpeciesRules, updateSpeciesRules };
 Append to `backend/src/controllers/admin.controller.js` (import `speciesService` at the top alongside the other services):
 
 ```js
-// Species catalogue. The PUBLIC species cache on both clients is keyed per
-// session, so a mutation here is only visible after that cache is invalidated -
-// web/src/lib/api.js does that in adminApi.
+// Species catalogue. Both clients cache the PUBLIC species list per session, so
+// a mutation here is NOT visible to a resident until that cache is invalidated.
+// Whatever calls these endpoints has to do it: an Admin retires a species and
+// residents keep being offered it until their tab reloads otherwise. See how
+// adminApi invalidates categoryApi and barangayApi in web/src/lib/api.js for the
+// established shape.
 const listSpecies = asyncHandler(async (req, res) => {
   const data = await speciesService.listAll();
   res.json({ success: true, data });
@@ -1393,7 +1465,7 @@ Expected: PASS.
 ```bash
 git status --short
 git add backend/src/validators/species.validators.js
-git commit -- backend/src/validators/species.validators.js backend/src/controllers/admin.controller.js backend/src/routes/admin.routes.js -m "Add admin endpoints for the species catalogue"
+git commit -m "Add admin endpoints for the species catalogue" -- backend/src/validators/species.validators.js backend/src/controllers/admin.controller.js backend/src/routes/admin.routes.js
 ```
 
 ---
@@ -1409,6 +1481,11 @@ git commit -- backend/src/validators/species.validators.js backend/src/controlle
 **Interfaces:**
 - Consumes: `diskUpload` from `src/middlewares/upload`, `storage.save`/`storage.remove` from `src/services/storage`.
 - Produces: `setSpeciesPhoto(adminId, id, file, ctx): Promise<row>`; `POST /api/v1/admin/species/:id/photo` (multipart, field `photo`). Audit action `SPECIES_PHOTO_SET`.
+- Also modifies `backend/src/controllers/species.controller.js`.
+
+> **EVERY species response that can carry a `photo_path` must pass through `storage.signFiles`** — the public `listActive`, and admin `listSpecies`, `createSpecies`, `updateSpecies` and `setSpeciesPhoto`. `/uploads` answers a **bare stored path with 403** ("missing its access token"), so without this the later tasks' `<img src={species.photo_path}>` renders broken and reads as an upload bug rather than a missing signature. `photo_path` is already in `signFiles`' `FILE_FIELDS` set, so that helper needs no change. Signing stays a **controller** concern — the service keeps returning the bare path, as every other file-returning controller in this codebase does.
+>
+> **Verify it the way that distinguishes working from not:** fetch the path the API returns **directly**, with no signature minted by hand. Minting one yourself proves the signing mechanism works, not that the response carries a usable URL.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1555,7 +1632,7 @@ Run: `npm test`
 
 ```bash
 git status --short  # confirm backend/uploads/ is NOT staged
-git commit -- backend/src/services/species.service.js backend/src/controllers/admin.controller.js backend/src/routes/admin.routes.js backend/tests/species.service.test.js -m "Let an Admin upload a reference photo per species"
+git commit -m "Let an Admin upload a reference photo per species" -- backend/src/services/species.service.js backend/src/controllers/admin.controller.js backend/src/routes/admin.routes.js backend/tests/species.service.test.js
 ```
 
 ---
@@ -1572,6 +1649,24 @@ The behaviour change. After this, a client cannot set either value.
 **Interfaces:**
 - Consumes: `resolveSpecies` (Task 4), `isOtherCategory`/`withOtherDetail` conventions from `web/src/lib/otherCategory.js`.
 - Produces: no new exports. `createTurnover(userId, input, photoPath, ctx)` keeps its signature; `input.species_category` and `input.is_endangered` are no longer read.
+
+**Two requirements carried in from the Task 4 review:**
+
+1. **Do not wrap `resolveSpecies` in a try/catch with a default.** The fail-safe depends on a thrown lookup propagating so that nothing is inserted — the report fails *closed*. A `catch` that substitutes a default would invert it silently, storing an unverified species as not-endangered and publishing its exact coordinates. Add a test that pins it:
+
+```js
+  test('A LOOKUP FAILURE MUST NOT BE SWALLOWED', async () => {
+    // Fails CLOSED on purpose. If this call ever gains a catch-with-default, an
+    // unresolvable species would be stored as not-endangered and its exact
+    // coordinates published on the public map. Better to lose the request and
+    // let the resident retry than to file a report with the protection removed.
+    prisma.species.findUnique.mockRejectedValue(new Error('db down'));
+    await expect(createTurnover(7, base, null, {})).rejects.toThrow();
+    expect(createSequential).not.toHaveBeenCalled();
+  });
+```
+
+2. **`unlisted` is unbounded at the service boundary** — only `species_name` carries a 200-character cap, and nothing caps what an old client may send. `foldUnlistedSpecies` must keep the combined description inside **both** the validator's 10–5000 rule and the column. The 5000-cap test below covers the upper bound; confirm the folded text cannot also fall *under* 10 characters, which it cannot while a description is already required.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1773,7 +1868,7 @@ File one wildlife report through the running API with `species_name=Philippine C
 
 ```bash
 git status --short
-git commit -- backend/src/services/wildlife.service.js backend/src/validators/wildlife.validators.js backend/tests/speciesResolution.test.js -m "Derive a wildlife report's category and priority from the species catalogue"
+git commit -m "Derive a wildlife report's category and priority from the species catalogue" -- backend/src/services/wildlife.service.js backend/src/validators/wildlife.validators.js backend/tests/speciesResolution.test.js
 ```
 
 ---
@@ -1928,7 +2023,7 @@ Run: `npm test`
 ```bash
 git status --short
 git add backend/tests/wildlifeEndangeredOverride.test.js
-git commit -- backend/tests/wildlifeEndangeredOverride.test.js backend/src/services/staff.wildlife.service.js backend/src/validators/staff.validators.js -m "Let staff correct a wildlife report's endangered flag"
+git commit -m "Let staff correct a wildlife report's endangered flag" -- backend/tests/wildlifeEndangeredOverride.test.js backend/src/services/staff.wildlife.service.js backend/src/validators/staff.validators.js
 ```
 
 ---
@@ -2031,9 +2126,17 @@ node scripts/audit-species-names.mjs
 ```
 Expected: `Safe to add the foreign key.`
 
-- [ ] **Step 5: Add the relation to the schema**
+- [ ] **Step 5: Add BOTH sides of the relation to the schema**
 
-In `WildlifeTurnover`:
+Prisma requires both halves to be declared, so these two edits are one change — the schema is invalid with either alone, and Task 1 deliberately left the back-relation out for that reason.
+
+First, in `Species`, as its last field before the `@@index` lines:
+
+```prisma
+  turnovers WildlifeTurnover[]
+```
+
+Then in `WildlifeTurnover`:
 
 ```prisma
   // REQUIRED relation, exactly like Complaint.type: the scalar FK field is
@@ -2054,6 +2157,8 @@ npx prisma migrate dev --name wildlife_species_fk --create-only
 npx jest tests/migrationCasing.test.js   # must PASS before applying
 npx prisma migrate dev
 ```
+
+> **EXPECT THE CASING BUG HERE.** Task 1's `CREATE TABLE` escaped it, and the reason predicts this migration will not: Prisma emits a new table from the schema's declared name, but an `ALTER TABLE` name is read back from the database — and on case-insensitive Windows MySQL it comes back lowercase. Every prior occurrence documented in `CLAUDE.md` was an `ALTER` on an existing table. This migration alters `WildlifeTurnover`, so assume `` ALTER TABLE `wildlifeturnover` `` and fix it before applying.
 
 - [ ] **Step 7: Change `species_category` to the enum**
 
@@ -2099,7 +2204,7 @@ Expected: PASS.
 ```bash
 git status --short
 git add backend/scripts/audit-species-names.mjs backend/prisma/schema.prisma backend/prisma/migrations
-git commit -- backend/scripts/audit-species-names.mjs backend/prisma/schema.prisma backend/prisma/migrations -m "Tie wildlife reports to the species catalogue"
+git commit -m "Tie wildlife reports to the species catalogue" -- backend/scripts/audit-species-names.mjs backend/prisma/schema.prisma backend/prisma/migrations
 ```
 
 > **Deploy note for whoever ships this.** Run the audit against Railway and the Docker database and backfill there too, **before** deploying these two migrations. `prisma migrate status` does not surface checksum drift, so a clean status is not evidence the databases agree — hash the migration files to check.
@@ -2179,7 +2284,7 @@ Expected: clean. **Remember this does not catch an undefined JSX identifier** �
 
 ```bash
 git status --short
-git commit -- web/src/lib/api.js -m "Add the species API to the web client"
+git commit -m "Add the species API to the web client" -- web/src/lib/api.js
 ```
 
 ---
@@ -2260,7 +2365,7 @@ Expected: clean.
 ```bash
 git status --short
 git add web/src/lib/useSpecies.js
-git commit -- web/src/lib/useSpecies.js -m "Add a web hook for the species catalogue"
+git commit -m "Add a web hook for the species catalogue" -- web/src/lib/useSpecies.js
 ```
 
 ---
@@ -2399,7 +2504,7 @@ Sign in as Admin. Create a species, edit it, retire it, upload a photo. Confirm 
 ```bash
 git status --short
 git add web/src/pages/admin/AdminSpeciesPage.jsx
-git commit -- web/src/pages/admin/AdminSpeciesPage.jsx web/src/App.jsx web/src/pages/admin/AdminCategoriesPage.jsx -m "Add an admin screen for the species catalogue"
+git commit -m "Add an admin screen for the species catalogue" -- web/src/pages/admin/AdminSpeciesPage.jsx web/src/App.jsx web/src/pages/admin/AdminCategoriesPage.jsx
 ```
 
 ---
@@ -2616,7 +2721,7 @@ In a browser as a verified resident: pick a common species (confirm the read-onl
 
 ```bash
 git status --short
-git commit -- web/src/pages/resident/WildlifeFormPage.jsx -m "Group the species picker and derive the category on the web form"
+git commit -m "Group the species picker and derive the category on the web form" -- web/src/pages/resident/WildlifeFormPage.jsx
 ```
 
 ---
@@ -2688,7 +2793,7 @@ Then open `/wildlife` signed out: species render from the API, badges are colour
 
 ```bash
 git status --short
-git commit -- web/src/pages/public/WildlifePage.jsx web/src/lib/species.js -m "Read the public species guide from the catalogue"
+git commit -m "Read the public species guide from the catalogue" -- web/src/pages/public/WildlifePage.jsx web/src/lib/species.js
 ```
 
 ---
@@ -2766,7 +2871,7 @@ Then in Expo Go, open the complaint, request and anonymous forms and confirm the
 
 ```bash
 git status --short
-git commit -- mobile/src/components/Select.js -m "Let the mobile picker show grouped options"
+git commit -m "Let the mobile picker show grouped options" -- mobile/src/components/Select.js
 ```
 
 ---
@@ -2884,7 +2989,7 @@ Expected: both clean.
 ```bash
 git status --short
 git add mobile/src/lib/useSpecies.js
-git commit -- mobile/src/lib/useSpecies.js mobile/src/api/client.js mobile/src/lib/reports.js -m "Fetch the species catalogue in the mobile app"
+git commit -m "Fetch the species catalogue in the mobile app" -- mobile/src/lib/useSpecies.js mobile/src/api/client.js mobile/src/lib/reports.js
 ```
 
 ---
@@ -3069,7 +3174,7 @@ Then in **Expo Go on the SDK 56 build** against the LAN API: both groups and the
 
 ```bash
 git status --short
-git commit -- mobile/src/screens/resident/WildlifeFormScreen.js -m "Group the species picker and derive the category on the mobile form"
+git commit -m "Group the species picker and derive the category on the mobile form" -- mobile/src/screens/resident/WildlifeFormScreen.js
 ```
 
 > **Before publishing the OTA:** run `eas fingerprint:compare --build-id <id>`. CRLF silently turns a successful `eas update` into one that reaches nobody, with no error — check bytes with `tr -cd '\r' | wc -c`, never `grep`. Then `eas update --channel preview --message "..." --environment preview`.
@@ -3152,7 +3257,7 @@ As staff, open an `Other` report. Confirm it reads "Treated as endangered", clic
 
 ```bash
 git status --short
-git commit -- web/src/pages/staff/WildlifeDetailPage.jsx -m "Let staff correct a wildlife report's endangered flag from the detail page"
+git commit -m "Let staff correct a wildlife report's endangered flag from the detail page" -- web/src/pages/staff/WildlifeDetailPage.jsx
 ```
 
 ---

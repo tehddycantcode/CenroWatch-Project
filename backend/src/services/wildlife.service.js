@@ -1,5 +1,6 @@
 // Wildlife turnover business logic. Pattern: routes → controllers → services → prisma.
-// A resident-flagged endangered species is routed to Priority_Review.
+// A species the catalogue marks endangered is routed to Priority_Review - see
+// resolveSpecies() in species.service.js, the only place that decision is made.
 
 const prisma = require('../utils/prisma');
 const HttpError = require('../utils/httpError');
@@ -8,6 +9,34 @@ const { createSequential } = require('../utils/createSequential');
 const { getSlaMinutes, computeSlaDeadline } = require('../utils/sla');
 const { withActive } = require('../utils/archive');
 const { notifyReportSubmitted } = require('../utils/notify');
+const { resolveSpecies } = require('./species.service');
+
+// Same cap the validator enforces on description. Not a column limit -
+// WildlifeTurnover.description is @db.Text (65,535 bytes), nowhere near the
+// worst case here - this exists to keep the STORED value inside the range the
+// API itself promises to accept, not to avoid a database error.
+const DESCRIPTION_MAX = 5000;
+
+// Keep an uncatalogued species name in the report, as the description's first
+// line, so it is the first thing staff read. Mirrors withOtherDetail() in
+// otherCategory.js, which does the same for an "Other" complaint type.
+//
+// Runs when species_name matches no catalogue row. Neither the web nor the
+// mobile wildlife form is wired to the catalogue yet
+// (web/src/pages/resident/WildlifeFormPage.jsx,
+// mobile/src/screens/resident/WildlifeFormScreen.js) - but both forms' static
+// dropdown lists (web/src/lib/species.js, mobile/src/lib/reports.js) happen to
+// carry the exact same ten names the catalogue was seeded with, so picking
+// any of those ten resolves against the real row and this returns immediately
+// with nothing to fold. This runs only on each form's "Other (specify)..."
+// free-text branch today - the minority path - and will keep doing the same
+// job for whichever installed build has not taken a future catalogue-aware
+// update once one ships.
+function foldUnlistedSpecies(description, unlisted) {
+  if (!unlisted) return description;
+  const folded = `Other: ${unlisted}\n\n${description}`;
+  return folded.length <= DESCRIPTION_MAX ? folded : folded.slice(0, DESCRIPTION_MAX);
+}
 
 const DETAIL_SELECT = {
   turnover_id: true,
@@ -69,7 +98,18 @@ async function createTurnover(userId, input, photoPath, ctx = {}) {
   const slaMinutes = await getSlaMinutes('wildlife_sla_minutes', 3218);
   const sla_started_at = submitted_at;
   const sla_deadline = await computeSlaDeadline(submitted_at, slaMinutes);
-  const endangered = !!input.is_endangered;
+
+  // THE CATEGORY AND THE ENDANGERED FLAG ARE DERIVED, NEVER READ FROM THE BODY.
+  // Both used to come from the client - a free-text category box and a
+  // self-declared "I believe this is endangered" checkbox - which made "three
+  // exclusive categories" untrue and left a privacy control (public-map
+  // obfuscation) in the reporter's hands. input.species_category is now only a
+  // fallback for a species row that has no category - by design that is meant
+  // to be the seeded Other sentinel alone, though nothing stops another row
+  // from landing without one in the meantime (see the note in resolveSpecies).
+  // input.is_endangered is ignored entirely.
+  const species = await resolveSpecies(input.species_name, input.species_category);
+  const endangered = species.is_endangered;
 
   const turnover = await createSequential({
     model: 'wildlifeTurnover',
@@ -79,12 +119,12 @@ async function createTurnover(userId, input, photoPath, ctx = {}) {
     data: {
       reported_by: userId,
       barangay_id: input.barangay_id,
-      species_name: input.species_name,
-      species_category: input.species_category || null,
+      species_name: species.name,
+      species_category: species.category,
       is_endangered: endangered,
       is_priority_review: endangered,
       animal_condition: input.animal_condition,
-      description: input.description,
+      description: foldUnlistedSpecies(input.description, species.unlisted),
       photo_path: photoPath || null,
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,

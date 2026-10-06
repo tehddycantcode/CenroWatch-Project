@@ -69,6 +69,57 @@ enum AnimalCondition {
   Dead
 }
 
+// ============================================================
+// SPECIES CATALOGUE
+// ============================================================
+
+// The three exclusive wildlife categories. An ENUM rather than a table -
+// deliberately breaking the ComplaintType/RequestType precedent - because
+// "exclusive" is the whole point of automatic assignment, and only an enum lets
+// the database enforce that a fourth value cannot appear. Cost, accepted
+// knowingly: Amphibian or Fish would need a migration.
+enum SpeciesCategory {
+  Bird
+  Mammal
+  Reptile
+}
+
+// Primary habitat, as an identification aid ("where you would expect to find
+// it"). One value per species: several of these animals use more than one
+// habitat, so if filtering by biome is ever required this becomes a join table.
+enum SpeciesBiome {
+  Forest
+  Freshwater
+  Lakeshore_Wetland
+  Agricultural
+  Urban
+  Cave
+}
+
+// Conservation standing. DESCRIPTIVE ONLY - it does not decide obfuscation.
+// See Species.is_endangered for why that is separate and explicit.
+enum SpeciesIndicator {
+  Common
+  Native
+  Endemic
+  Near_Threatened
+  Vulnerable
+  Endangered
+  Critically_Endangered
+}
+
+// Physical risk to whoever approaches the animal. Separate from
+// SpeciesIndicator on purpose: conservation standing and danger are unrelated.
+// A Reticulated Python is Native but dangerous; a Philippine Duck is Vulnerable
+// but harmless.
+enum SpeciesHazard {
+  None
+  Venomous
+  Aggressive
+  Disease_Risk
+  Powerful_Bite_Or_Talons
+}
+
 // Citizens Charter — receipt channels & responsible roles (Part 20)
 enum ComplaintReceivedVia {
   Walk_In
@@ -194,6 +245,64 @@ model Barangay {
   complaints         Complaint[]
   wildlife_turnovers WildlifeTurnover[]
   env_requests       EnvironmentalRequest[]
+}
+
+// Admin-managed species catalogue. Follows ComplaintType/RequestType: reports
+// store the species NAME with a foreign key to it, so the database guarantees a
+// report can never name a species that does not exist, and every groupBy, PDF
+// row and badge keeps reading the value it already reads.
+//
+// Species are RETIRED (is_active = false), never deleted. A species with reports
+// against it cannot be removed without making that history unreadable, and the
+// FK is RESTRICT so the database refuses it outright.
+model Species {
+  species_id      Int    @id @default(autoincrement())
+  name            String @unique @db.VarChar(200)
+  scientific_name String? @db.VarChar(200)
+  local_name      String? @db.VarChar(200) // e.g. "musang"
+
+  // NULLABLE, all three, at the column level - no migration enforces any of
+  // this. By design, only the seeded `Other` sentinel is meant to have no
+  // taxonomy at all - that is exactly the case the required-on-CREATE rule
+  // below exists to stop from happening to any other row, not a count of how
+  // many currently lack one (a migration backfill can still leave a row null
+  // outside that rule; see the note in species.service.resolveSpecies).
+  // Of the other two, only `category` is required of a real species,
+  // and only on CREATE - species.validators.js enforces it there (an update
+  // sends only changed fields, so requiring it there would break every edit
+  // that does not touch category). It is required because
+  // species.service.resolveSpecies() auto-assigns `category` onto every
+  // report filed against a species, falling back to whatever the client posts
+  // only when the row's own category is null; a real row left without one
+  // would reopen that client-controlled path. `biome` and `indicator` are
+  // purely descriptive - they enrich the identification card a resident sees,
+  // and stay optional on both create and update.
+  category  SpeciesCategory?
+  biome     SpeciesBiome?
+  indicator SpeciesIndicator?
+  hazard    SpeciesHazard     @default(None)
+
+  // EXPLICIT, never derived from `indicator`. DENR/legal protected status does
+  // not map cleanly onto IUCN categories, and this boolean drives public-map
+  // coordinate obfuscation - a privacy control is set deliberately, not
+  // inferred from a taxonomy label.
+  is_endangered Boolean @default(false)
+
+  body_description String? @db.Text // size, colour, markings, distinctive traits
+  handling_note    String? @db.Text // species-specific safety guidance
+  photo_path       String? @db.VarChar(500)
+  photo_credit     String? @db.VarChar(255)
+
+  is_active  Boolean  @default(true)
+  sort_order Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  turnovers WildlifeTurnover[]
+
+  @@index([category])
+  @@index([is_endangered])
+  @@index([is_active])
 }
 
 // ============================================================
@@ -337,7 +446,7 @@ model WildlifeTurnover {
   processed_by            Int? // CENRO Staff user_id
   barangay_id             Int
   species_name            String          @db.VarChar(200)
-  species_category        String?         @db.VarChar(100)
+  species_category        SpeciesCategory?
   is_endangered           Boolean         @default(false)
   is_priority_review      Boolean         @default(false)
   animal_condition        AnimalCondition
@@ -380,6 +489,14 @@ model WildlifeTurnover {
   resident User     @relation("UserWildlife", fields: [reported_by], references: [user_id])
   staff    User?    @relation("ProcessedByStaff", fields: [processed_by], references: [user_id])
   barangay Barangay @relation(fields: [barangay_id], references: [barangay_id])
+  // REQUIRED relation, exactly like Complaint.type: the scalar FK field is
+  // required, so the relation must be too. Restrict, so a species with reports
+  // against it cannot be deleted and make that history unreadable.
+  //
+  // Free text never reaches this column - resolveSpecies maps an unrecognised
+  // name onto the seeded "Other" row and keeps what was typed in the
+  // description. That is what makes a required key safe here.
+  species Species @relation(fields: [species_name], references: [name], onUpdate: Cascade, onDelete: Restrict)
   status_history WildlifeStatusHistory[]
 
   @@index([reference_id])

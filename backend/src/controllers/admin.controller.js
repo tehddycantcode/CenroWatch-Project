@@ -7,6 +7,8 @@ const archiveService = require('../services/admin.archive.service');
 const reportService = require('../services/admin.report.service');
 const categoryService = require('../services/category.service');
 const barangayService = require('../services/barangay.service');
+const speciesService = require('../services/species.service');
+const storage = require('../services/storage');
 const { writeAuditLog } = require('../utils/audit');
 
 // Analytics
@@ -105,6 +107,33 @@ const updateCategory = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Category updated.', data: { category } });
 });
 
+// Species catalogue. IF whatever calls these endpoints keeps a per-session
+// cache of the PUBLIC species list, a mutation here is not visible to a
+// resident until that cache is invalidated - so the caller has to do it, or an
+// Admin retires a species and residents keep being offered it until their tab
+// reloads. See how adminApi already invalidates categoryApi and barangayApi in
+// web/src/lib/api.js for the shape to follow once a species cache exists there
+// too.
+const listSpecies = asyncHandler(async (req, res) => {
+  const data = await speciesService.listAll();
+  res.json({ success: true, data: await storage.signFiles(data) });
+});
+
+const createSpecies = asyncHandler(async (req, res) => {
+  const species = await speciesService.createSpecies(req.user.user_id, req.body, { ipAddress: req.ip });
+  res.status(201).json({ success: true, message: 'Species created.', data: { species: await storage.signFiles(species) } });
+});
+
+const updateSpecies = asyncHandler(async (req, res) => {
+  const species = await speciesService.updateSpecies(req.user.user_id, req.params.id, req.body, { ipAddress: req.ip });
+  res.json({ success: true, message: 'Species updated.', data: { species: await storage.signFiles(species) } });
+});
+
+const setSpeciesPhoto = asyncHandler(async (req, res) => {
+  const species = await speciesService.setSpeciesPhoto(req.user.user_id, req.params.id, req.file, { ipAddress: req.ip });
+  res.json({ success: true, message: 'Species photo updated.', data: { species: await storage.signFiles(species) } });
+});
+
 const listBarangays = asyncHandler(async (req, res) => {
   const barangays = await barangayService.listAllBarangays();
   res.json({ success: true, data: { barangays } });
@@ -136,5 +165,6 @@ module.exports = {
   listArchived, archiveReport, restoreReport,
   listAuditLogs, listSettings, updateSetting,
   listCategories, createCategory, updateCategory,
+  listSpecies, createSpecies, updateSpecies, setSpeciesPhoto,
   listBarangays, createBarangay, updateBarangay,
 };
