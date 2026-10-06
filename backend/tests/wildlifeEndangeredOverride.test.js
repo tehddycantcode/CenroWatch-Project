@@ -22,7 +22,7 @@ const { DETAIL_SELECT } = svc;
 
 // Matches updateTurnover's real `existing` select exactly ({ turnover_id,
 // reference_id, archived_at, is_endangered } - no `status`), so this fixture
-// cannot simulate data production never produces.
+// cannot simulate data that production never produces.
 const ROW = {
   turnover_id: 4, reference_id: 'WLD-2026-00004', is_endangered: true,
   archived_at: null,
