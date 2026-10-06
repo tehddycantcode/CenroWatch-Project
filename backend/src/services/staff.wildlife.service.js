@@ -196,7 +196,7 @@ async function updateTurnoverStatus(staffId, idOrRef, input, ctx = {}) {
 async function updateTurnover(staffId, idOrRef, input, ctx = {}) {
   const existing = await prisma.wildlifeTurnover.findFirst({
     where: whereFor(idOrRef),
-    select: { turnover_id: true, reference_id: true, archived_at: true },
+    select: { turnover_id: true, reference_id: true, archived_at: true, is_endangered: true },
   });
   if (!existing) throw new HttpError(404, 'Wildlife record not found.');
   assertNotArchived(existing, 'wildlife record');
@@ -205,7 +205,28 @@ async function updateTurnover(staffId, idOrRef, input, ctx = {}) {
   if (input.staff_notes !== undefined) data.staff_notes = input.staff_notes || null;
   if (input.transfer_destination !== undefined) data.transfer_destination = input.transfer_destination || null;
 
-  await prisma.wildlifeTurnover.update({ where: { turnover_id: existing.turnover_id }, data });
+  // This flag decides whether gis.service.js fuzzes the report's coordinates on
+  // the PUBLIC map, so it is a privacy control rather than a data field. It gets
+  // its own audit action for that reason: "who un-hid this rescue site" must be
+  // answerable from the log directly.
+  const flagChanged =
+    input.is_endangered !== undefined && Boolean(input.is_endangered) !== existing.is_endangered;
+  if (input.is_endangered !== undefined) {
+    data.is_endangered = Boolean(input.is_endangered);
+    // Kept in step: the two are set together at intake, and letting them drift
+    // would leave a report in the priority queue with nothing explaining why.
+    data.is_priority_review = Boolean(input.is_endangered);
+  }
+
+  // Selecting the detail shape directly on the update gets the barangay/
+  // resident/staff relations the response needs from this one write, instead
+  // of the previous pattern here (a bare update(), result discarded, then a
+  // second findFirst via getTurnover purely to re-read those relations).
+  const updated = await prisma.wildlifeTurnover.update({
+    where: { turnover_id: existing.turnover_id },
+    data,
+    select: DETAIL_SELECT,
+  });
 
   await writeAuditLog({
     performedBy: staffId,
@@ -216,7 +237,22 @@ async function updateTurnover(staffId, idOrRef, input, ctx = {}) {
     ipAddress: ctx.ipAddress || null,
   });
 
-  return getTurnover(existing.turnover_id);
+  if (flagChanged) {
+    await writeAuditLog({
+      performedBy: staffId,
+      action: 'WILDLIFE_ENDANGERED_OVERRIDE',
+      targetTable: 'WildlifeTurnover',
+      targetId: existing.turnover_id,
+      data: {
+        reference_id: existing.reference_id,
+        from: existing.is_endangered,
+        to: Boolean(input.is_endangered),
+      },
+      ipAddress: ctx.ipAddress || null,
+    });
+  }
+
+  return updated;
 }
 
 // Chain-of-custody photos (manuscript Objective 2.3) — staff document the

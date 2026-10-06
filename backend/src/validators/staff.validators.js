@@ -79,6 +79,11 @@ const wildlifeStatusRules = [
 const wildlifeUpdateRules = [
   body('staff_notes').optional({ values: 'falsy' }).trim().isLength({ max: 5000 }),
   body('transfer_destination').optional({ values: 'falsy' }).trim().isLength({ max: 255 }),
+  // Staff correcting the derived flag. An unidentified animal is filed against
+  // the "Other" species and is endangered by default (the fail-safe); this lets
+  // staff downgrade it once someone has looked at the photo, or flag a species
+  // the catalogue has as common that turns out to be protected.
+  body('is_endangered').optional().isBoolean().toBoolean(),
 ];
 
 // ── Request ───────────────────────────────────────────────────────────────
