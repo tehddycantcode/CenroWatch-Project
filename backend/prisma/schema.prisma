@@ -294,6 +294,8 @@ model Species {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
+  turnovers WildlifeTurnover[]
+
   @@index([category])
   @@index([is_endangered])
   @@index([is_active])
@@ -440,7 +442,7 @@ model WildlifeTurnover {
   processed_by            Int? // CENRO Staff user_id
   barangay_id             Int
   species_name            String          @db.VarChar(200)
-  species_category        String?         @db.VarChar(100)
+  species_category        SpeciesCategory?
   is_endangered           Boolean         @default(false)
   is_priority_review      Boolean         @default(false)
   animal_condition        AnimalCondition
@@ -483,6 +485,14 @@ model WildlifeTurnover {
   resident User     @relation("UserWildlife", fields: [reported_by], references: [user_id])
   staff    User?    @relation("ProcessedByStaff", fields: [processed_by], references: [user_id])
   barangay Barangay @relation(fields: [barangay_id], references: [barangay_id])
+  // REQUIRED relation, exactly like Complaint.type: the scalar FK field is
+  // required, so the relation must be too. Restrict, so a species with reports
+  // against it cannot be deleted and make that history unreadable.
+  //
+  // Free text never reaches this column - resolveSpecies maps an unrecognised
+  // name onto the seeded "Other" row and keeps what was typed in the
+  // description. That is what makes a required key safe here.
+  species Species @relation(fields: [species_name], references: [name], onUpdate: Cascade, onDelete: Restrict)
   status_history WildlifeStatusHistory[]
 
   @@index([reference_id])
