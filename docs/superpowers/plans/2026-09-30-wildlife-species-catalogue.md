@@ -1483,6 +1483,8 @@ git commit -m "Add admin endpoints for the species catalogue" -- backend/src/val
 - Produces: `setSpeciesPhoto(adminId, id, file, ctx): Promise<row>`; `POST /api/v1/admin/species/:id/photo` (multipart, field `photo`). Audit action `SPECIES_PHOTO_SET`.
 - Also modifies `backend/src/controllers/species.controller.js`.
 
+> **AND EVERY CLIENT THAT RENDERS ONE MUST WRAP IT IN `fileUrl()`.** Signing makes the path *authorised*; it does not make it *absolute*. The local driver returns a relative `/uploads/...`, so a bare `src` resolves against the **client's own origin** — fine behind Vite's dev proxy, and a 404 for every species photo on `pages.dev`, which is a different origin from the Railway API. `fileUrl()` in `web/src/lib/api.js` prepends `FILE_BASE`, and every existing consumer (`TrackReportPage.jsx:112`, `staff/detail.jsx:320`) already goes through it. Signed-but-relative is the trap: the URL looks complete and works in dev.
+>
 > **EVERY species response that can carry a `photo_path` must pass through `storage.signFiles`** — the public `listActive`, and admin `listSpecies`, `createSpecies`, `updateSpecies` and `setSpeciesPhoto`. `/uploads` answers a **bare stored path with 403** ("missing its access token"), so without this the later tasks' `<img src={species.photo_path}>` renders broken and reads as an upload bug rather than a missing signature. `photo_path` is already in `signFiles`' `FILE_FIELDS` set, so that helper needs no change. Signing stays a **controller** concern — the service keeps returning the bare path, as every other file-returning controller in this codebase does.
 >
 > **Verify it the way that distinguishes working from not:** fetch the path the API returns **directly**, with no signature minted by hand. Minting one yourself proves the signing mechanism works, not that the response carries a usable URL.
@@ -2587,7 +2589,7 @@ Remove `is_endangered` from the `form` state object while you are here; step 5 d
         <div className="rounded-lg border bg-muted/40 p-3 text-sm">
           {selected.photo_path && (
             <img
-              src={selected.photo_path}
+              src={fileUrl(selected.photo_path)}
               alt={`Reference photograph of a ${selected.name}`}
               className="mb-2 h-40 w-full rounded-md object-cover"
             />
@@ -3066,7 +3068,7 @@ The old version copied `sp.group` into a `species_category` field the server no 
         <View style={styles.idCard}>
           {selected.photo_path ? (
             <Image
-              source={{ uri: selected.photo_path }}
+              source={{ uri: fileUrl(selected.photo_path) }}
               style={styles.idPhoto}
               accessibilityLabel={`Reference photograph of a ${selected.name}`}
             />
