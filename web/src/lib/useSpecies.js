@@ -3,11 +3,13 @@ import { speciesApi } from '@/lib/api';
 
 // The wildlife species catalogue, split for the two-group picker.
 //
-// web/src/lib/species.js is a frozen array today - rich content that only the
-// public education page reads, while the report form reads a separate,
-// barer copy on mobile. This hook exists so both can read one source
-// instead: once each is switched over, an Admin adding a species changes
-// what residents see with nothing rebuilt.
+// web/src/lib/species.js is a frozen array today. The public species guide is
+// the only page that shows its rich fields (scientific name, status, photo,
+// credit, description, handling note); the web report form takes just names and
+// groups from the same array, and mobile reads a separate, barer copy. This hook
+// exists so the guide and the web form can read the catalogue instead: once each
+// is switched over, an Admin adding a species changes what residents see with
+// nothing rebuilt.
 //
 // The split is by `is_endangered`, which is ALSO the column that drives
 // public-map coordinate obfuscation. One source of truth on purpose: the group a

@@ -176,6 +176,10 @@ export const authApi = {
 let barangaysPromise = null;
 let categoriesPromise = null;
 let speciesPromise = null;
+// When the request behind speciesPromise STARTED, not when it answered. The
+// server signs the photo links while it handles the request, so counting from
+// the start can only over-state how old they are, which is the safe direction.
+let speciesFetchedAt = 0;
 
 export const barangayApi = {
   list: () => {
@@ -205,13 +209,30 @@ export const categoryApi = {
   invalidate: () => { categoriesPromise = null; },
 };
 
-// Active wildlife species, meant for the report form's species picker and the
-// public species guide once each is wired to read it instead of the frozen
-// array in web/src/lib/species.js.
+// How long the species list may be reused before it is fetched again.
+//
+// Unlike barangays and categories, this is NOT cached for the whole session:
+// nothing in those lists expires, and this one does. GET /species signs every
+// photo_path, and a signed link stops working once its lifetime is up - an hour
+// after it was minted (FILE_URL_TTL_MINUTES with local storage, where it defaults
+// to 60; fixed at one hour with GCS). After that the image request is refused (a
+// 403 from /uploads with local storage). A list kept for the whole session would
+// hand a long-open tab links that no longer load while `error` stays empty, and
+// nothing on screen would say why.
+//
+// So this must stay well inside that lifetime. 15 minutes is a 4x margin on the
+// hour; lowering FILE_URL_TTL_MINUTES below 15 minutes would make photos fail the
+// same way, with no error shown.
+const SPECIES_MAX_AGE_MS = 15 * 60 * 1000;
+
+// Active wildlife species for the report form and the public species guide.
 // Public: the response carries zero personal data (R.A. 10173).
 export const speciesApi = {
   list: () => {
-    if (!speciesPromise) {
+    const now = Date.now();
+    // Stale by age as well as by absence - see SPECIES_MAX_AGE_MS.
+    if (!speciesPromise || now - speciesFetchedAt >= SPECIES_MAX_AGE_MS) {
+      speciesFetchedAt = now;
       speciesPromise = apiFetch('/species', { auth: false }).catch((err) => {
         speciesPromise = null;
         throw err;
@@ -359,8 +380,8 @@ export const adminApi = {
 
   // Wildlife species catalogue. Every mutation invalidates the PUBLIC species
   // cache, or a species an Admin just retired would keep appearing in the
-  // wildlife form for the rest of the session - and a photo they just
-  // uploaded would not.
+  // wildlife form until the cache ages out (SPECIES_MAX_AGE_MS) - and a photo
+  // they just uploaded would not show up until then either.
   listSpecies: () => apiFetch('/admin/species'),
   createSpecies: (payload) =>
     apiFetch('/admin/species', { method: 'POST', body: payload }).then((r) => {
@@ -373,7 +394,8 @@ export const adminApi = {
       return r;
     }),
   // FormData, so apiFetch must not set a JSON Content-Type - the same path the
-  // report forms already use for a photo.
+  // report forms already use for a photo. The file part must be named `photo`:
+  // the upload middleware refuses any other name ("Unexpected file field").
   setSpeciesPhoto: (id, form) =>
     apiFetch(`/admin/species/${id}/photo`, { method: 'POST', body: form }).then((r) => {
       speciesApi.invalidate();
