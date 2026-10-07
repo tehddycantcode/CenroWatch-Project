@@ -2773,11 +2773,18 @@ const credits = rows.filter((s) => s.photo_path && s.photo_credit)
 
 The page must render correctly when **every** species has `photo_path: null` — photos are admin-uploaded, so that is the state on a fresh install, and the old file's own comment required the text-only fallback. Show `error` as visible text and render a loading state; never an empty page that looks broken.
 
-- [ ] **Step 4: Delete the old module**
+- [ ] **Step 4: Delete the old module, and rewrite the two comments that name it**
 
 ```bash
 git rm web/src/lib/species.js
 ```
+
+Deleting it makes two comments written during the transition point at a file that no longer exists. Rewrite both as statements about how things now are, not how they are changing:
+
+- `web/src/lib/useSpecies.js` — its header paragraph describes the old frozen array and which consumers still read it. After this step nothing does.
+- `web/src/lib/api.js` — check the `speciesApi` block for any residual mention of `web/src/lib/species.js` or of consumers being "wired" to the API later.
+
+Grep for `lib/species` across `web/src` afterwards and confirm the only hits are gone, not just the import.
 
 - [ ] **Step 5: Confirm nothing still imports it**
 
