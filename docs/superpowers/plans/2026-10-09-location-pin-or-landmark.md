@@ -904,13 +904,17 @@ git commit -m "Let a service request say where it is needed" -- web/src/pages/re
 
 - [ ] **Step 1: Add the rule and the landmark field to the walk-in form**
 
-`web/src/pages/staff/LogWalkInPage.jsx` already has an `address_details` field — **check before adding one**:
+> **Corrected 2026-10-09 during execution.** This step originally claimed the page "already has an `address_details` field". **It does not** — zero references. The claim survived only because the step also said to check. Three things follow, and the first two were missing from this step entirely:
+>
+> 1. **Add the field.** Not just the guard.
+> 2. **Rewrite the Location hint,** which still calls the pin optional. The walk-in route now carries the shared rule (`staff.validators.js`), so as written the form can 422 after telling the clerk the pin was optional. Use: `Pin it on the map, or write the address and nearest landmark.`
+> 3. **Render `LocationField` with `required`.** It currently defaults to false, which understates a requirement the API now enforces.
+>
+> Why this mattered more than a missing field: Task 3 made `LocationField`'s geolocation-failure message say *"…or describe the address and landmark below"* **unconditionally**, and this page renders that component. Without the field, a staff member who denies the GPS prompt is pointed at something that does not exist — the `CLAUDE.md` lesson that user-facing copy is a feature commitment.
+>
+> One consequence to record: after this, **every** caller passes `required`, so the prop's `false` branch is unreached. Keep the prop and say so in `LocationField.jsx`'s header comment — which must also regain the sentence that the component is shared with this form, the only thing that explained why the prop is not dead weight.
 
-```bash
-grep -n "address_details" web/src/pages/staff/LogWalkInPage.jsx
-```
-
-If it has one, only `validate()` needs the new rule. If not, add the field in the same shape as Task 3 Step 3, with staff-facing copy (no Tagalog — `web/src/lib/tagalog.js` deliberately leaves staff surfaces English, and its header says so).
+Add the field in the same shape as Task 3 Step 3, with staff-facing copy (no Tagalog — `web/src/lib/tagalog.js` deliberately leaves staff surfaces English, and its header says so).
 
 Add to `validate()`:
 
