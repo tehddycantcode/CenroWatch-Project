@@ -519,6 +519,12 @@ model EnvironmentalRequest {
   request_type       String        @db.VarChar(100) // FK -> RequestType.name
   description        String        @db.Text
   document_path      String?       @db.VarChar(500)
+  // Where the service is needed. Nullable, like the other two report models -
+  // a request carries a pin, a landmark description, or both, and the API
+  // refuses only the case where it has neither (validators/location.validators.js).
+  latitude           Float?
+  longitude          Float?
+  address_details    String?       @db.VarChar(2000) // encrypted at rest
   requested_quantity Int?
   preferred_schedule DateTime?
   status             RequestStatus @default(Pending)

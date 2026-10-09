@@ -15,6 +15,9 @@ const DETAIL_SELECT = {
   request_type: true,
   description: true,
   document_path: true,
+  latitude: true,
+  longitude: true,
+  address_details: true,
   requested_quantity: true,
   preferred_schedule: true,
   status: true,
@@ -74,6 +77,11 @@ async function createRequest(userId, input, documentPath, ctx = {}) {
       document_path: documentPath || null,
       requested_quantity: input.requested_quantity ?? null,
       preferred_schedule: input.preferred_schedule ?? null,
+      // Normalised to null rather than left undefined, matching
+      // complaint.service and wildlife.service.
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
+      address_details: input.address_details || null,
       submitted_at,
       // Both null until approval; see the comment in createRequest above.
       sla_started_at: null,
@@ -135,4 +143,4 @@ async function getMyRequestByTracking(userId, trackingId) {
   return request;
 }
 
-module.exports = { createRequest, listMyRequests, getMyRequestByTracking };
+module.exports = { createRequest, listMyRequests, getMyRequestByTracking, DETAIL_SELECT };

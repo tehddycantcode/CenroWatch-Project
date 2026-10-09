@@ -22,6 +22,7 @@
 //     Complaint.reporter_contact      walk-in intake; write + PDF only
 //     Complaint.address_details       write + detail view + PDF only
 //     WildlifeTurnover.address_details    same field, same use
+//     EnvironmentalRequest.address_details    same field, same use
 //
 //   NOT ENCRYPTED (and this is not an oversight)
 //     User.email          findUnique on every login, and @unique - a random-IV

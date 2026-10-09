@@ -1,4 +1,5 @@
 const { body } = require('express-validator');
+const { locationRules } = require('./location.validators');
 const { isSelectable } = require('../services/category.service');
 
 // Referential, not a hardcoded list - see the note in complaint.validators.js.
@@ -33,6 +34,9 @@ const createRequestRules = [
     .optional({ values: 'falsy' })
     .isISO8601().withMessage('Preferred schedule must be a valid date.')
     .toDate(),
+  // A pin OR a landmark, same rule as the other three intake routes - see
+  // location.validators.js.
+  ...locationRules,
 ];
 
 module.exports = { createRequestRules, requestTypeRule };
