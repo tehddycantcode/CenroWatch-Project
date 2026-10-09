@@ -15,22 +15,10 @@ export const ANIMAL_CONDITIONS = [
   { value: 'Dead', label: 'Dead' },
 ];
 
-// Common wildlife species for the report dropdown. `value` is the species name
-// submitted to the API (species_name is free text). `group` auto-fills the
-// category. Mirrors web/src/lib/species.js; "__other__" reveals a free-text field.
-export const WILDLIFE_SPECIES = [
-  { value: 'Asian Palm Civet', label: 'Asian Palm Civet', group: 'Mammal' },
-  { value: 'Asian Water Monitor', label: 'Asian Water Monitor', group: 'Reptile' },
-  { value: 'Black-crowned Night Heron', label: 'Black-crowned Night Heron', group: 'Bird' },
-  { value: 'Collared Kingfisher', label: 'Collared Kingfisher', group: 'Bird' },
-  { value: 'Large Flying Fox', label: 'Large Flying Fox', group: 'Mammal' },
-  { value: 'Philippine Cobra', label: 'Philippine Cobra', group: 'Reptile' },
-  { value: 'Philippine Duck', label: 'Philippine Duck', group: 'Bird' },
-  { value: 'Philippine Eagle-Owl', label: 'Philippine Eagle-Owl', group: 'Bird' },
-  { value: 'Reticulated Python', label: 'Reticulated Python', group: 'Reptile' },
-  { value: 'Southeast Asian Box Turtle', label: 'Southeast Asian Box Turtle', group: 'Reptile' },
-  { value: '__other__', label: 'Other (specify)…' },
-];
+// WILDLIFE_SPECIES has been REMOVED. Species come from GET /species now (see
+// lib/useSpecies.js), so adding one no longer needs an app release, and the
+// category and endangered flag are derived server-side from the catalogue rather
+// than from this array's `group` field and a resident's checkbox.
 
 // Human-friendly label for any enum value ("Open_Burning" -> "Open Burning").
 export function humanize(value) {
