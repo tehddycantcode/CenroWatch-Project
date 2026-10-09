@@ -3,12 +3,12 @@ import { speciesApi } from '@/lib/api';
 
 // The wildlife species catalogue, split for the two-group picker.
 //
-// web/src/lib/species.js is a frozen array today. The public species guide is
-// the only page that shows its rich fields (scientific name, status, photo,
-// credit, description, handling note); the web report form takes just names and
-// groups from the same array, and mobile reads a separate, barer copy. This hook
-// exists so the guide and the web form can read the catalogue instead: once each
-// is switched over, an Admin adding a species changes what residents see with
+// Every web consumer reads the catalogue through this hook: the resident
+// wildlife form, which needs the names and the two groups, and the public
+// species guide, which shows the rich fields (scientific name, indicator,
+// hazard, photo, credit, description, handling note). There is no compiled-in
+// copy any more - the frozen array this replaced, web/src/lib/species.js, is
+// deleted - so an Admin adding a species changes what residents see with
 // nothing rebuilt.
 //
 // The split is by `is_endangered`, which is ALSO the column that drives
