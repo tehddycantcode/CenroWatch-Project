@@ -136,15 +136,18 @@ describe('the five cases that would otherwise slip through', () => {
     expect(fieldsWithErrors(r)).toContain('location');
   });
 
-  test('an over-long address with no pin reports BOTH problems', async () => {
-    // The resident has to know the address was rejected for length; otherwise
-    // they see "give me a location" while looking at the location they typed.
+  test('an over-long address with no pin reports ONLY the length problem', async () => {
+    // Deliberately NOT also a location error. The address IS present - its only
+    // defect is length - so "pin it or describe it" would contradict what the
+    // resident just did, on a form that renders each error against its own
+    // field. One accurate message beats two when one of them is wrong. The
+    // submission is refused either way, by address_details.
     const r = await runRules(createComplaintRules, complaintBody({
       latitude: '', longitude: '', address_details: 'x'.repeat(256),
     }));
     const fields = fieldsWithErrors(r);
     expect(fields).toContain('address_details');
-    expect(fields).toContain('location');
+    expect(fields).not.toContain('location');
   });
 });
 

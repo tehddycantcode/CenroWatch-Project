@@ -55,11 +55,7 @@ const locationRules = [
   // `errors[].field` into its own fieldErrors map, and the LocationField
   // component reads fieldErrors.location. Keep the name.
   body('location').custom((_value, { req }) => {
-    // An address over the length limit is already refused on its own field, and
-    // must not also satisfy this rule: storing it is impossible, so it is not a
-    // location, and the resident should see both problems.
-    const usableAddress = hasAddress(req.body) && String(req.body.address_details).trim().length <= 255;
-    if (hasCoordinates(req.body) || usableAddress) return true;
+    if (hasCoordinates(req.body) || hasAddress(req.body)) return true;
     throw new Error('Pin the location on the map, or describe the address and nearest landmark.');
   }),
 ];
