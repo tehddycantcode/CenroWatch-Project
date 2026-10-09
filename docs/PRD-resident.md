@@ -218,7 +218,8 @@ report that reference is the only handle that exists, and it resolves through th
 
 Fields: species (chosen from a list, or typed if not listed), species category (optional,
 e.g. Reptile / Bird / Mammal), animal condition (Healthy, Injured, Sick, Dead), barangay,
-description, location (a map pin or an address/landmark description - at least one), photo (optional — it helps identify the species).
+description, location (a map pin or an address/landmark description - at least one),
+photo (optional — it helps identify the species).
 
 On success the Resident receives a `WLD-YYYY-NNNNN` reference. Species flagged as
 endangered are given priority handling by CENRO.

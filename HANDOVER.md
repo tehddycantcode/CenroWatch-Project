@@ -56,7 +56,7 @@ account is no longer involved.
 
 ## 2. The encryption key — the one thing with no recovery
 
-To protect residents' personal information, CENROWATCH encrypts five pieces of
+To protect residents' personal information, CENROWATCH encrypts six pieces of
 data inside the database:
 
 - resident contact numbers
@@ -64,6 +64,10 @@ data inside the database:
 - walk-in reporter contact numbers
 - complaint street addresses
 - wildlife turnover street addresses
+- service request street addresses
+
+(The system encrypts by field name, so any street-address field added to a future
+record type is encrypted automatically, and is then covered by this same key.)
 
 They are unreadable without a key called **`FIELD_ENCRYPTION_KEY`** — a
 64-character code stored in the system's configuration.
@@ -73,8 +77,8 @@ They are unreadable without a key called **`FIELD_ENCRYPTION_KEY`** — a
 | | |
 |---|---|
 | **If the key is kept safely** | The system works normally. Staff see phone numbers and addresses exactly as before. |
-| **If the database is stolen** | Those five fields are unreadable to the thief. This is the protection you are paying for. |
-| **If the key is lost** | Those five fields are **permanently unreadable**. Not recoverable by the developers, by Google, or by anyone. Everything else in the system keeps working; that data is simply gone. |
+| **If the database is stolen** | Those six fields are unreadable to the thief. This is the protection you are paying for. |
+| **If the key is lost** | Those six fields are **permanently unreadable**. Not recoverable by the developers, by Google, or by anyone. Everything else in the system keeps working; that data is simply gone. |
 
 There is no password reset for this. It is not that recovery is difficult — it is
 that recovery is mathematically impossible, which is the entire point of

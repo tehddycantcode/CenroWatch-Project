@@ -544,12 +544,11 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   The same option fails a second, different way - see the next entry.
 - **`optional({ values: 'falsy' })` also discards a legitimate `0`** (same option as
   the entry above; there it let `''` skip validation, here it drops a real value).
-  The pin-or-landmark
-  rule needs to know whether a coordinate was SENT, and `latitude: 0` is both a
-  real coordinate and falsy in JavaScript, so a truthiness test drops it - as
-  does express-validator's `values: 'falsy'`, which would then skip the range
-  check on a value the disjunction had already counted as absent. Multipart
-  compounds it: an untouched field arrives as `''`, not as a missing key, which
+  The pin-or-landmark rule needs to know whether a coordinate was SENT, and
+  `latitude: 0` is both a real coordinate and falsy in JavaScript, so a
+  truthiness test drops it - as does express-validator's `values: 'falsy'`,
+  which would then skip the range check on a value the disjunction had already
+  counted as absent. Multipart compounds it: an untouched field arrives as `''`, not as a missing key, which
   is why the original coordinates rule used `notEmpty` over `exists`. The
   presence test that survives both is
   `v !== undefined && v !== null && String(v).trim() !== ''`.
