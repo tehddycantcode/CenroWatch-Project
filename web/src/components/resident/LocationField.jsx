@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 // Location for a report: tap the map to drop a pin, or use the device's current
 // location. Stores { latitude, longitude }.
 //
-// `required` only changes the empty-state wording. It exists because this
-// component is shared with the staff walk-in form, where a pin is genuinely
-// optional, so the copy cannot simply be rewritten. Enforcement lives in each
-// form's validate(), and in the API.
+// `required` only changes the empty-state wording, and what it means has
+// changed: a report needs a location, but a PIN is one of two ways to give one
+// - the form's landmark field is the other. So even with required set, this
+// component's empty state is an invitation rather than an error. Enforcement
+// lives in each form's validate() and in the API
+// (backend/src/validators/location.validators.js).
 export default function LocationField({ value, onChange, required = false }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -29,7 +31,7 @@ export default function LocationField({ value, onChange, required = false }) {
         setBusy(false);
       },
       () => {
-        setError('Could not get your location. Tap the map instead, or submit without it.');
+        setError('Could not get your location. Tap the map instead, or describe the address and landmark below.');
         setBusy(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -53,7 +55,7 @@ export default function LocationField({ value, onChange, required = false }) {
           {has ? (
             <span className="text-foreground">📍 {value.latitude.toFixed(5)}, {value.longitude.toFixed(5)}</span>
           ) : (
-            <span className="text-muted-foreground">{required ? 'Tap the map to pin the location' : 'Tap the map to pin a location (optional)'}</span>
+            <span className="text-muted-foreground">{required ? 'Tap the map to pin the location, or describe it below' : 'Tap the map to pin a location (optional)'}</span>
           )}
         </div>
         <div className="flex items-center gap-2">

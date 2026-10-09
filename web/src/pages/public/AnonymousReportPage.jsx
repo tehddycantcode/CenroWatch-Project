@@ -46,7 +46,7 @@ export default function AnonymousReportPage() {
   // form is broken rather than like the list failed to load.
   const { complaintTypes, error: categoriesError } = useCategories();
 
-  const [form, setForm] = useState({ barangay_id: '', complaint_type: '', description: '', type_other: '' });
+  const [form, setForm] = useState({ barangay_id: '', complaint_type: '', description: '', type_other: '', address_details: '' });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
   const [photo, setPhoto] = useState(null);
   const [consent, setConsent] = useState(false);
@@ -68,7 +68,11 @@ export default function AnonymousReportPage() {
     const errs = {};
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
     if (!form.complaint_type) errs.complaint_type = 'Please choose a complaint type.';
-    if (location.latitude == null || location.longitude == null) errs.location = 'Please pin the location on the map.';
+    // A pin OR a landmark - see backend/src/validators/location.validators.js.
+    const hasPin = location.latitude != null && location.longitude != null;
+    if (!hasPin && !form.address_details.trim()) {
+      errs.location = 'Pin the location on the map, or describe the address and nearest landmark.';
+    }
     if (form.description.trim().length < 10) errs.description = 'Describe the issue (at least 10 characters).';
     if (needsOther && !form.type_other.trim()) {
       errs.type_other = 'Please describe the type of complaint.';
@@ -98,6 +102,7 @@ export default function AnonymousReportPage() {
       fd.append('latitude', location.latitude);
       fd.append('longitude', location.longitude);
     }
+    if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
     if (photo) fd.append('photo', photo);
 
     setSubmitting(true);
@@ -197,8 +202,23 @@ export default function AnonymousReportPage() {
                   />
                 </FormField>
 
-                <FormField label="Location" hint="Required: pin where it happened" error={fieldErrors.location}>
+                <FormField label="Location" hint="Pin where it happened, or describe it below" error={fieldErrors.location}>
                   <LocationField value={location} onChange={setLocation} required />
+                </FormField>
+
+                <FormField
+                  id="address_details"
+                  label="Address or landmark"
+                  hint="Street, purok, or what it is next to"
+                  error={fieldErrors.address_details}
+                >
+                  <Input
+                    id="address_details"
+                    maxLength={255}
+                    placeholder="e.g. Beside the covered court, Purok 3"
+                    value={form.address_details}
+                    onChange={set('address_details')}
+                  />
                 </FormField>
 
                 <FormField label="Photo" hint="Optional: adds evidence. Avoid photos that could identify you.">
