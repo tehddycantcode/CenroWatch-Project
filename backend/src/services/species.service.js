@@ -331,6 +331,23 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
     throw new HttpError(422, 'The "Other" entry must stay marked endangered. It is what hides the location of an animal nobody has identified yet.');
   }
 
+  // A REAL species must keep its category. createSpeciesRules requires one on
+  // create for a stated reason - resolveSpecies() consults a CLIENT-SENT
+  // category only for a row whose own category is null, which by design is the
+  // seeded "Other" sentinel alone - but update leaves it optional on purpose,
+  // so an edit that does not touch category still works. That asymmetry is the
+  // gap: clearing a real species' category here would hand control of the
+  // category stored on every later report filed against it to whatever the
+  // reporter's client posts. Closed in the service rather than the validator so
+  // it holds for every caller, not just the admin screen.
+  //
+  // Reads `data`, never `input`: enumOrThrow() maps '' to null, so an empty
+  // select arrives as an explicit null and would walk straight past a check on
+  // `input.category` - the same trap the is_endangered guard above documents.
+  if (!isSentinel && data.category === null) {
+    throw new HttpError(422, 'A species must keep a category. It decides the category stored on every report filed against this species.');
+  }
+
   // Retiring the last active species would leave the wildlife form with no
   // options and no way for a resident to file anything - refused rather than
   // discovered by a resident staring at an empty dropdown.

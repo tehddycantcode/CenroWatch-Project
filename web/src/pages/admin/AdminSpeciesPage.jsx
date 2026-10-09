@@ -162,10 +162,25 @@ function SpeciesRow({ row, busy, onField, onPhoto }) {
         </td>
 
         <td className="px-4 py-3">
+          {/* No blank option once a category IS set, because clearing it is
+              refused by the server: resolveSpecies() falls back to a
+              client-sent category for a row whose own category is null, so a
+              real species left without one would hand that decision to
+              whatever a reporter's app posts. Same approach as the "Other"
+              row's disabled toggles - the server refuses it anyway, and an
+              Admin should not have to find that out from an error.
+
+              The blank DOES stay when the row has no category yet. That is a
+              real state, not a hypothetical: the backfill migration created
+              species from existing reports without one, and production still
+              has rows in that shape. Hiding the blank for those would show
+              "Bird" for a row whose category is actually empty - displaying a
+              value nobody chose. */}
           <EnumSelect
             label={`Category for ${row.name}`}
             value={row.category}
             options={CATEGORIES}
+            blank={row.category ? null : '--'}
             disabled={busy}
             onChange={(v) => set({ category: v })}
             className="h-9 w-32"

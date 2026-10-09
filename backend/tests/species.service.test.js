@@ -294,6 +294,61 @@ describe('updateSpecies', () => {
       .rejects.toMatchObject({ statusCode: 422, message: expect.stringContaining('must stay marked endangered') });
   });
 
+  describe('a real species cannot have its category cleared', () => {
+    // WHY THIS EXISTS. resolveSpecies() consults a CLIENT-SENT category only for
+    // a row whose own category is null, and by design that is the seeded "Other"
+    // sentinel alone. createSpeciesRules therefore REQUIRES a category on create
+    // - but updateSpeciesRules leaves it optional on purpose, so that an edit
+    // touching only handling_note still works. That asymmetry was reachable from
+    // the admin species screen: clearing the Category select posts '', which is
+    // falsy so express-validator skips it, and enumOrThrow() then maps '' to
+    // null. The row saved with no category, and from then on whatever a
+    // reporter's client posted decided that species' category on every report.
+
+    test('REFUSES an explicit null, with a message naming the consequence', async () => {
+      prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', is_active: true });
+      await expect(svc.updateSpecies(3, 1, { category: '' }, {}))
+        .rejects.toMatchObject({ statusCode: 422, message: expect.stringContaining('must keep a category') });
+      expect(prisma.species.update).not.toHaveBeenCalled();
+    });
+
+    test('refuses it however the empty value arrives', async () => {
+      // '' is what the form sends; null is what a hand-written API call sends.
+      // Both reach the guard as data.category === null, so both must be refused
+      // - a guard reading `input.category` would catch neither.
+      prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', is_active: true });
+      await expect(svc.updateSpecies(3, 1, { category: null }, {}))
+        .rejects.toMatchObject({ statusCode: 422 });
+    });
+
+    test('OPPOSITE POLARITY: a real category change still goes through', async () => {
+      // Without this the guard could be written as "reject any category edit"
+      // and every test above would still pass while the screen stopped working.
+      prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', is_active: true });
+      const row = await svc.updateSpecies(3, 1, { category: 'Reptile' }, {});
+      expect(row.category).toBe('Reptile');
+    });
+
+    test('an update that never mentions category is unaffected', async () => {
+      // This is the entire reason category stays optional on update. If the
+      // guard fired on absence rather than on an explicit null, fixing a typo in
+      // handling_note would start failing.
+      prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', is_active: true });
+      const row = await svc.updateSpecies(3, 1, { handling_note: 'Use gloves.' }, {});
+      expect(row.handling_note).toBe('Use gloves.');
+    });
+
+    test('the "Other" sentinel is deliberately exempt', async () => {
+      // It legitimately carries no category - that is what makes the 3-way
+      // picker shown for "Other" meaningful, because resolveSpecies falls back
+      // to the reporter's pick for this row ON PURPOSE. Scoping the guard with
+      // !isSentinel is load-bearing, not incidental.
+      prisma.species.findUnique.mockResolvedValue({ species_id: 11, name: 'Other', is_active: true });
+      const row = await svc.updateSpecies(3, 11, { category: '' }, {});
+      expect(row.category).toBeNull();
+    });
+  });
+
   test('a refused update writes no audit row', async () => {
     // Holds today because every guard throws before writeAuditLog is called -
     // worth pinning, because moving the log above the guards ("log the
