@@ -1,5 +1,6 @@
 const { body, query } = require('express-validator');
 const { complaintTypeRule } = require('./complaint.validators');
+const { locationRules } = require('./location.validators');
 
 // Status enums — mirror schema.prisma.
 const COMPLAINT_STATUSES = ['Pending', 'Under_Review', 'Approved', 'In_Progress', 'Resolved', 'Rejected'];
@@ -64,9 +65,11 @@ const createWalkInComplaintRules = [
     .bail()
     .custom((v) => new Date(v) <= new Date()).withMessage('The observed date cannot be in the future.')
     .toDate(),
-  body('latitude').optional({ values: 'falsy' }).isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude.').toFloat(),
-  body('longitude').optional({ values: 'falsy' }).isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude.').toFloat(),
-  body('address_details').optional({ values: 'falsy' }).trim().isLength({ max: 255 }).withMessage('Address is too long.'),
+  // The walk-in form used to be the ONE route with no location requirement, on
+  // the grounds that a resident at the counter often cannot give coordinates.
+  // That is still true and no longer sufficient: the clerk can type the street
+  // and the nearest landmark, which is what the text half of this rule is for.
+  ...locationRules,
 ];
 
 // ── Wildlife ──────────────────────────────────────────────────────────────

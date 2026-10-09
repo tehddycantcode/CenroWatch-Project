@@ -1,5 +1,6 @@
 const { body } = require('express-validator');
 const { isSelectable } = require('../services/category.service');
+const { locationRules } = require('./location.validators');
 
 // Complaint types used to be a hardcoded array here, mirroring a Prisma enum,
 // and the two had to be kept in step by hand. They are admin-managed rows now,
@@ -31,30 +32,9 @@ const createComplaintRules = [
     .notEmpty().withMessage('Description is required.')
     .bail()
     .isLength({ min: 10, max: 5000 }).withMessage('Description must be 10–5000 characters.'),
-  // REQUIRED since 2026-09-29. A complaint with no place attached is the least
-  // actionable thing CENRO can receive - staff cannot inspect what they cannot
-  // find - so every resident-facing form now insists on a pin. notEmpty rather
-  // than exists: the forms send multipart, so an unpinned map arrives as an
-  // empty STRING, not as an absent key, and `exists` would wave that through.
-  //
-  // The staff walk-in route is deliberately NOT changed (staff.validators.js):
-  // someone at the counter often cannot give coordinates, and blocking intake
-  // on a field nobody present can fill would stop the report being recorded.
-  // tests/locationRequired.test.js pins both halves of that decision.
-  body('latitude')
-    .notEmpty().withMessage('Pin the location on the map.')
-    .bail()
-    .isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude.')
-    .toFloat(),
-  body('longitude')
-    .notEmpty().withMessage('Pin the location on the map.')
-    .bail()
-    .isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude.')
-    .toFloat(),
-  body('address_details')
-    .optional({ values: 'falsy' })
-    .trim()
-    .isLength({ max: 255 }).withMessage('Address is too long.'),
+  // A pin OR a landmark - see location.validators.js, which also explains why
+  // the walk-in route is no longer the exception it used to be.
+  ...locationRules,
   // Optional resident-provided "date issue was observed". Sent as an ISO date
   // string; must not be in the future. Filing date is stamped separately.
   body('observed_at')

@@ -1,17 +1,18 @@
-// A resident report must carry a pinned location.
+// A resident report must carry a location - as a map pin, OR as a street and
+// landmark description, or both.
 //
-// Coordinates used to be optional on every form, which meant CENRO could receive
-// a complaint with no place attached - the least actionable thing a report can
-// be, since staff cannot inspect what they cannot find. The forms now require a
-// pin, and this suite is what stops that requirement being cosmetic: a rule
-// enforced only in the browser is enforced only for people using the browser.
+// Coordinates were REQUIRED between 2026-09-29 and this change, because a
+// report with no place attached is the least actionable thing CENRO can
+// receive: staff cannot inspect what they cannot find. That reasoning still
+// holds, and this rule is how it survives while letting someone who will not
+// or cannot use GPS still file. What is NOT acceptable is a report with
+// neither, and that is what the suite exists to stop.
 //
-// THE STAFF WALK-IN ROUTE IS DELIBERATELY EXCLUDED and is tested here for that
-// reason. A resident standing at the counter often cannot give coordinates, and
-// blocking intake on a field the staff member has no way to fill would stop the
-// report being recorded at all. If someone later "makes this consistent" by
-// requiring coordinates everywhere, the walk-in test below fails rather than
-// counter staff discovering it.
+// THE STAFF WALK-IN ROUTE IS NO LONGER EXEMPT. It used to be, because someone
+// at the counter often cannot give coordinates - but they can almost always
+// type a street or a landmark, so the exemption stopped being necessary the
+// moment the text alternative existed. Its test below now asserts the rule
+// applies, which is the opposite of what this file asserted before.
 
 // isSelectable hits the categories table; the rules under test do not care what
 // it says, only that it resolves.
@@ -55,72 +56,144 @@ const wildlifeBody = (over = {}) => ({
   ...over,
 });
 
-describe('a resident complaint needs a pinned location', () => {
-  test('is accepted when coordinates are present', async () => {
-    const result = await runRules(createComplaintRules, complaintBody());
-    expect(fieldsWithErrors(result)).toEqual([]);
+describe('a resident complaint needs a location, one way or the other', () => {
+  test('accepted with a pin and no address', async () => {
+    const r = await runRules(createComplaintRules, complaintBody());
+    expect(fieldsWithErrors(r)).toEqual([]);
   });
 
-  test('is rejected when the pin is missing entirely', async () => {
+  test('accepted with an address and NO pin - this is the whole point of the change', async () => {
+    const r = await runRules(createComplaintRules, complaintBody({
+      latitude: '', longitude: '',
+      address_details: 'Beside the covered court on Barangay Road, Pulo.',
+    }));
+    expect(fieldsWithErrors(r)).toEqual([]);
+  });
+
+  test('accepted with both', async () => {
+    const r = await runRules(createComplaintRules, complaintBody({
+      address_details: 'Beside the covered court.',
+    }));
+    expect(fieldsWithErrors(r)).toEqual([]);
+  });
+
+  test('REJECTED with neither', async () => {
+    const r = await runRules(createComplaintRules, complaintBody({ latitude: '', longitude: '' }));
+    expect(fieldsWithErrors(r)).toContain('location');
+  });
+
+  test('rejected when the keys are absent entirely, not just empty', async () => {
     const body = complaintBody();
     delete body.latitude;
     delete body.longitude;
-    const result = await runRules(createComplaintRules, body);
-    expect(fieldsWithErrors(result)).toEqual(expect.arrayContaining(['latitude', 'longitude']));
-  });
-
-  // The forms send multipart, so an unpinned map arrives as empty strings rather
-  // than as absent keys. Treating those as "present" would let the requirement
-  // through with nothing behind it.
-  test('is rejected when the coordinates arrive empty', async () => {
-    const result = await runRules(createComplaintRules, complaintBody({ latitude: '', longitude: '' }));
-    expect(fieldsWithErrors(result)).toEqual(expect.arrayContaining(['latitude', 'longitude']));
+    const r = await runRules(createComplaintRules, body);
+    expect(fieldsWithErrors(r)).toContain('location');
   });
 
   test('still rejects coordinates that are out of range', async () => {
-    const result = await runRules(createComplaintRules, complaintBody({ latitude: '999' }));
-    expect(fieldsWithErrors(result)).toContain('latitude');
+    const r = await runRules(createComplaintRules, complaintBody({ latitude: '91' }));
+    expect(fieldsWithErrors(r)).toContain('latitude');
   });
 });
 
-describe('an anonymous complaint needs one too', () => {
-  test('is rejected without a pin', async () => {
-    const body = complaintBody({ consent: 'true' });
-    delete body.latitude;
-    delete body.longitude;
-    const result = await runRules(createAnonymousComplaintRules, body);
-    expect(fieldsWithErrors(result)).toEqual(expect.arrayContaining(['latitude', 'longitude']));
+describe('the five cases that would otherwise slip through', () => {
+  test('A HALF-PIN IS NOT A LOCATION: latitude without longitude', async () => {
+    // Accepting this would store a report whose pin cannot be placed on a map.
+    const r = await runRules(createComplaintRules, complaintBody({ longitude: '' }));
+    expect(fieldsWithErrors(r)).toContain('location');
   });
 
-  test('is accepted with a pin and consent', async () => {
-    const result = await runRules(createAnonymousComplaintRules, complaintBody({ consent: 'true' }));
-    expect(fieldsWithErrors(result)).toEqual([]);
+  test('a half-pin WITH an address is fine - the address carries it', async () => {
+    // Opposite polarity, so the half-pin rule cannot be written as "reject any
+    // incomplete pair" and break a legitimate submission.
+    const r = await runRules(createComplaintRules, complaintBody({
+      longitude: '', address_details: 'Corner of Gov. Drive and Pulo Road.',
+    }));
+    expect(fieldsWithErrors(r)).toEqual([]);
+  });
+
+  test('latitude 0 counts as PRESENT, because 0 is falsy in JavaScript', async () => {
+    // A truthiness test would discard a real coordinate. 0,0 is not in Cabuyao,
+    // but the bug this pins is the JS falsiness, not the geography - and the
+    // same mistake would discard longitude 0 for a report filed on the meridian.
+    const r = await runRules(createComplaintRules, complaintBody({ latitude: 0, longitude: 0 }));
+    expect(fieldsWithErrors(r)).toEqual([]);
+  });
+
+  test('a non-numeric latitude is still refused, not silently skipped', async () => {
+    // The blank-to-undefined sanitizer exists so that every value which WAS
+    // sent gets range-checked. If it were written as optional({ values:
+    // 'falsy' }) instead, 'abc' would still be caught - but 0 would not be
+    // sent for validation at all. This pins the half that is easy to lose.
+    const r = await runRules(createComplaintRules, complaintBody({ latitude: 'abc' }));
+    expect(fieldsWithErrors(r)).toContain('latitude');
+  });
+
+  test('a whitespace-only address does NOT satisfy the rule', async () => {
+    const r = await runRules(createComplaintRules, complaintBody({
+      latitude: '', longitude: '', address_details: '     ',
+    }));
+    expect(fieldsWithErrors(r)).toContain('location');
+  });
+
+  test('an over-long address with no pin reports BOTH problems', async () => {
+    // The resident has to know the address was rejected for length; otherwise
+    // they see "give me a location" while looking at the location they typed.
+    const r = await runRules(createComplaintRules, complaintBody({
+      latitude: '', longitude: '', address_details: 'x'.repeat(256),
+    }));
+    const fields = fieldsWithErrors(r);
+    expect(fields).toContain('address_details');
+    expect(fields).toContain('location');
   });
 });
 
-describe('a wildlife turnover needs one too', () => {
-  test('is rejected without a pin', async () => {
-    const body = wildlifeBody();
-    delete body.latitude;
-    delete body.longitude;
-    const result = await runRules(createWildlifeRules, body);
-    expect(fieldsWithErrors(result)).toEqual(expect.arrayContaining(['latitude', 'longitude']));
+describe('the same rule covers every other intake route', () => {
+  test('an anonymous complaint accepts an address with no pin', async () => {
+    const r = await runRules(createAnonymousComplaintRules, complaintBody({
+      latitude: '', longitude: '', consent: 'true',
+      address_details: 'Near the barangay hall.',
+    }));
+    expect(fieldsWithErrors(r)).toEqual([]);
   });
 
-  test('is accepted with a pin', async () => {
-    const result = await runRules(createWildlifeRules, wildlifeBody());
-    expect(fieldsWithErrors(result)).toEqual([]);
+  test('an anonymous complaint is rejected with neither', async () => {
+    const r = await runRules(createAnonymousComplaintRules, complaintBody({
+      latitude: '', longitude: '', consent: 'true',
+    }));
+    expect(fieldsWithErrors(r)).toContain('location');
   });
-});
 
-describe('the staff walk-in form is deliberately exempt', () => {
-  // Counter intake must not be blocked on a field the resident cannot supply.
-  test('accepts a walk-in complaint with no coordinates at all', async () => {
-    const body = complaintBody({ reporter_name: 'Juan Dela Cruz' });
-    delete body.latitude;
-    delete body.longitude;
-    const result = await runRules(createWalkInComplaintRules, body);
-    expect(fieldsWithErrors(result)).not.toContain('latitude');
-    expect(fieldsWithErrors(result)).not.toContain('longitude');
+  test('a wildlife turnover accepts an address with no pin', async () => {
+    const r = await runRules(createWildlifeRules, wildlifeBody({
+      latitude: '', longitude: '', address_details: 'Along the creek behind the school.',
+    }));
+    expect(fieldsWithErrors(r)).toEqual([]);
+  });
+
+  test('a wildlife turnover is rejected with neither', async () => {
+    const r = await runRules(createWildlifeRules, wildlifeBody({ latitude: '', longitude: '' }));
+    expect(fieldsWithErrors(r)).toContain('location');
+  });
+
+  test('THE WALK-IN ROUTE IS NOW COVERED TOO - it used to be exempt', async () => {
+    // The previous version of this file asserted the opposite. A counter clerk
+    // can type a landmark even with no coordinates, so intake is not blocked.
+    const r = await runRules(createWalkInComplaintRules, {
+      barangay_id: '1',
+      complaint_type: 'Illegal_Dumping',
+      description: 'Walk-in: resident reports burning rubbish nightly.',
+    });
+    expect(fieldsWithErrors(r)).toContain('location');
+  });
+
+  test('a walk-in with only an address is accepted', async () => {
+    const r = await runRules(createWalkInComplaintRules, {
+      barangay_id: '1',
+      complaint_type: 'Illegal_Dumping',
+      description: 'Walk-in: resident reports burning rubbish nightly.',
+      address_details: 'Purok 3, near the chapel.',
+    });
+    expect(fieldsWithErrors(r)).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 const { body } = require('express-validator');
+const { locationRules } = require('./location.validators');
 
 // Mirrors the AnimalCondition enum in schema.prisma.
 const ANIMAL_CONDITIONS = ['Healthy', 'Injured', 'Sick', 'Dead'];
@@ -40,24 +41,11 @@ const createWildlifeRules = [
   // express-validator ignores unknown fields, so an old client sending it is
   // silently ignored rather than refused. DO NOT "restore" this rule.
 
-  // Latitude/longitude: REQUIRED since 2026-09-29, same as complaints - see the note in
-  // complaint.validators.js. Where an animal was found matters more here than
-  // anywhere else: it is what the endangered-species obfuscation operates on,
-  // and a turnover with no coordinates simply drops off the map.
-  body('latitude')
-    .notEmpty().withMessage('Pin the location on the map.')
-    .bail()
-    .isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude.')
-    .toFloat(),
-  body('longitude')
-    .notEmpty().withMessage('Pin the location on the map.')
-    .bail()
-    .isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude.')
-    .toFloat(),
-  body('address_details')
-    .optional({ values: 'falsy' })
-    .trim()
-    .isLength({ max: 255 }).withMessage('Address is too long.'),
+  // A pin OR a landmark - see location.validators.js. Where an animal was found
+  // matters more here than anywhere else: it is what the endangered-species
+  // coordinate obfuscation operates on, and a turnover with neither a pin nor
+  // an address cannot be found again at all.
+  ...locationRules,
 ];
 
 module.exports = { createWildlifeRules, ANIMAL_CONDITIONS };
