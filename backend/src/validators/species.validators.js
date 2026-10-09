@@ -27,6 +27,10 @@ const shared = [
   body('is_endangered').optional().isBoolean().toBoolean(),
   body('body_description').optional({ values: 'falsy' }).trim().isLength({ max: 5000 }),
   body('handling_note').optional({ values: 'falsy' }).trim().isLength({ max: 5000 }),
+  // Attribution for the reference photo. Optional on these two routes so a
+  // typo can be corrected without re-uploading, but REQUIRED on the photo
+  // upload itself - see setSpeciesPhoto, which explains why.
+  body('photo_credit').optional({ values: 'falsy' }).trim().isLength({ max: 255 }),
   body('sort_order').optional({ values: 'falsy' }).isInt({ min: 0, max: 9999 }).toInt(),
 ];
 

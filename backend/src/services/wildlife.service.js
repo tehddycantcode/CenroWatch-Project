@@ -21,17 +21,21 @@ const DESCRIPTION_MAX = 5000;
 // line, so it is the first thing staff read. Mirrors withOtherDetail() in
 // otherCategory.js, which does the same for an "Other" complaint type.
 //
-// Runs when species_name matches no catalogue row. Neither the web nor the
-// mobile wildlife form is wired to the catalogue yet
-// (web/src/pages/resident/WildlifeFormPage.jsx,
-// mobile/src/screens/resident/WildlifeFormScreen.js) - but both forms' static
-// dropdown lists (web/src/lib/species.js, mobile/src/lib/reports.js) happen to
-// carry the exact same ten names the catalogue was seeded with, so picking
-// any of those ten resolves against the real row and this returns immediately
-// with nothing to fold. This runs only on each form's "Other (specify)..."
-// free-text branch today - the minority path - and will keep doing the same
-// job for whichever installed build has not taken a future catalogue-aware
-// update once one ships.
+// Runs when species_name matches no catalogue row. Both clients now read the
+// catalogue from GET /species (web/src/pages/resident/WildlifeFormPage.jsx,
+// mobile/src/screens/resident/WildlifeFormScreen.js), and the static dropdown
+// arrays they used to carry are gone - web/src/lib/species.js was deleted and
+// WILDLIFE_SPECIES was removed from mobile/src/lib/reports.js. A resident
+// picking from either form therefore sends a name that always resolves, and
+// this returns immediately with nothing to fold.
+//
+// Two paths still reach it, which is why it is not dead code:
+//   - the "Other" branch on both forms, where the resident types a name the
+//     catalogue does not hold. resolveSpecies maps that onto the seeded Other
+//     row and hands the typed text here. This is the path it exists for.
+//   - any installed mobile build that predates the catalogue-aware OTA and is
+//     still posting a free-text species name. An OTA lands at each phone's
+//     next launch, so that window closes gradually rather than at a deploy.
 function foldUnlistedSpecies(description, unlisted) {
   if (!unlisted) return description;
   const folded = `Other: ${unlisted}\n\n${description}`;

@@ -75,6 +75,10 @@ function SpeciesRow({ row, busy, onField, onPhoto }) {
   const isSentinel = row.name === 'Other';
   const id = row.species_id;
   const set = (patch) => onField(id, patch);
+  // Seeded rows already carry a credit, so pre-fill rather than making an Admin
+  // retype one that is already correct. Rows only mount after the first load
+  // resolves, so row.photo_credit is present by then.
+  const [credit, setCredit] = useState(row.photo_credit || '');
 
   // Opened fresh from the row every time, so a reload between edits cannot leave
   // a stale draft sitting over newer values.
@@ -113,7 +117,22 @@ function SpeciesRow({ row, busy, onField, onPhoto }) {
     const file = e.target.files && e.target.files[0];
     // Cleared so choosing the SAME file again still fires a change event.
     e.target.value = '';
-    if (file) onPhoto(id, file);
+    if (file) onPhoto(id, file, credit.trim());
+  }
+
+  // Attribution for the reference photo. The server REQUIRES it on upload - the
+  // catalogue's photos are CC BY / CC BY-SA, which must be credited wherever
+  // they are shown, and this field is shown on the public species guide and the
+  // resident identification card. The file picker is disabled while this is
+  // empty so the rule is visible here instead of arriving as a 422 after the
+  // Admin has already chosen a file.
+  function saveCreditIfChanged() {
+    const next = credit.trim();
+    // Only worth a PATCH once a photo exists; before that the value rides along
+    // with the upload itself.
+    if (row.photo_path && next && next !== (row.photo_credit || '')) {
+      set({ photo_credit: next });
+    }
   }
 
   return (
@@ -137,14 +156,32 @@ function SpeciesRow({ row, busy, onField, onPhoto }) {
                 No photo
               </div>
             )}
+            <Input
+              value={credit}
+              onChange={(e) => setCredit(e.target.value)}
+              onBlur={saveCreditIfChanged}
+              disabled={busy}
+              placeholder="Photographer, licence"
+              aria-label={`Photo credit for ${row.name}`}
+              title='Required to upload a photo. For example "Juan Dela Cruz, CC BY-SA 4.0", or "CENRO Cabuyao" for your own photo.'
+              className="mt-1.5 h-7 w-28 text-xs"
+            />
             <input
               type="file"
               accept="image/*"
               aria-label={`Upload a reference photo for ${row.name}`}
-              disabled={busy}
+              // Gated on the credit, not just on `busy`: the server refuses an
+              // upload without one, and discovering that after picking a file
+              // is a worse experience than not being able to pick yet.
+              disabled={busy || !credit.trim()}
               onChange={pickPhoto}
               className="mt-1.5 block w-28 text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-primary file:px-2 file:py-1 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50"
             />
+            {!credit.trim() && (
+              <p className="mt-1 text-[10px] leading-tight text-muted-foreground">
+                Add a credit to enable upload.
+              </p>
+            )}
           </div>
         </td>
 
@@ -350,9 +387,12 @@ export default function AdminSpeciesPage() {
     }
   }
 
-  async function uploadPhoto(species_id, file) {
+  async function uploadPhoto(species_id, file, credit) {
     const fd = new FormData();
     fd.append('photo', file);
+    // Sent in the SAME request as the file, because the server stores the two
+    // together - a photo cannot be saved without its attribution.
+    fd.append('photo_credit', credit || '');
     setBusy(true);
     try {
       await adminApi.setSpeciesPhoto(species_id, fd);
