@@ -129,6 +129,7 @@ describe('createSpecies', () => {
       is_active: true,
       body_description: 'Large raptor.',
       handling_note: 'Call CENRO immediately.',
+      photo_credit: 'A. Photographer, CC BY 4.0',
       sort_order: 1,
     }, {});
     expect(prisma.species.create.mock.calls[0][0].data).toEqual({
@@ -143,6 +144,7 @@ describe('createSpecies', () => {
       is_active: true,
       body_description: 'Large raptor.',
       handling_note: 'Call CENRO immediately.',
+      photo_credit: 'A. Photographer, CC BY 4.0',
       sort_order: 1,
     });
   });
@@ -294,6 +296,61 @@ describe('updateSpecies', () => {
       .rejects.toMatchObject({ statusCode: 422, message: expect.stringContaining('must stay marked endangered') });
   });
 
+  describe('a real species cannot have its category cleared', () => {
+    // WHY THIS EXISTS. resolveSpecies() consults a CLIENT-SENT category only for
+    // a row whose own category is null, and by design that is the seeded "Other"
+    // sentinel alone. createSpeciesRules therefore REQUIRES a category on create
+    // - but updateSpeciesRules leaves it optional on purpose, so that an edit
+    // touching only handling_note still works. That asymmetry was reachable from
+    // the admin species screen: clearing the Category select posts '', which is
+    // falsy so express-validator skips it, and enumOrThrow() then maps '' to
+    // null. The row saved with no category, and from then on whatever a
+    // reporter's client posted decided that species' category on every report.
+
+    test('REFUSES an explicit null, with a message naming the consequence', async () => {
+      prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', is_active: true });
+      await expect(svc.updateSpecies(3, 1, { category: '' }, {}))
+        .rejects.toMatchObject({ statusCode: 422, message: expect.stringContaining('must keep a category') });
+      expect(prisma.species.update).not.toHaveBeenCalled();
+    });
+
+    test('refuses it however the empty value arrives', async () => {
+      // '' is what the form sends; null is what a hand-written API call sends.
+      // Both reach the guard as data.category === null, so both must be refused
+      // - a guard reading `input.category` would catch neither.
+      prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', is_active: true });
+      await expect(svc.updateSpecies(3, 1, { category: null }, {}))
+        .rejects.toMatchObject({ statusCode: 422 });
+    });
+
+    test('OPPOSITE POLARITY: a real category change still goes through', async () => {
+      // Without this the guard could be written as "reject any category edit"
+      // and every test above would still pass while the screen stopped working.
+      prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', is_active: true });
+      const row = await svc.updateSpecies(3, 1, { category: 'Reptile' }, {});
+      expect(row.category).toBe('Reptile');
+    });
+
+    test('an update that never mentions category is unaffected', async () => {
+      // This is the entire reason category stays optional on update. If the
+      // guard fired on absence rather than on an explicit null, fixing a typo in
+      // handling_note would start failing.
+      prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', is_active: true });
+      const row = await svc.updateSpecies(3, 1, { handling_note: 'Use gloves.' }, {});
+      expect(row.handling_note).toBe('Use gloves.');
+    });
+
+    test('the "Other" sentinel is deliberately exempt', async () => {
+      // It legitimately carries no category - that is what makes the 3-way
+      // picker shown for "Other" meaningful, because resolveSpecies falls back
+      // to the reporter's pick for this row ON PURPOSE. Scoping the guard with
+      // !isSentinel is load-bearing, not incidental.
+      prisma.species.findUnique.mockResolvedValue({ species_id: 11, name: 'Other', is_active: true });
+      const row = await svc.updateSpecies(3, 11, { category: '' }, {});
+      expect(row.category).toBeNull();
+    });
+  });
+
   test('a refused update writes no audit row', async () => {
     // Holds today because every guard throws before writeAuditLog is called -
     // worth pinning, because moving the log above the guards ("log the
@@ -443,6 +500,10 @@ describe('updateSpecies', () => {
 describe('setSpeciesPhoto', () => {
   const storage = require('../src/services/storage');
   const file = { originalname: 'duck.jpg', buffer: Buffer.from('x') };
+  // Every call needs one now: the credit is required WITH the photo, because
+  // the curated set is CC BY / CC BY-SA and attribution is a condition of
+  // showing the image at all. See the service for the full reasoning.
+  const credit = 'Ken Billington, CC BY-SA 3.0';
 
   beforeEach(() => {
     prisma.species.update.mockImplementation(({ data }) => Promise.resolve({ species_id: 1, name: 'Philippine Duck', ...data }));
@@ -450,9 +511,54 @@ describe('setSpeciesPhoto', () => {
 
   test('stores the file and records the path', async () => {
     prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', photo_path: null });
-    const row = await svc.setSpeciesPhoto(3, 1, file, {});
+    const row = await svc.setSpeciesPhoto(3, 1, file, credit, {});
     expect(storage.save).toHaveBeenCalledWith('species', file);
     expect(row.photo_path).toBe('/uploads/species/new.jpg');
+  });
+
+  describe('the attribution is stored with the photo, not left for later', () => {
+    // WHY THIS EXISTS. photo_credit was READABLE BUT UNWRITABLE: PUBLIC_FIELDS
+    // returned it, the seed filled it for all ten curated species, and NO write
+    // path anywhere accepted it - not create, not update, not this function, and
+    // there was no field for it on the admin screen. So the first photo an Admin
+    // uploaded got a path and a permanently NULL credit, and the public species
+    // guide and the resident identification card both then displayed a licensed
+    // image with no attribution while silently omitting it from the credits list.
+
+    test('writes the credit in the SAME update as the path', async () => {
+      prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', photo_path: null });
+      const row = await svc.setSpeciesPhoto(3, 1, file, credit, {});
+      expect(row.photo_credit).toBe(credit);
+      // One update, so a photo can never be stored without its credit even if
+      // the second write were to fail.
+      expect(prisma.species.update.mock.calls[0][0].data).toEqual(
+        expect.objectContaining({ photo_path: '/uploads/species/new.jpg', photo_credit: credit })
+      );
+    });
+
+    test('REFUSES an upload with no credit, and stores nothing', async () => {
+      prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', photo_path: null });
+      await expect(svc.setSpeciesPhoto(3, 1, file, undefined, {}))
+        .rejects.toMatchObject({ statusCode: 422, message: expect.stringContaining('credited') });
+      // The file must not be saved either - an orphaned upload that was refused
+      // is bytes nothing will ever clean up.
+      expect(storage.save).not.toHaveBeenCalled();
+      expect(prisma.species.update).not.toHaveBeenCalled();
+    });
+
+    test('refuses whitespace, which is what an empty form field actually sends', async () => {
+      prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', photo_path: null });
+      await expect(svc.setSpeciesPhoto(3, 1, file, '   ', {}))
+        .rejects.toMatchObject({ statusCode: 422 });
+    });
+
+    test('the missing-file and unknown-species checks still fire FIRST', async () => {
+      // Ordering matters: an upload against a species that does not exist must
+      // say so, not complain about a credit for a row it never found.
+      prisma.species.findUnique.mockResolvedValue(null);
+      await expect(svc.setSpeciesPhoto(3, 99, file, undefined, {}))
+        .rejects.toMatchObject({ statusCode: 404 });
+    });
   });
 
   test('REMOVES THE PREVIOUS FILE so replacing a photo does not orphan bytes, and the audit row keeps the path that was removed', async () => {
@@ -464,7 +570,7 @@ describe('setSpeciesPhoto', () => {
     // is_endangered as { from, to } rather than just the new value.
     const { writeAuditLog } = require('../src/utils/audit');
     prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Philippine Duck', photo_path: '/uploads/species/old.jpg' });
-    await svc.setSpeciesPhoto(3, 1, file, {});
+    await svc.setSpeciesPhoto(3, 1, file, credit, {});
     expect(storage.remove).toHaveBeenCalledWith('/uploads/species/old.jpg');
     expect(writeAuditLog).toHaveBeenCalledWith(expect.objectContaining({
       action: 'SPECIES_PHOTO_SET',
@@ -476,18 +582,18 @@ describe('setSpeciesPhoto', () => {
 
   test('does NOT remove anything when there was no previous photo', async () => {
     prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'X', photo_path: null });
-    await svc.setSpeciesPhoto(3, 1, file, {});
+    await svc.setSpeciesPhoto(3, 1, file, credit, {});
     expect(storage.remove).not.toHaveBeenCalled();
   });
 
   test('422s when no file was uploaded', async () => {
     prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'X', photo_path: null });
-    await expect(svc.setSpeciesPhoto(3, 1, null, {})).rejects.toMatchObject({ statusCode: 422 });
+    await expect(svc.setSpeciesPhoto(3, 1, null, credit, {})).rejects.toMatchObject({ statusCode: 422 });
   });
 
   test('404s on an unknown species', async () => {
     prisma.species.findUnique.mockResolvedValue(null);
-    await expect(svc.setSpeciesPhoto(3, 99, file, {})).rejects.toMatchObject({ statusCode: 404 });
+    await expect(svc.setSpeciesPhoto(3, 99, file, credit, {})).rejects.toMatchObject({ statusCode: 404 });
   });
 
   test('a retired species can still receive a photo - this is deliberate, not an oversight', async () => {
@@ -496,7 +602,7 @@ describe('setSpeciesPhoto', () => {
     // species' reference photo would still be seen, so there is no is_active
     // guard here to bypass.
     prisma.species.findUnique.mockResolvedValue({ species_id: 1, name: 'Retired Duck', photo_path: null, is_active: false });
-    const row = await svc.setSpeciesPhoto(3, 1, file, {});
+    const row = await svc.setSpeciesPhoto(3, 1, file, credit, {});
     expect(row.photo_path).toBe('/uploads/species/new.jpg');
   });
 });

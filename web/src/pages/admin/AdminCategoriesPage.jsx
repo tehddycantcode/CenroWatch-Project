@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { adminApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
 import { Card } from '@/components/ui/card';
@@ -201,6 +202,12 @@ export default function AdminCategoriesPage() {
           no redeploy. Categories are retired rather than deleted, so reports already filed under one
           keep their record.
         </p>
+        {/* The species catalogue is the same kind of screen - reference data an
+            Admin edits without a redeploy - and has no sidebar entry of its own,
+            because AdminLayout's header has no room for an eleventh item. */}
+        <Link to="/admin/species" className="mt-2 inline-block text-sm font-medium text-primary underline-offset-4 hover:underline">
+          Wildlife species catalogue
+        </Link>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

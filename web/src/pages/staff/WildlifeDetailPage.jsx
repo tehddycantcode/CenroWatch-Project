@@ -5,6 +5,7 @@ import { humanize } from '@/lib/reports';
 import { WILDLIFE_STATUSES, fmtDate, useSectionBase, isBreached } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
@@ -17,12 +18,34 @@ export default function WildlifeDetailPage() {
   const base = useSectionBase();
   const [w, setW] = useState(null);
   const [error, setError] = useState('');
+  const [flagBusy, setFlagBusy] = useState(false);
+  const [flagError, setFlagError] = useState('');
 
   const load = useCallback(() => {
     staffApi.wildlife.get(id).then((r) => setW(r.data.turnover)).catch((e) => setError(e.message));
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Correcting the DERIVED endangered flag. An animal nobody could identify is
+  // filed against the "Other" species, which is marked endangered so its
+  // location is fuzzed on the public map - the fail-safe. Most turn out to be
+  // common, so without this the map fills with hidden points for nothing.
+  //
+  // The server writes WILDLIFE_ENDANGERED_OVERRIDE for this, separately from a
+  // general update, because it changes what the public can see.
+  async function setEndangered(next) {
+    setFlagBusy(true);
+    try {
+      await staffApi.wildlife.update(id, { is_endangered: next });
+      setFlagError('');
+      load();
+    } catch (e) {
+      setFlagError(e.message || 'Could not update the endangered flag.');
+    } finally {
+      setFlagBusy(false);
+    }
+  }
 
   if (error) return <p className="text-sm text-destructive">{error}</p>;
   if (!w) return <div className="flex justify-center py-16"><Spinner className="h-7 w-7 text-primary" /></div>;
@@ -62,6 +85,29 @@ export default function WildlifeDetailPage() {
                 ['Transfer to', w.transfer_destination],
                 ['Processed by', w.staff ? `${w.staff.first_name} ${w.staff.last_name}` : '—'],
               ]} />
+            </div>
+
+            {/* Beside the Endangered row rather than behind a modal: this is a
+                one-click correction staff make while looking at the photo. */}
+            <div className="mt-3 rounded-md border bg-muted/40 p-3 text-sm">
+              <p className="font-medium">
+                {w.is_endangered ? 'Treated as endangered' : 'Not treated as endangered'}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {w.is_endangered
+                  ? "This report is in priority review and its exact location is hidden on the public map. An animal reported as “Other” starts here until someone confirms what it is."
+                  : 'This report shows its exact location on the public map.'}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                disabled={flagBusy}
+                onClick={() => setEndangered(!w.is_endangered)}
+              >
+                {w.is_endangered ? 'Not an endangered species' : 'Mark as endangered'}
+              </Button>
+              {flagError && <p className="mt-2 text-xs text-destructive">{flagError}</p>}
             </div>
 
             <div className="mt-6">

@@ -255,6 +255,10 @@ async function createSpecies(adminId, input, ctx = {}) {
     is_active: input.is_active === undefined ? true : toBool(input.is_active, 'is_active'),
     body_description: text(input.body_description),
     handling_note: text(input.handling_note),
+    // Accepted here as well as on the photo upload, so provenance can be
+    // recorded before an image exists and corrected afterwards. The upload is
+    // where it is REQUIRED - see setSpeciesPhoto.
+    photo_credit: textCapped(input.photo_credit, 255, 'Photo credit'),
     sort_order: input.sort_order === undefined ? 0 : toSortOrder(input.sort_order),
   };
 
@@ -306,6 +310,7 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
   if (input.is_endangered !== undefined) data.is_endangered = toBool(input.is_endangered, 'is_endangered');
   if (input.body_description !== undefined) data.body_description = text(input.body_description);
   if (input.handling_note !== undefined) data.handling_note = text(input.handling_note);
+  if (input.photo_credit !== undefined) data.photo_credit = textCapped(input.photo_credit, 255, 'Photo credit');
   if (input.sort_order !== undefined) data.sort_order = toSortOrder(input.sort_order);
   if (input.is_active !== undefined) data.is_active = toBool(input.is_active, 'is_active');
 
@@ -329,6 +334,23 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
   // flag must not be flippable from here in the first place.
   if (isSentinel && data.is_endangered === false) {
     throw new HttpError(422, 'The "Other" entry must stay marked endangered. It is what hides the location of an animal nobody has identified yet.');
+  }
+
+  // A REAL species must keep its category. createSpeciesRules requires one on
+  // create for a stated reason - resolveSpecies() consults a CLIENT-SENT
+  // category only for a row whose own category is null, which by design is the
+  // seeded "Other" sentinel alone - but update leaves it optional on purpose,
+  // so an edit that does not touch category still works. That asymmetry is the
+  // gap: clearing a real species' category here would hand control of the
+  // category stored on every later report filed against it to whatever the
+  // reporter's client posts. Closed in the service rather than the validator so
+  // it holds for every caller, not just the admin screen.
+  //
+  // Reads `data`, never `input`: enumOrThrow() maps '' to null, so an empty
+  // select arrives as an explicit null and would walk straight past a check on
+  // `input.category` - the same trap the is_endangered guard above documents.
+  if (!isSentinel && data.category === null) {
+    throw new HttpError(422, 'A species must keep a category. It decides the category stored on every report filed against this species.');
   }
 
   // Retiring the last active species would leave the wildlife form with no
@@ -390,7 +412,7 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
  * and the admin-only listAll() view is exactly where a retired species' photo
  * would still be seen, so a photo is no different.
  */
-async function setSpeciesPhoto(adminId, id, file, ctx = {}) {
+async function setSpeciesPhoto(adminId, id, file, credit, ctx = {}) {
   const targetId = Number(id);
   if (!Number.isInteger(targetId)) throw new HttpError(404, 'Species not found.');
 
@@ -401,10 +423,29 @@ async function setSpeciesPhoto(adminId, id, file, ctx = {}) {
   if (!existing) throw new HttpError(404, 'Species not found.');
   if (!file) throw new HttpError(422, 'Choose an image to upload.');
 
+  // THE CREDIT TRAVELS WITH THE PHOTO, and it is required HERE rather than
+  // merely allowed, because this is the moment the obligation is created.
+  // Every photo in the curated set is CC BY or CC BY-SA, which require
+  // attribution wherever the image is shown - and this catalogue's photos are
+  // shown in three places (the public species guide, the resident wildlife
+  // form's identification card, and the admin table). photo_credit used to be
+  // readable but UNWRITABLE: PUBLIC_FIELDS returned it, the seed filled it, and
+  // no write path anywhere accepted it - so an uploaded photo got a path and a
+  // permanently NULL credit, and both clients then displayed it with no
+  // attribution and silently left it out of the credits list.
+  //
+  // Optional would not have closed that: it would only have made it possible to
+  // fix. An Admin uploading their own work still has something true to type
+  // ("CENRO Cabuyao"), which is itself correct attribution practice.
+  const photo_credit = textCapped(credit, 255, 'Photo credit');
+  if (!photo_credit) {
+    throw new HttpError(422, 'Name the photographer and licence (for example "Juan Dela Cruz, CC BY-SA 4.0", or "CENRO Cabuyao" for your own photo). The photos in this catalogue are licensed images that must be credited wherever they appear.');
+  }
+
   const photo_path = await storage.save('species', file);
   const row = await prisma.species.update({
     where: { species_id: targetId },
-    data: { photo_path },
+    data: { photo_path, photo_credit },
   });
 
   // Removal happens AFTER the row points at the new file: if it fails we have

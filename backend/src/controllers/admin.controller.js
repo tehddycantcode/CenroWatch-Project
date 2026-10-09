@@ -130,7 +130,10 @@ const updateSpecies = asyncHandler(async (req, res) => {
 });
 
 const setSpeciesPhoto = asyncHandler(async (req, res) => {
-  const species = await speciesService.setSpeciesPhoto(req.user.user_id, req.params.id, req.file, { ipAddress: req.ip });
+  // photo_credit rides in the same multipart body as the file, because the
+  // service requires the two together - the attribution is part of being
+  // allowed to publish the image, not a separate later edit.
+  const species = await speciesService.setSpeciesPhoto(req.user.user_id, req.params.id, req.file, req.body.photo_credit, { ipAddress: req.ip });
   res.json({ success: true, message: 'Species photo updated.', data: { species: await storage.signFiles(species) } });
 });
 

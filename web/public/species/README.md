@@ -1,29 +1,36 @@
 # Species photos
 
-Drop species images here, then point each entry at its file in
-`web/src/lib/species.js`:
+**Nothing in the app reads this folder any more.** Species photos are rows in
+the catalogue now: an Admin uploads one per species at `/admin/species`, the API
+stores it and signs the path, and the public guide and the resident wildlife
+form render it from `photo_path`. The frozen array these files were wired into,
+`web/src/lib/species.js`, is deleted.
 
-```js
-{
-  name: 'Philippine Duck',
-  scientific: 'Anas luzonica',
-  photo: '/species/philippine-duck.jpg',
-  credit: 'Wikimedia Commons, CC BY-SA 4.0',
-  ...
-}
-```
+The ten `.jpg` files here are the curated, correctly-licensed set collected for
+the old guide. They are kept as the source material to upload through that
+screen, not because anything serves them.
 
-Cards without a `photo` render text only, so the guide stays correct while
-images are still being collected. Add photos one at a time if that is easier.
+## The credit is required, and the upload screen enforces it
 
-## Rules
+Every file here is CC BY or CC BY-SA, which require attribution **wherever the
+image is shown** — and a catalogue photo is shown in three places: the public
+species guide, the resident wildlife form's identification card, and the admin
+table. So `POST /admin/species/:id/photo` refuses an upload that carries no
+`photo_credit`, and `/admin/species` disables the file picker until the credit
+box beside it is filled. The two are stored in the same write, so a photo can
+never exist in the catalogue without its attribution.
 
-- **Licensing:** use only public-domain (CC0) or CC-licensed photos, and fill
-  in `credit`. Credits render under the species guide automatically. A
-  defended capstone should not ship photos it has no right to use.
-- **Size:** landscape, around 800px wide, under ~120KB each. They are served
-  as static files, so they do not grow the JavaScript bundle, but large images
-  still slow the page down.
+The attributions for the ten files here are in `backend/prisma/seed.js`, where
+each seeded species already carries its own `photo_credit`; the upload screen
+pre-fills the box from the row, so re-uploading one of these does not mean
+retyping it. For an original photograph, name the author plainly — "CENRO
+Cabuyao" is a correct credit for the office's own work.
+
+## Rules for any photo added to the catalogue
+
+- **Licensing:** public-domain (CC0) or CC-licensed only, and the credit goes in
+  the row at upload time — see above.
+- **Size:** landscape, around 800px wide, under ~120KB each.
 - **Framing:** cards crop to 4:3, so keep the animal centred.
 
 ## Suggested sources

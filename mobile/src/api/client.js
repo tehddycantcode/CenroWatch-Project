@@ -120,6 +120,27 @@ async function requestForm(path, form, token) {
 // the whole point on mobile, where shipping an update is slowest.
 let barangaysPromise = null;
 let categoriesPromise = null;
+let speciesPromise = null;
+// When the request behind speciesPromise STARTED, not when it answered. The
+// server signs the photo links while it handles the request, so counting from
+// the start can only over-state how old they are, which is the safe direction.
+let speciesFetchedAt = 0;
+
+// How long the species list may be reused before it is fetched again.
+//
+// Unlike barangays and categories, this one is NOT cached for the whole app
+// session: nothing in those lists expires, and this one does. GET /species
+// signs every photo_path, and a signed link stops working once its lifetime is
+// up - an hour after it was minted (FILE_URL_TTL_MINUTES with local storage,
+// where it defaults to 60; fixed at one hour with GCS). After that the image
+// request is refused (a 403 from /uploads with local storage).
+//
+// This matters MORE on mobile than on the web: a phone keeps the app's JS
+// process alive in the background for days, so a session-long cache would hand
+// the wildlife form reference photos that silently fail to load while `error`
+// stays empty and nothing on screen says why. 15 minutes is a 4x margin on the
+// hour, the same figure web/src/lib/api.js uses - keep the two in step.
+const SPECIES_MAX_AGE_MS = 15 * 60 * 1000;
 
 export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
@@ -156,6 +177,21 @@ export const api = {
       });
     }
     return categoriesPromise;
+  },
+
+  // Wildlife species catalogue. Tokenless: the endpoint is public and carries
+  // zero personal data, and the public species guide reads it too.
+  species: () => {
+    const now = Date.now();
+    // Stale by age as well as by absence - see SPECIES_MAX_AGE_MS.
+    if (!speciesPromise || now - speciesFetchedAt >= SPECIES_MAX_AGE_MS) {
+      speciesFetchedAt = now;
+      speciesPromise = request('/species').catch((err) => {
+        speciesPromise = null;
+        throw err;
+      });
+    }
+    return speciesPromise;
   },
 
   // Resident report APIs — create() takes a FormData so an optional photo attaches.

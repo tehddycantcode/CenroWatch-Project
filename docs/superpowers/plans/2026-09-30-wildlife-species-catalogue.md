@@ -1,5 +1,37 @@
 # Wildlife Species Catalogue Implementation Plan (Plan A)
 
+> **COMPLETE as of 2026-10-09. All 20 tasks shipped.** The task text below is left as it was
+> GIVEN to each implementer, deliberately — rewriting it would erase what was actually asked
+> for and hide where the plan was wrong. The defects found while executing it are listed here
+> instead, and all are fixed in the code:
+>
+> - **Tasks 18/19 could not ship separately.** Task 18 Step 3 deletes `WILDLIFE_SPECIES` and
+>   Step 4 asserts "no importers remain", but `WildlifeFormScreen.js` still imported it at
+>   three places until Task 19. Worse, a missing *named* export does not reliably fail a Metro
+>   bundle, so Step 5's "expo export must be clean" would have **passed while the form was
+>   broken at runtime**. They were executed as one unit in three commits.
+> - **Task 18 Step 1's cache snippet was stale.** It cached `GET /species` for the whole
+>   session — a copy of the web code as it stood when this plan was written. Web was fixed
+>   later (`9b0fd82`) because that endpoint signs `photo_path` with a 1-hour TTL. Shipped with
+>   a 15-minute max age instead.
+> - **Task 19 Step 6's `validate()` weakened the description rule** to "not empty" while the
+>   server requires 10–5000 characters, and dropped the `DESCRIPTION_MAX` guard that matters
+>   here because "Other" prepends the typed name into the description.
+> - **Task 19 Step 3 omitted `photo_credit`.** Every curated photo is CC BY or CC BY-SA, which
+>   require attribution wherever shown. Added on mobile; see also the next item.
+> - **`photo_credit` had no write path at all** — read by `PUBLIC_FIELDS`, filled by the seed,
+>   accepted by nothing. Task 14's upload screen made that reachable, so an uploaded photo got
+>   a permanently NULL credit and was displayed unattributed. Now required at upload (`8a5afb7`).
+> - **Task 14's inline category edit could clear a real species' category**, reopening the
+>   client-controlled path `resolveSpecies()` documents. Refused in the service (`19c8a5d`).
+> - **Task 16 Step 4 said "two comments"; there were four, and one named file needed no
+>   change.** It also missed `backend/src/services/wildlife.service.js` and
+>   `web/public/species/README.md`, both of which described a module this task deletes.
+> - **Task 16 Step 7's commit command omitted `web/src/lib/useSpecies.js`**, the file Step 4
+>   tells you to edit.
+> - **Still outstanding, and not closable from a terminal:** Task 17 Step 4's and Task 19 Step
+>   7's Expo Go device checks, and `eas fingerprint:compare` before any OTA.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn wildlife species from free text into an admin-managed catalogue, so the server decides a report's category and endangered status instead of the resident.

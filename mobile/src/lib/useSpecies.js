@@ -1,37 +1,38 @@
 import { useEffect, useMemo, useState } from 'react';
-import { speciesApi } from '@/lib/api';
+import { api } from '../api/client';
 
 // The wildlife species catalogue, split for the two-group picker.
 //
-// Every web consumer reads the catalogue through this hook: the resident
-// wildlife form, which needs the names and the two groups, and the public
-// species guide, which shows the rich fields (scientific name, indicator,
-// hazard, photo, credit, description, handling note). There is no compiled-in
-// copy any more - the frozen array this replaced, web/src/lib/species.js, is
-// deleted - so an Admin adding a species changes what residents see with
-// nothing rebuilt.
+// DUPLICATE IN SPIRIT of web/src/lib/useSpecies.js - mobile cannot import from
+// web/src (see AGENTS.md) - and deliberately the SAME return shape, so the two
+// can be diffed for drift. The difference is the fetch, which goes through
+// api/client.js.
+//
+// This replaces WILDLIFE_SPECIES, a hardcoded array compiled into the app
+// bundle: adding a species used to need an app release. It comes from the API
+// now, so the app picks one up on its next launch.
 //
 // The split is by `is_endangered`, which is ALSO the column that drives
-// public-map coordinate obfuscation. One source of truth on purpose: the group a
-// resident sees and the privacy control applied to their report cannot disagree.
+// public-map coordinate obfuscation - one source of truth, so the group a
+// resident sees and the privacy control applied cannot disagree.
 //
-// `Other` is separated out because it is a sentinel, not a species: it belongs at
-// the end of the picker, never inside either group.
+// `Other` is separated out because it is a sentinel, not a species: it belongs
+// at the end of the picker, never inside either group.
 const OTHER_NAME = 'Other';
 
-export function useSpecies() {
+export default function useSpecies() {
   const [state, setState] = useState({ rows: [], loading: true, error: '' });
 
   useEffect(() => {
     let cancelled = false;
-    speciesApi
-      .list()
+    api
+      .species()
       .then((r) => {
         if (!cancelled) setState({ rows: r.data.species || [], loading: false, error: '' });
       })
       .catch((e) => {
-        // A picker with no options cannot be submitted, so the failure has to be
-        // visible rather than presented as an empty dropdown.
+        // A picker with no options cannot be submitted, so this has to be
+        // visible rather than looking like an empty list.
         if (!cancelled) {
           setState({ rows: [], loading: false, error: e.message || 'Could not load the species list.' });
         }
