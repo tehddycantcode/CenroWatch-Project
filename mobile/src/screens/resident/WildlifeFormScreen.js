@@ -31,6 +31,7 @@ export default function WildlifeFormScreen() {
     animal_condition: '',
     description: '',
     barangay_id: '',
+    address_details: '',
   });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
   const [photo, setPhoto] = useState(null);
@@ -105,7 +106,12 @@ export default function WildlifeFormScreen() {
     // the record and the staff reading it.
     if (!form.animal_condition) e.animal_condition = 'Select the animal condition.';
     if (!form.barangay_id) e.barangay_id = 'Please select a barangay.';
-    if (location.latitude == null || location.longitude == null) e.location = 'Please pin the location on the map.';
+    // A pin OR a landmark - mirrors the API rule in
+    // backend/src/validators/location.validators.js.
+    const hasPin = location.latitude != null && location.longitude != null;
+    if (!hasPin && !form.address_details.trim()) {
+      e.location = 'Pin the location on the map, or describe the address and nearest landmark.';
+    }
     // 10 characters is the SERVER's rule (wildlife.validators.js: 10-5000), so a
     // shorter description is a 422 rather than an accepted report. Checked here
     // rather than weakened to "not empty".
@@ -133,6 +139,7 @@ export default function WildlifeFormScreen() {
     fd.append('animal_condition', form.animal_condition);
     fd.append('description', fullDescription);
     fd.append('barangay_id', String(form.barangay_id));
+    if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
     // is_endangered is deliberately NOT sent - derived from the catalogue.
     if (location.latitude != null) {
       fd.append('latitude', String(location.latitude));
@@ -300,8 +307,19 @@ export default function WildlifeFormScreen() {
           hidden from a poacher. The server ignores is_endangered if anything still
           sends it. */}
 
-      <Field label="Location" hint={`Required: pin where it was found. / ${FORM_TL.location}`} error={fieldErrors.location}>
+      <Field label="Location" hint={`Pin where it was found, or describe it below. / ${FORM_TL.location}`} error={fieldErrors.location}>
         <LocationField value={location} onChange={setLocation} required />
+      </Field>
+
+      <Field label="Address or landmark" hint={`Street, purok, or what it is next to. / ${FORM_TL.address_details}`} error={fieldErrors.address_details}>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. Beside the covered court, Purok 3"
+          placeholderTextColor={colors.placeholder}
+          maxLength={255}
+          value={form.address_details}
+          onChangeText={set('address_details')}
+        />
       </Field>
 
       <Field label="Photo" hint={`Optional: helps identify the species. / ${FORM_TL.photo}`}>

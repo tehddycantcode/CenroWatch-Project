@@ -57,7 +57,12 @@ export default function ComplaintFormScreen() {
       e.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
     }
     if (!form.barangay_id) e.barangay_id = 'Please select a barangay.';
-    if (location.latitude == null || location.longitude == null) e.location = 'Please pin the location on the map.';
+    // A pin OR a landmark - mirrors the API rule in
+    // backend/src/validators/location.validators.js.
+    const hasPin = location.latitude != null && location.longitude != null;
+    if (!hasPin && !form.address_details.trim()) {
+      e.location = 'Pin the location on the map, or describe the address and nearest landmark.';
+    }
     if (form.description.trim().length < 10) e.description = 'Describe the concern (at least 10 characters).';
     if (!photoRef.current) e.photo = 'A photo is required. Please attach at least one.';
     return e;
@@ -161,7 +166,7 @@ export default function ComplaintFormScreen() {
         />
       </Field>
 
-      <Field label="Address details" hint="Optional: landmark or street">
+      <Field label="Address or landmark" hint={`Street, purok, or what it is next to. / ${FORM_TL.address_details}`} error={fieldErrors.address_details}>
         <TextInput
           style={styles.input}
           placeholder="e.g. near the creek behind the market"
@@ -182,7 +187,7 @@ export default function ComplaintFormScreen() {
         />
       </Field>
 
-      <Field label="Location" hint={`Required: pin where it happened. / ${FORM_TL.location}`} error={fieldErrors.location}>
+      <Field label="Location" hint={`Pin it on the map, or describe it below. / ${FORM_TL.location}`} error={fieldErrors.location}>
         <LocationField value={location} onChange={setLocation} required />
       </Field>
 

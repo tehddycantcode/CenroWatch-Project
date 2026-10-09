@@ -33,7 +33,7 @@ export default function LocationField({ value, onChange, required = false }) {
     try {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (perm.status !== 'granted') {
-        setError('Location permission was denied. You can submit without it.');
+        setError('Location permission was denied. You can describe the address and landmark instead.');
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -44,7 +44,7 @@ export default function LocationField({ value, onChange, required = false }) {
       // After onChange, so the map has the new value to travel to.
       setFocusToken((n) => n + 1);
     } catch {
-      setError('Could not get your location. You can submit without it.');
+      setError('Could not get your location. Tap the map, or describe the address and landmark instead.');
     } finally {
       setBusy(false);
     }
@@ -73,7 +73,7 @@ export default function LocationField({ value, onChange, required = false }) {
             </Text>
           </View>
         ) : (
-          <Text style={styles.hint}>{required ? 'No location pinned yet' : 'No location pinned (optional)'}</Text>
+          <Text style={styles.hint}>{required ? 'No location pinned - you can describe it instead' : 'No location pinned (optional)'}</Text>
         )}
       </View>
 

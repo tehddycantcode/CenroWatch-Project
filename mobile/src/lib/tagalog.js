@@ -100,7 +100,8 @@ export const FORM_TL = {
   barangay: 'Piliin ang barangay mo',
   description: 'Ano ang nangyari? Ilagay ang oras, amoy, o gaano na katagal.',
   observed_at: 'Kailan mo ito nakita?',
-  location: 'Kailangan. Ituro sa mapa kung saan ito nangyari.',
+  location: 'Ituro sa mapa kung saan ito nangyari, o isulat ang kalye at landmark.',
+  address_details: 'Isulat ang kalye, purok, o kung ano ang katabi nito.',
   // Shown when GPS puts the reporter outside the city. The point is still
   // pinned - this tells them why the map will not follow it.
   locationOutside: 'Nasa labas ka ng Cabuyao. Ituro sa mapa ang tamang lugar.',

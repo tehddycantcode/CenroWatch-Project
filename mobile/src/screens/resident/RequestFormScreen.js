@@ -11,6 +11,7 @@ import ReportFormShell, { Field } from '../../components/ReportFormShell';
 import Select from '../../components/Select';
 import BarangayPicker from '../../components/BarangayPicker';
 import DatePicker from '../../components/DatePicker';
+import LocationField from '../../components/LocationField';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -28,7 +29,9 @@ export default function RequestFormScreen() {
     barangay_id: '',
     requested_quantity: '',
     preferred_schedule: '',
+    address_details: '',
   });
+  const [location, setLocation] = useState({ latitude: null, longitude: null });
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -50,6 +53,12 @@ export default function RequestFormScreen() {
       e.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
     }
     if (!form.barangay_id) e.barangay_id = 'Please select a barangay.';
+    // A pin OR a landmark - mirrors the API rule in
+    // backend/src/validators/location.validators.js.
+    const hasPin = location.latitude != null && location.longitude != null;
+    if (!hasPin && !form.address_details.trim()) {
+      e.location = 'Pin the location on the map, or describe the address and nearest landmark.';
+    }
     if (form.description.trim().length < 10) e.description = 'Describe your request (at least 10 characters).';
     if (form.preferred_schedule.trim() && !DATE_RE.test(form.preferred_schedule.trim()))
       e.preferred_schedule = 'Use the format YYYY-MM-DD.';
@@ -70,6 +79,11 @@ export default function RequestFormScreen() {
     fd.append('barangay_id', String(form.barangay_id));
     if (form.requested_quantity.trim()) fd.append('requested_quantity', form.requested_quantity.trim());
     if (form.preferred_schedule.trim()) fd.append('preferred_schedule', form.preferred_schedule.trim());
+    if (location.latitude != null) {
+      fd.append('latitude', String(location.latitude));
+      fd.append('longitude', String(location.longitude));
+    }
+    if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
 
     setSubmitting(true);
     try {
@@ -138,6 +152,21 @@ export default function RequestFormScreen() {
           multiline
           numberOfLines={4}
           textAlignVertical="top"
+        />
+      </Field>
+
+      <Field label="Location" hint={`Where the service is needed. Pin it, or describe it below. / ${FORM_TL.location}`} error={fieldErrors.location}>
+        <LocationField value={location} onChange={setLocation} required />
+      </Field>
+
+      <Field label="Address or landmark" hint={`Street, purok, or what it is next to. / ${FORM_TL.address_details}`} error={fieldErrors.address_details}>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. Beside the covered court, Purok 3"
+          placeholderTextColor={colors.placeholder}
+          maxLength={255}
+          value={form.address_details}
+          onChangeText={set('address_details')}
         />
       </Field>
 

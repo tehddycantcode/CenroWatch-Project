@@ -45,7 +45,7 @@ export default function AnonymousReportScreen({ onNavigate }) {
   const { complaintTypes, error: categoriesError } = useCategories();
   const barangays = useBarangays();
 
-  const [form, setForm] = useState({ complaint_type: '', type_other: '', description: '', barangay_id: '' });
+  const [form, setForm] = useState({ complaint_type: '', type_other: '', description: '', barangay_id: '', address_details: '' });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
   const photoRef = useRef(null);
   const [consent, setConsent] = useState(false);
@@ -67,7 +67,12 @@ export default function AnonymousReportScreen({ onNavigate }) {
     if (!form.complaint_type) e.complaint_type = 'Select a complaint type.';
     if (needsOther && !form.type_other.trim()) e.type_other = 'Describe the type of complaint.';
     if (!form.barangay_id) e.barangay_id = 'Select a barangay.';
-    if (location.latitude == null || location.longitude == null) e.location = 'Please pin the location on the map.';
+    // A pin OR a landmark - mirrors the API rule in
+    // backend/src/validators/location.validators.js.
+    const hasPin = location.latitude != null && location.longitude != null;
+    if (!hasPin && !form.address_details.trim()) {
+      e.location = 'Pin the location on the map, or describe the address and nearest landmark.';
+    }
     if (form.description.trim().length < 10) e.description = 'Describe the issue (at least 10 characters).';
     if (withOtherDetail(form.description.trim(), form.type_other).length > DESCRIPTION_MAX) {
       e.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
@@ -89,6 +94,7 @@ export default function AnonymousReportScreen({ onNavigate }) {
     fd.append('description', withOtherDetail(form.description.trim(), form.type_other));
     fd.append('barangay_id', String(form.barangay_id));
     fd.append('consent', 'true');
+    if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
     if (location.latitude != null) {
       fd.append('latitude', String(location.latitude));
       fd.append('longitude', String(location.longitude));
@@ -213,8 +219,19 @@ export default function AnonymousReportScreen({ onNavigate }) {
               />
             </Field>
 
-            <Field label="Location" hint="Required: pin where it happened" error={fieldErrors.location}>
+            <Field label="Location" hint="Pin where it happened, or describe it below" error={fieldErrors.location}>
               <LocationField value={location} onChange={setLocation} required />
+            </Field>
+
+            <Field label="Address or landmark" hint="Street, purok, or what it is next to" error={fieldErrors.address_details}>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Beside the covered court, Purok 3"
+                placeholderTextColor={colors.placeholder}
+                maxLength={255}
+                value={form.address_details}
+                onChangeText={set('address_details')}
+              />
             </Field>
 
             <Field label="Photo" hint="Optional. Avoid photos that could identify you - they can also carry the location and the phone they were taken with.">
