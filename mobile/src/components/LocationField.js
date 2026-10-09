@@ -6,8 +6,14 @@ import Icon from './Icon';
 import { colors, radius } from '../theme';
 import { FORM_TL } from '../lib/tagalog';
 
-// Optional location for a report, pinned two ways: tap the map, or let GPS fill
-// it in. Stores { latitude, longitude }.
+// Location for a report, pinned two ways: tap the map, or let GPS fill it in.
+// Stores { latitude, longitude }.
+//
+// A report needs a location, but a PIN is one of two ways to give one - the
+// form's landmark field is the other, so this component being empty is not an
+// error. `required` only changes the empty-state wording. Enforcement lives in
+// each screen's validate() and in the API
+// (backend/src/validators/location.validators.js).
 //
 // The map is a native MapLibre view, so it only renders in a real build (EAS),
 // not in Expo Go. MapPicker degrades to a message if the MapTiler key is missing,
