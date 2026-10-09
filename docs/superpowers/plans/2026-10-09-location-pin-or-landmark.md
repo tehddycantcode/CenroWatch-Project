@@ -404,6 +404,10 @@ Create `backend/tests/requestLocation.test.js`:
 jest.mock('../src/utils/prisma', () => ({
   barangay: { findUnique: jest.fn() },
   environmentalRequest: { create: jest.fn() },
+  // createRequest calls prisma.user.findUnique (for the submission receipt), so
+  // without this the suite fails on a missing mock rather than on the behaviour
+  // under test - which makes the red-first run prove nothing.
+  user: { findUnique: jest.fn().mockResolvedValue(null) },
 }));
 jest.mock('../src/utils/audit', () => ({ writeAuditLog: jest.fn() }));
 jest.mock('../src/utils/notify', () => ({ notifyReportSubmitted: jest.fn() }));
@@ -569,6 +573,8 @@ Expected: all pass, `migrationCasing.test.js` included.
 
 ```bash
 git status --short
+# git add FIRST: `git commit -- <paths>` cannot pick up a path git does not yet
+# track, and both the migration directory and the new test file are untracked.
 git add backend/prisma/migrations backend/tests/requestLocation.test.js
 git commit -m "Give service requests a location" -- backend/prisma/schema.prisma backend/prisma/migrations backend/src/utils/prismaEncryption.js backend/src/validators/request.validators.js backend/src/services/request.service.js backend/tests/requestLocation.test.js
 ```
