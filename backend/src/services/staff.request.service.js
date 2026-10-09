@@ -35,6 +35,9 @@ const DETAIL_SELECT = {
   request_type: true,
   description: true,
   document_path: true,
+  latitude: true,
+  longitude: true,
+  address_details: true,
   requested_quantity: true,
   preferred_schedule: true,
   status: true,
@@ -228,4 +231,4 @@ async function updateRequest(staffId, idOrTracking, input, ctx = {}) {
   return getRequest(existing.request_id);
 }
 
-module.exports = { listRequests, getRequest, updateRequestStatus, updateRequest };
+module.exports = { listRequests, getRequest, updateRequestStatus, updateRequest, DETAIL_SELECT };
