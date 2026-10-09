@@ -76,6 +76,9 @@ The primary staff working surface.
 Everything a staff member needs to act on one complaint.
 
 - A DESCRIPTION section with the complaint text, and a LOCATION section.
+- A report may have a pin, a landmark description, or both; the block shows whichever
+  exist, and the map, distance and Directions link need a pin. A landmark-only report shows
+  the written address and no map.
 - The location shows a latitude/longitude pair; Cabuyao coordinates begin `14.` and `121.`.
 - A map is rendered in the location block (MapLibre canvas with MapTiler / OpenStreetMap
   attribution).
@@ -83,6 +86,13 @@ Everything a staff member needs to act on one complaint.
 - A **Directions** link points at Google Maps with both an origin and a destination.
 - A REPORTER section shows the reporter's name and contact details. These fields are
   encrypted at rest and decrypted only for an authorised reader.
+
+### 3.3a Walk-in logging and the location rule
+
+The staff walk-in form (`/staff/log-walkin`, specified in `PRD-staff.md`) is **no longer
+exempt** from the location rule. It used to be the one intake route with no location
+requirement; it now has its own address/landmark field and needs a map pin or a landmark,
+at least one, like the three resident routes. A walk-in with neither is refused.
 
 ### 3.4 Status workflow
 
@@ -109,6 +119,9 @@ The core state transition, available from a complaint's detail page.
 - A table lists requests, each row showing a `REQ-` reference and a request type.
 - Opening a request navigates to `/staff/requests/REQ-...` and shows the request type,
   the requesting resident, and the current status.
+- The request detail page also shows the request's **location** (pin and/or landmark),
+  using the same block as the complaint page. Requests filed before service requests gained
+  a location show none. Service requests are deliberately not plotted on the staff reports map.
 
 ---
 

@@ -541,6 +541,21 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   blank option where the empty state is REAL (a backfill migration left
   production rows with no category; hiding it would display "Bird" for a row
   that has none, a value nobody chose).
+  The same option fails a second, different way - see the next entry.
+- **`optional({ values: 'falsy' })` also discards a legitimate `0`** (same option as
+  the entry above; there it let `''` skip validation, here it drops a real value).
+  The pin-or-landmark
+  rule needs to know whether a coordinate was SENT, and `latitude: 0` is both a
+  real coordinate and falsy in JavaScript, so a truthiness test drops it - as
+  does express-validator's `values: 'falsy'`, which would then skip the range
+  check on a value the disjunction had already counted as absent. Multipart
+  compounds it: an untouched field arrives as `''`, not as a missing key, which
+  is why the original coordinates rule used `notEmpty` over `exists`. The
+  presence test that survives both is
+  `v !== undefined && v !== null && String(v).trim() !== ''`.
+  Generally: when a rule asks "did the client send this?", answer it with
+  presence, never with truthiness - the falsy values (`0`, `''`, `false`) are
+  exactly the ones where the two disagree.
 - **A plan snippet copied out of a live file freezes that file's bugs, and
   fixing the original does not fix the copy.** Task 18 of the species plan told
   an implementer to cache `GET /species` for the whole session — a verbatim copy

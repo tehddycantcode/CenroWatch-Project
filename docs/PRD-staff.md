@@ -78,7 +78,8 @@ row goes to `/staff/requests/REQ-…`.
 Sections a staff member needs before going out to a site:
 
 - **Description** — the reported text.
-- **Location** — a latitude/longitude pair (Cabuyao coordinates begin `14.` and `121.`),
+- **Location** — a map pin, a written address/landmark, or both (a report needs at least
+  one). With a pin: a latitude/longitude pair (Cabuyao coordinates begin `14.` and `121.`),
   a rendered map (MapLibre canvas with MapTiler / OpenStreetMap attribution), the
   computed **distance from the CENRO office** in km or m, and a **Directions** link
   pointing at Google Maps with both an origin and a destination.
@@ -160,8 +161,12 @@ Heading "Log a Walk-in Report". Fields:
 | Reporter name | No | Optional |
 | Reporter contact | No | Optional — phone or email |
 | Date issue was observed | No | Defaults to today; cannot be in the future |
-| Location | No | Optional pin |
+| Location | One of two | A map pin, **or** an address/landmark (max 255 characters); the form has its own landmark field |
 | Photo | No | Optional evidence |
+
+The walk-in form is **not exempt** from the location rule (it was, until 2026-10-09): a pin
+or a landmark is required, and a submission with neither is refused. A walk-in given only
+a landmark never appears on the public map, as for any landmark-only report.
 
 On success the page confirms "Walk-in complaint logged" and the complaint joins the
 queue, marked with a **WALK-IN** badge.

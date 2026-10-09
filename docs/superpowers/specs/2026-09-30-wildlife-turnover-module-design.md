@@ -1,3 +1,5 @@
+> **Superseded 2026-10-09 by `2026-10-09-resident-usability-and-guard-rails-design.md` in one respect:** a map pin is no longer required on a wildlife report - a pin or a landmark description, at least one.
+
 # Wildlife Turnover module — species catalogue, safety handling, and the Citizens Charter flow
 
 **Date:** 2026-09-30

@@ -124,7 +124,7 @@ Fields:
 | Complaint type | Yes | Dropdown of currently **active** categories |
 | Barangay | Yes | One of Cabuyao's 18 barangays |
 | Description | Yes | 10–5000 characters |
-| Location | No | Optional map pin or "Use my location" |
+| Location | One of two | A map pin (or "Use my location"), **or** an address/landmark description - see section 5 |
 | Photo | **No** | Optional for anonymous reports |
 | Privacy acknowledgement | Yes | Must be ticked to submit |
 
@@ -191,7 +191,7 @@ an account that is active **and** has a confirmed email address.
 | Barangay | Yes | |
 | Description | Yes | 10–5000 characters |
 | Date issue was observed | No | Cannot be in the future |
-| Location | No | Optional pin |
+| Location | One of two | A map pin, **or** an address/landmark description (max 255 characters) |
 | **Photo** | **Yes** | At least one photo, as evidence |
 
 **The photo is mandatory for a signed-in Resident** and is enforced on the server as well
@@ -218,7 +218,7 @@ report that reference is the only handle that exists, and it resolves through th
 
 Fields: species (chosen from a list, or typed if not listed), species category (optional,
 e.g. Reptile / Bird / Mammal), animal condition (Healthy, Injured, Sick, Dead), barangay,
-description, location (optional), photo (optional — it helps identify the species).
+description, location (a map pin or an address/landmark description - at least one), photo (optional — it helps identify the species).
 
 On success the Resident receives a `WLD-YYYY-NNNNN` reference. Species flagged as
 endangered are given priority handling by CENRO.
@@ -226,8 +226,13 @@ endangered are given priority handling by CENRO.
 ### 4.4 Request a service — `/resident/request-service`
 
 Fields: service type (e.g. Garbage Hauling, Creek / River Cleaning, Seedling
-Distribution, Environmental Education), barangay, description, quantity (optional),
-preferred date (optional), supporting document (optional — image or PDF).
+Distribution, Environmental Education), barangay, description, location (a map pin or
+an address/landmark description - at least one, the same rule as a complaint), quantity
+(optional), preferred date (optional), supporting document (optional — image or PDF).
+
+Service requests used to be barangay-level only and carry no coordinates; they now carry
+latitude/longitude and an address/landmark of their own. Requests filed before that
+change have neither, and staff see no location block for them.
 
 On success the Resident receives a `REQ-YYYY-NNNNN` reference.
 
@@ -252,6 +257,26 @@ change their password. Changing the password ends sessions on other devices.
 data. No reporter name, contact number, email or address detail appears in any public
 payload — the map, the feed and the tracking result included. Contact numbers, reporter
 names and address details are encrypted at rest.
+
+**Location: a pin or a landmark, at least one.** Every report form - the resident
+complaint, the anonymous complaint, the wildlife turnover and the service request, plus
+the staff walk-in form (see `PRD-staff-admin.md`) - needs a location, given EITHER as a
+map pin OR as a written address/landmark description. The API refuses only the case with
+neither, answering 422 against the `location` field. A coordinate of exactly `0` counts as
+sent: presence is tested, not truthiness. `address_details` (the landmark text) is
+**encrypted at rest** on all three report models, complaints, wildlife turnovers and
+service requests, like the other personal fields. This replaces the earlier rule that a
+complaint or wildlife report required a map pin and that service requests were
+barangay-level only.
+
+**Stated limitation - a landmark-only report is never on the public map.** The public
+map and the density map plot only reports that have coordinates
+(`gis.service.js` filters `latitude` and `longitude` to non-null), and the landmark text
+is encrypted personal data that cannot be published on a public endpoint under R.A. 10173.
+So a report filed with a landmark and no pin is visible to staff and to its filer but
+appears on neither public map. This is intended and follows directly from making the pin
+optional; the consequence is that a growing share of reports may be absent from the public
+map. Service requests are not plotted on the staff reports map either, by design.
 
 **Anonymous means anonymous.** A report is anonymous either because it came through
 `/report-anonymous` (no account involved) or because a signed-in Resident ticked "file
