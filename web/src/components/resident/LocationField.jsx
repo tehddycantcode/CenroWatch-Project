@@ -11,6 +11,11 @@ import { Button } from '@/components/ui/button';
 // component's empty state is an invitation rather than an error. Enforcement
 // lives in each form's validate() and in the API
 // (backend/src/validators/location.validators.js).
+//
+// Every caller passes `required` now, including the staff walk-in form, because
+// the API applies the same location rule to all four intake routes. The default
+// is kept for a form that genuinely has no location requirement; there is none
+// today.
 export default function LocationField({ value, onChange, required = false }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');

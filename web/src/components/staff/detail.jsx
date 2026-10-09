@@ -44,9 +44,11 @@ export function PrintReportButton({ download, id }) {
   );
 }
 
-// Where the resident pinned the report: coordinates + a mini-map with the pin
-// (single marker, camera centered on it). Renders nothing without geo/address;
-// requests never have coordinates, so only complaint/wildlife pages use this.
+// Where the report is: coordinates and/or a landmark description, with a
+// mini-map when there is a pin. All three detail pages use this - service
+// requests gained a location in the 2026-10-09 release, having previously been
+// barangay-level only. Renders nothing when a report has neither, which is the
+// state of every request filed before that release.
 export function LocationBlock({ marker, address }) {
   const office = useOfficeLocation();
   const hasGeo = marker?.latitude != null && marker?.longitude != null;

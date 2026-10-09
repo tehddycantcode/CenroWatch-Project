@@ -9,8 +9,8 @@ import MapView from '@/components/MapView';
 
 // Where residents pinned their reports. Staff endpoints return true coordinates
 // (RBAC-protected; the public-endpoint obfuscation rule does not apply here) so
-// responders can find the actual spot. Service requests carry no map pin by
-// design (barangay-scoped), so the map covers complaints + wildlife.
+// responders can find the actual spot. Service requests can now carry a pin too,
+// but this map does not plot them yet - it covers complaints + wildlife.
 //
 // This is an OPERATIONAL map: only open reports appear. Once a report reaches
 // a terminal stage (finished: resolved/completed/released/transferred, or
@@ -120,9 +120,9 @@ export default function ReportsMap() {
       <div className="border-t px-5 py-2.5 text-xs text-muted-foreground sm:px-6">
         {rows !== null && !error && (
           <>
-            {pinned.length} of {open.length} open reports have a pin (location is optional when
-            filing). Pins drop off once a report is finished; service requests are
-            barangay-level and are not mapped.
+            {pinned.length} of {open.length} open reports have a pin. A report can
+            give a landmark description instead of a pin, so an unpinned report is
+            not an incomplete one. Pins drop off once a report is finished.
           </>
         )}
       </div>

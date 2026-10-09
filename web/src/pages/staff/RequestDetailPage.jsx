@@ -3,12 +3,13 @@ import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
 import { REQUEST_STATUSES, fmtDate, fmtDay, useSectionBase, isBreached } from '@/lib/staff';
+import { CHART_COLORS } from '@/components/admin/chart-colors';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
-import { Rows, ReporterCard, Attachment, PrintReportButton, ArchiveControl } from '@/components/staff/detail';
+import { Rows, ReporterCard, Attachment, LocationBlock, PrintReportButton, ArchiveControl } from '@/components/staff/detail';
 
 export default function RequestDetailPage() {
   const { id } = useParams();
@@ -76,6 +77,19 @@ export default function RequestDetailPage() {
               <ReporterCard user={q.user} />
               {q.document_path && <Attachment path={q.document_path} />}
             </div>
+            <LocationBlock
+              marker={{
+                id: q.tracking_id,
+                kind: 'request',
+                category: q.request_type,
+                status: q.status,
+                barangay: q.barangay?.name,
+                latitude: q.latitude,
+                longitude: q.longitude,
+                color: CHART_COLORS.requests,
+              }}
+              address={q.address_details}
+            />
           </Card>
 
           <StatusHistory history={q.status_history} />

@@ -66,6 +66,7 @@ export default function LogWalkInPage() {
     reporter_name: '',
     reporter_contact: '',
     observed_at: todayStr(),
+    address_details: '',
   });
   const [anonymous, setAnonymous] = useState(false);
   const [location, setLocation] = useState({ latitude: null, longitude: null });
@@ -86,6 +87,13 @@ export default function LogWalkInPage() {
 
   function validate() {
     const errs = {};
+    // The counter clerk can almost always give a street or a landmark even when
+    // they have no coordinates, which is why this form is no longer exempt from
+    // the location rule - see backend/src/validators/location.validators.js.
+    const hasPin = location.latitude != null && location.longitude != null;
+    if (!hasPin && !form.address_details.trim()) {
+      errs.location = 'Pin the location, or write the address and nearest landmark.';
+    }
     if (!form.complaint_type) errs.complaint_type = 'Please choose a complaint type.';
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
     if (form.description.trim().length < 10) errs.description = 'Describe the concern (at least 10 characters).';
@@ -122,6 +130,7 @@ export default function LogWalkInPage() {
       fd.append('latitude', location.latitude);
       fd.append('longitude', location.longitude);
     }
+    if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
     if (photo) fd.append('photo', photo);
 
     setSubmitting(true);
@@ -248,8 +257,23 @@ export default function LogWalkInPage() {
             />
           </FormField>
 
-          <FormField label="Location" hint="Optional: pin where it happened">
-            <LocationField value={location} onChange={setLocation} />
+          <FormField label="Location" hint="Pin it on the map, or write the address and nearest landmark." error={fieldErrors.location}>
+            <LocationField value={location} onChange={setLocation} required />
+          </FormField>
+
+          <FormField
+            id="address_details"
+            label="Address or landmark"
+            hint="Street, purok, or what it is next to."
+            error={fieldErrors.address_details}
+          >
+            <Input
+              id="address_details"
+              maxLength={255}
+              placeholder="e.g. Beside the covered court, Purok 3"
+              value={form.address_details}
+              onChange={set('address_details')}
+            />
           </FormField>
 
           <FormField label="Photo" hint="Optional: attach evidence if the resident provided one">
