@@ -66,7 +66,7 @@ data inside the database:
 - wildlife turnover street addresses
 - service request street addresses
 
-(The system encrypts by field name, so any street-address field added to a future
+(The system encrypts by field name, so any street-address field of the same name added to a future
 record type is encrypted automatically, and is then covered by this same key.)
 
 They are unreadable without a key called **`FIELD_ENCRYPTION_KEY`** — a
