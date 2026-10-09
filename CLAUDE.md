@@ -521,6 +521,36 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   throws ASYNCHRONOUSLY outside your test; and pdfkit subsets its fonts and
   writes glyph ids as hex, so `(text) Tj` will not find your strings in the
   output — do not try to verify wording by grepping the produced PDF.
+- **`.optional({ values: 'falsy' })` plus a service helper that maps `''` to
+  `null` is a validator that waves through the one value the service reads as
+  "clear this field".** The admin species screen could clear a real species'
+  `category`, and `resolveSpecies()` consults a CLIENT-SENT category for any row
+  whose own category is null — so that species' category was then decided by
+  whatever a reporter's app posted, on every later report. Each half looked
+  correct alone: `createSpeciesRules` requires `category`, and
+  `updateSpeciesRules` leaves it optional *on purpose*, so an edit touching only
+  `handling_note` still works. The gap is the pair. The chain was
+  `category: ''` → falsy, so express-validator **skips validation entirely, no
+  422** → but `''` is still `!== undefined`, so the service runs →
+  `enumOrThrow('')` returns `null` → saved. Two rules that generalise: when
+  create and update disagree about requiredness, the looser one is the attack
+  surface, and a guard must read the **post-coercion** value (`data`), never
+  `input` — the same reason the `is_endangered` sentinel guard already says so.
+  Closed in the SERVICE, not the validator, so it holds for every caller.
+  Clients should also not offer the value the server will refuse — but keep the
+  blank option where the empty state is REAL (a backfill migration left
+  production rows with no category; hiding it would display "Bird" for a row
+  that has none, a value nobody chose).
+- **A plan snippet copied out of a live file freezes that file's bugs, and
+  fixing the original does not fix the copy.** Task 18 of the species plan told
+  an implementer to cache `GET /species` for the whole session — a verbatim copy
+  of the web code as it stood when the plan was written. The web version was
+  fixed weeks later (`9b0fd82`) because that endpoint signs `photo_path` with a
+  1-hour TTL, and the plan still carried the pre-fix shape. Mobile would have
+  been strictly worse than the bug web already had: a phone keeps the JS process
+  alive for days, so every reference photo would 403 while the hook's `error`
+  stayed empty. When you fix something that a written-but-unexecuted plan copied,
+  grep the plan for it too — and prefer referencing a file over pasting it.
 
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
