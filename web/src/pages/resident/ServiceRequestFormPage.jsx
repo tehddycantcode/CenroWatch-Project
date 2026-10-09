@@ -3,6 +3,7 @@ import { requestApi } from '@/lib/api';
 import { useCategories } from '@/lib/useCategories';
 import { isOtherCategory, withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '@/lib/otherCategory';
 import { FORM_TL } from '@/lib/tagalog';
+import LocationField from '@/components/resident/LocationField';
 import { Sprout } from 'lucide-react';
 import ReportFormShell from '@/components/resident/ReportFormShell';
 import BarangaySelect from '@/components/resident/BarangaySelect';
@@ -25,7 +26,9 @@ export default function ServiceRequestFormPage() {
     description: '',
     requested_quantity: '',
     preferred_schedule: '',
+    address_details: '',
   });
+  const [location, setLocation] = useState({ latitude: null, longitude: null });
   const [doc, setDoc] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
@@ -55,6 +58,14 @@ export default function ServiceRequestFormPage() {
     if (withOtherDetail(form.description.trim(), form.type_other).length > DESCRIPTION_MAX) {
       errs.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
     }
+    // A pin OR a landmark, same as the other report kinds. A request is for a
+    // place too - seedlings get delivered somewhere and a creek gets cleaned
+    // somewhere - and until this change the record could only say which
+    // barangay.
+    const hasPin = location.latitude != null && location.longitude != null;
+    if (!hasPin && !form.address_details.trim()) {
+      errs.location = 'Pin the location on the map, or describe the address and nearest landmark.';
+    }
     return errs;
   }
 
@@ -73,6 +84,11 @@ export default function ServiceRequestFormPage() {
     fd.append('description', withOtherDetail(form.description.trim(), form.type_other));
     if (form.requested_quantity) fd.append('requested_quantity', form.requested_quantity);
     if (form.preferred_schedule) fd.append('preferred_schedule', form.preferred_schedule);
+    if (location.latitude != null) {
+      fd.append('latitude', location.latitude);
+      fd.append('longitude', location.longitude);
+    }
+    if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
     if (doc) fd.append('document', doc);
 
     setSubmitting(true);
@@ -140,6 +156,25 @@ export default function ServiceRequestFormPage() {
 
       <FormField id="description" label="Description" hint={FORM_TL.description} error={fieldErrors.description}>
         <Textarea id="description" rows={4} placeholder="Describe what you need and why." value={form.description} onChange={set('description')} />
+      </FormField>
+
+      <FormField label="Location" hint={`Where the service is needed. Pin it, or describe it below. / ${FORM_TL.location}`} error={fieldErrors.location}>
+        <LocationField value={location} onChange={setLocation} required />
+      </FormField>
+
+      <FormField
+        id="address_details"
+        label="Address or landmark"
+        hint={`Street, purok, or what it is next to. / ${FORM_TL.address_details}`}
+        error={fieldErrors.address_details}
+      >
+        <Input
+          id="address_details"
+          maxLength={255}
+          placeholder="e.g. Beside the covered court, Purok 3"
+          value={form.address_details}
+          onChange={set('address_details')}
+        />
       </FormField>
 
       {/* Stacks on a phone: two number/date inputs side by side at 320px
