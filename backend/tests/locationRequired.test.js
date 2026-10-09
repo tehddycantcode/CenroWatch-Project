@@ -28,10 +28,14 @@ const {
 const { createWildlifeRules } = require('../src/validators/wildlife.validators');
 const { createWalkInComplaintRules } = require('../src/validators/staff.validators');
 
-async function runRules(rules, body) {
+async function runRulesOnReq(rules, body) {
   const req = { body, params: {}, query: {}, cookies: {}, headers: {} };
   for (const rule of rules) await rule.run(req);
-  return validationResult(req);
+  return { result: validationResult(req), req };
+}
+
+async function runRules(rules, body) {
+  return (await runRulesOnReq(rules, body)).result;
 }
 
 const fieldsWithErrors = (result) => result.array().map((e) => e.path);
@@ -121,12 +125,34 @@ describe('the five cases that would otherwise slip through', () => {
   });
 
   test('a non-numeric latitude is still refused, not silently skipped', async () => {
-    // The blank-to-undefined sanitizer exists so that every value which WAS
-    // sent gets range-checked. If it were written as optional({ values:
-    // 'falsy' }) instead, 'abc' would still be caught - but 0 would not be
-    // sent for validation at all. This pins the half that is easy to lose.
+    // The blank-to-undefined sanitizer exists so every value that WAS sent gets
+    // range-checked. This case only proves 'abc' is refused - which the falsy
+    // variant would also do. The test that actually separates the two designs
+    // is the boolean one below; this one guards the ordinary typo.
     const r = await runRules(createComplaintRules, complaintBody({ latitude: 'abc' }));
     expect(fieldsWithErrors(r)).toContain('latitude');
+  });
+
+  test('a boolean coordinate is refused, which is what separates this chain from optional({ values: "falsy" })', async () => {
+    // The sanitizer turns ONLY blank into undefined, so `false` stays and gets
+    // range-checked and refused. Under optional({ values: 'falsy' }) `false` is
+    // skipped entirely and reaches a Float? column as a boolean. No other input
+    // tells the two apart, which is why this test exists.
+    const r = await runRules(createComplaintRules, complaintBody({ latitude: false, longitude: false }));
+    expect(fieldsWithErrors(r)).toContain('latitude');
+  });
+
+  test('THE SANITIZER IS THE POINT: a blank coordinate becomes undefined, not an empty string', async () => {
+    // This is the assertion the other tests cannot make, because they read
+    // error field names and the sanitizer's product is req.body. An '' that
+    // survives this chain is not nullish, so `input.latitude ?? null` keeps it
+    // and MySQL gets '' for a Float? column - a 500 on the landmark-only
+    // submission this whole feature exists to allow.
+    const { req } = await runRulesOnReq(createComplaintRules, complaintBody({
+      latitude: '', longitude: '', address_details: 'Beside the covered court.',
+    }));
+    expect(req.body.latitude).toBeUndefined();
+    expect(req.body.longitude).toBeUndefined();
   });
 
   test('a whitespace-only address does NOT satisfy the rule', async () => {
