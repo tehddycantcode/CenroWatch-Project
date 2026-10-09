@@ -36,7 +36,9 @@ Five input classes the spec implies but which no task's happy path exercises. Ea
 2. **`latitude: 0`.** Zero is a legitimate float and is **falsy in JavaScript**, so `optional({ values: 'falsy' })` silently discards it. The presence test must be "not undefined, not null, not empty after trim" and must never use truthiness. — Task 1.
 3. **An `address_details` of only whitespace.** `"   "` is a non-empty string and would satisfy a naive `if (address)` check while conveying nothing. It must not satisfy the disjunction. — Task 1.
 4. **Both fields absent as EMPTY STRINGS rather than missing keys.** Every form posts multipart, so an unpinned map and an untouched textbox arrive as `''`, not as absent keys. This is why the original rule used `notEmpty` over `exists`; the disjunction inherits the same trap. — Task 1.
-5. **An over-long landmark with no pin.** A 256-character address with no coordinates must report the length error on `address_details` *and* must not be treated as a satisfied location. The resident needs to know which to fix. — Task 1.
+5. **An over-long landmark with no pin.** A 256-character address with no coordinates must report the length error on `address_details` and **must NOT also report a `location` error**. The resident needs to know which field to fix, and "pin it or describe it" contradicts someone who just typed 256 characters of address. The submission is refused either way, by `address_details`. — Task 1.
+
+> **Corrected 2026-10-09 during execution.** This line originally required the over-long case to report *both* errors, which contradicted the rule in Task 1 Step 3 — any non-empty address satisfies the disjunction there. The spec is the binding authority and §4.1 says "a **non-empty** `address_details`", with no length qualifier, so the rule stood and this line changed. Task 1's Step 1 test block below has been corrected to match. If you are reading this plan to review shipped code, the shipped behaviour is one error, not two.
 
 ---
 
@@ -123,7 +125,7 @@ describe('a resident complaint needs a location, one way or the other', () => {
   });
 });
 
-describe('the five cases that would otherwise slip through', () => {
+describe('the cases that would otherwise slip through', () => {
   test('A HALF-PIN IS NOT A LOCATION: latitude without longitude', async () => {
     // Accepting this would store a report whose pin cannot be placed on a map.
     const r = await runRules(createComplaintRules, complaintBody({ longitude: '' }));
@@ -163,15 +165,18 @@ describe('the five cases that would otherwise slip through', () => {
     expect(fieldsWithErrors(r)).toContain('location');
   });
 
-  test('an over-long address with no pin reports BOTH problems', async () => {
-    // The resident has to know the address was rejected for length; otherwise
-    // they see "give me a location" while looking at the location they typed.
+  test('an over-long address with no pin reports ONLY the length problem', async () => {
+    // Deliberately NOT also a location error. The address IS present - its only
+    // defect is length - so "pin it or describe it" would contradict what the
+    // resident just did, on a form that renders each error against its own
+    // field. One accurate message beats two when one of them is wrong. The
+    // submission is refused either way, by address_details.
     const r = await runRules(createComplaintRules, complaintBody({
       latitude: '', longitude: '', address_details: 'x'.repeat(256),
     }));
     const fields = fieldsWithErrors(r);
     expect(fields).toContain('address_details');
-    expect(fields).toContain('location');
+    expect(fields).not.toContain('location');
   });
 });
 
@@ -349,7 +354,9 @@ In `backend/src/validators/staff.validators.js`, add the import. Replace the thr
 - [ ] **Step 7: Run the test to verify it passes**
 
 Run: `cd backend && npx jest tests/locationRequired.test.js`
-Expected: PASS, all 17 tests.
+Expected: PASS, every test in the file. The count is advisory — treat "all pass" as the gate.
+
+> **Added 2026-10-09 during execution,** after review found the sanitizer design pinned by nothing: a boolean-coordinate test (`latitude: false`), which is the only input separating this chain from `optional({ values: 'falsy' })`, and an assertion that a blank coordinate leaves `req.body.latitude` **undefined** rather than `''`. The second needs a `runRulesOnReq` variant that returns the request as well as the result, because the sanitizer's product is `req.body` and no error-name assertion can see it. Without those two, the whole chain could be "simplified" with the suite staying green while a landmark-only report 500s on `latitude: ''` reaching a `Float?` column.
 
 - [ ] **Step 8: Run the full suite**
 
