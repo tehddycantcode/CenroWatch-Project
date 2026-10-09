@@ -900,6 +900,8 @@ git commit -m "Let a service request say where it is needed" -- web/src/pages/re
 - Consumes: `LocationBlock` from `web/src/components/staff/detail.jsx`; the request `DETAIL_SELECT` fields from Task 2.
 - Produces: nothing.
 
+> **Precondition, added 2026-10-09 during execution.** `backend/src/services/staff.request.service.js` has its **own** `DETAIL_SELECT`, separate from the resident one Task 2 edits, and it did not include the three location fields. Step 2 below renders `q.latitude` / `q.address_details` from that staff endpoint, so without it all three arrive `undefined`, `LocationBlock` renders nothing, and the page shows **no location for a request that has one** — silently, with no error and a clean build. Task 2's fix round added the fields and a test. If you are re-running this plan from scratch, confirm that select carries them before starting Step 2.
+
 - [ ] **Step 1: Add the rule and the landmark field to the walk-in form**
 
 `web/src/pages/staff/LogWalkInPage.jsx` already has an `address_details` field — **check before adding one**:
