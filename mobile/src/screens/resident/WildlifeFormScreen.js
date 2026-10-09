@@ -171,7 +171,10 @@ export default function WildlifeFormScreen() {
       {speciesError ? (
         // A picker with no options cannot be submitted, so this is stated
         // rather than shown as an empty dropdown.
-        <Field label="Species" hint={FORM_TL.species_name}>
+        // `error` is still passed: without it, a Submit tap in this state sets
+        // species_name = 'Select a species.' with nothing on screen to show it,
+        // so the button would appear to do nothing at all.
+        <Field label="Species" hint={FORM_TL.species_name} error={fieldErrors.species_name}>
           <Text style={styles.speciesError}>{speciesError}</Text>
         </Field>
       ) : (
