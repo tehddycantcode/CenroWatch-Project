@@ -41,6 +41,7 @@ function buildView(kind, d) {
       description: d.description,
       latitude: d.latitude,
       longitude: d.longitude,
+      address: d.address_details,
       status: d.status,
       history: d.status_history || [],
     };
@@ -63,6 +64,7 @@ function buildView(kind, d) {
       description: d.description,
       latitude: d.latitude,
       longitude: d.longitude,
+      address: d.address_details,
       status: d.status,
       history: d.status_history || [],
     };
@@ -82,8 +84,9 @@ function buildView(kind, d) {
     ],
     notes: d.staff_notes,
     description: d.description,
-    latitude: null,
-    longitude: null,
+    latitude: d.latitude,
+    longitude: d.longitude,
+    address: d.address_details,
     status: d.status,
     history: d.status_history || [],
   };
@@ -131,12 +134,18 @@ function ReportDetail({ view, kind }) {
         <Text style={styles.description}>{view.description}</Text>
       </View>
 
-      {hasGeo && (
-        <View style={styles.geoRow}>
-          <Icon name="location-outline" size={15} color={colors.muted} />
-          <Text style={styles.geo}>
-            {view.latitude}, {view.longitude}
-          </Text>
+      {(hasGeo || view.address) && (
+        <View style={styles.block}>
+          <Text style={styles.rowLabel}>Location</Text>
+          {view.address ? <Text style={styles.description}>{view.address}</Text> : null}
+          {hasGeo && (
+            <View style={styles.geoRow}>
+              <Icon name="location-outline" size={15} color={colors.muted} />
+              <Text style={styles.geo}>
+                {view.latitude}, {view.longitude}
+              </Text>
+            </View>
+          )}
         </View>
       )}
 

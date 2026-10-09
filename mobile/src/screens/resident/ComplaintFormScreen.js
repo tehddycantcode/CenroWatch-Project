@@ -166,16 +166,6 @@ export default function ComplaintFormScreen() {
         />
       </Field>
 
-      <Field label="Address or landmark" hint={`Street, purok, or what it is next to. / ${FORM_TL.address_details}`} error={fieldErrors.address_details}>
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. near the creek behind the market"
-          placeholderTextColor={colors.placeholder}
-          value={form.address_details}
-          onChangeText={set('address_details')}
-        />
-      </Field>
-
       <Field label="Date issue was observed" hint={`When you saw it. Defaults to today. / ${FORM_TL.observed_at}`} error={fieldErrors.observed_at}>
         {/* max=today because the API refuses an observed date in the future;
             the calendar should not offer one either. */}
@@ -189,6 +179,17 @@ export default function ComplaintFormScreen() {
 
       <Field label="Location" hint={`Pin it on the map, or describe it below. / ${FORM_TL.location}`} error={fieldErrors.location}>
         <LocationField value={location} onChange={setLocation} required />
+      </Field>
+
+      <Field label="Address or landmark" hint={`Street, purok, or what it is next to. / ${FORM_TL.address_details}`} error={fieldErrors.address_details}>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. near the creek behind the market"
+          placeholderTextColor={colors.placeholder}
+          value={form.address_details}
+          onChangeText={set('address_details')}
+          maxLength={255}
+        />
       </Field>
 
       <Field label="Photo (required)" hint={`Attach at least one photo as evidence. / ${FORM_TL.photo}`} error={fieldErrors.photo}>
