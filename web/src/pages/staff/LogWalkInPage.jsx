@@ -264,7 +264,7 @@ export default function LogWalkInPage() {
           <FormField
             id="address_details"
             label="Address or landmark"
-            hint="Street, purok, or what it is next to."
+            hint="Street, purok, or what it is next to. If the reporter gave no location, write: No location given."
             error={fieldErrors.address_details}
           >
             <Input

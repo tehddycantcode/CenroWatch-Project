@@ -161,10 +161,18 @@ export default function TrackReportPage() {
           <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{view.description}</p>
         </div>
 
-        {hasGeo && (
-          <div className="mt-4 flex items-center gap-1.5 text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
-            {view.latitude}, {view.longitude}
+        {(hasGeo || view.address_details) && (
+          <div className="mt-4">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Location</div>
+            {view.address_details && (
+              <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{view.address_details}</p>
+            )}
+            {hasGeo && (
+              <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
+                {view.latitude}, {view.longitude}
+              </div>
+            )}
           </div>
         )}
 

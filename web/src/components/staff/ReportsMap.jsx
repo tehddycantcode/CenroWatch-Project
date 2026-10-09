@@ -111,7 +111,7 @@ export default function ReportsMap() {
       ) : pinned.length === 0 ? (
         <div className="flex h-80 items-center justify-center px-6 text-center text-sm text-muted-foreground">
           No open reports carry a map pin right now. Pins appear when residents attach a
-          location and drop off once a report is finished.
+          map pin and drop off once a report is finished.
         </div>
       ) : (
         <MapView markers={markers} fitToMarkers className="h-80 w-full sm:h-96" />
@@ -122,7 +122,8 @@ export default function ReportsMap() {
           <>
             {pinned.length} of {open.length} open reports have a pin. A report can
             give a landmark description instead of a pin, so an unpinned report is
-            not an incomplete one. Pins drop off once a report is finished.
+            not an incomplete one. Service requests are not shown here. Pins drop off
+            once a report is finished.
           </>
         )}
       </div>
