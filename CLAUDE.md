@@ -639,6 +639,21 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   to the record - `is_endangered` drives priority review and public-map
   coordinate obfuscation - it belongs on the page, not folded into the widget.
 
+- **`asyncHandler` DOES NOT RETURN ITS PROMISE, so awaiting a controller in a
+  test waits for nothing.** It is `Promise.resolve(fn(req,res,next)).catch(next)`
+  with no `return`, so `await controller(req, res, next)` resolves after a single
+  microtask - before `storage.save()` has run and before the service has been
+  called. Written that way, six assertions in the multi-upload suite read an
+  EMPTY `mock.calls` list; they happened to fail loudly (`calls[0]` was
+  undefined), but an assertion shaped as `expect(x).not.toHaveBeenCalled()`
+  would have PASSED on a controller that does the wrong thing. The guard tests
+  in the same file passed throughout, because a synchronous `throw` rejects
+  within the one microtask that `await` does cover - which is what makes this
+  look like a partial bug rather than a broken harness.
+  Resolve on the handler's real completion signal instead: `res.json()` for a
+  success and `next(err)` for a failure, both wired into one Promise. Do not
+  'fix' asyncHandler to return the promise - Express ignores the return value,
+  and changing it to satisfy a test would be the test driving production code.
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
 - **Post-sprint work on branch `feature/verified-reporting-and-anonymity`
