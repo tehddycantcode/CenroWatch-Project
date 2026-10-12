@@ -137,6 +137,27 @@ const setSpeciesPhoto = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Species photo updated.', data: { species: await storage.signFiles(species) } });
 });
 
+const addSpeciesPhotos = asyncHandler(async (req, res) => {
+  // One credit for the whole upload; the service explains why, and the admin
+  // screen says so beside the box.
+  const photos = await speciesService.addSpeciesPhotos(
+    req.user.user_id, req.params.id, req.files, req.body.photo_credit, req.body.caption,
+    { ipAddress: req.ip },
+  );
+  res.status(201).json({
+    success: true,
+    message: `Added ${photos.length} sample photo${photos.length === 1 ? '' : 's'}.`,
+    data: { photos: await storage.signFiles(photos) },
+  });
+});
+
+const removeSpeciesPhoto = asyncHandler(async (req, res) => {
+  const removed = await speciesService.removeSpeciesPhoto(
+    req.user.user_id, req.params.id, req.params.photoId, { ipAddress: req.ip },
+  );
+  res.json({ success: true, message: 'Sample photo removed.', data: removed });
+});
+
 const listBarangays = asyncHandler(async (req, res) => {
   const barangays = await barangayService.listAllBarangays();
   res.json({ success: true, data: { barangays } });
@@ -168,6 +189,6 @@ module.exports = {
   listArchived, archiveReport, restoreReport,
   listAuditLogs, listSettings, updateSetting,
   listCategories, createCategory, updateCategory,
-  listSpecies, createSpecies, updateSpecies, setSpeciesPhoto,
+  listSpecies, createSpecies, updateSpecies, setSpeciesPhoto, addSpeciesPhotos, removeSpeciesPhoto,
   listBarangays, createBarangay, updateBarangay,
 };

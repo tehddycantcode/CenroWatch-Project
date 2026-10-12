@@ -42,6 +42,19 @@ const PUBLIC_FIELDS = {
   photo_path: true,
   photo_credit: true,
   sort_order: true,
+  // The extra sample photos. `photo_path` keeps that exact name inside the
+  // nested rows so storage.signFiles signs them on the way out - see the note
+  // on the SpeciesPhoto model. Ordered here rather than in the clients so the
+  // gallery reads the same on the website, the phone and the admin table.
+  photos: {
+    select: {
+      species_photo_id: true,
+      photo_path: true,
+      photo_credit: true,
+      caption: true,
+    },
+    orderBy: [{ sort_order: 'asc' }, { species_photo_id: 'asc' }],
+  },
 };
 
 /**
@@ -72,6 +85,21 @@ async function listAll() {
   const [rows, usage] = await Promise.all([
     prisma.species.findMany({
       orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
+      // `include` rather than `select`, so this keeps returning every scalar
+      // column the admin screen already reads - a select here would silently
+      // drop is_active, handling_note and the rest.
+      include: {
+        photos: {
+          select: {
+            species_photo_id: true,
+            photo_path: true,
+            photo_credit: true,
+            caption: true,
+            sort_order: true,
+          },
+          orderBy: [{ sort_order: 'asc' }, { species_photo_id: 'asc' }],
+        },
+      },
     }),
     prisma.wildlifeTurnover.groupBy({
       by: ['species_name'],
@@ -486,7 +514,131 @@ async function setSpeciesPhoto(adminId, id, file, credit, ctx = {}) {
   return row;
 }
 
+// How many extra photos one species may carry. A cap rather than none, because
+// every one of these is fetched and signed on the PUBLIC species endpoint that
+// the wildlife form and the guide both call: an unbounded gallery would be an
+// unbounded response on the hottest read in the system.
+const MAX_GALLERY_PHOTOS = 8;
+
+/**
+ * Add sample photographs to a species' gallery.
+ *
+ * ONE CREDIT FOR THE WHOLE UPLOAD, and the admin screen says so beside the box.
+ * Per-file credits would be the more flexible design and a worse one here: the
+ * realistic case is several frames from one source, and a form with eight credit
+ * boxes invites copying the first one down the list, which produces confident
+ * WRONG attribution. Photos from different sources are separate uploads.
+ */
+async function addSpeciesPhotos(adminId, id, files, credit, caption, ctx = {}) {
+  const targetId = Number(id);
+  if (!Number.isInteger(targetId)) throw new HttpError(404, 'Species not found.');
+
+  const existing = await prisma.species.findUnique({
+    where: { species_id: targetId },
+    select: { species_id: true, name: true, _count: { select: { photos: true } } },
+  });
+  if (!existing) throw new HttpError(404, 'Species not found.');
+
+  const list = Array.isArray(files) ? files.filter(Boolean) : [];
+  if (list.length === 0) throw new HttpError(422, 'Choose at least one image to upload.');
+
+  // Same obligation as the primary photo: the credit is required HERE, because
+  // this is the moment the licensing obligation is created. See setSpeciesPhoto.
+  const photo_credit = textCapped(credit, 255, 'Photo credit');
+  if (!photo_credit) {
+    throw new HttpError(422, 'Name the photographer and licence for these photos (for example "Juan Dela Cruz, CC BY-SA 4.0", or "CENRO Cabuyao" for your own work). It applies to every file in this upload.');
+  }
+  const photoCaption = textCapped(caption, 255, 'Caption') || null;
+
+  const room = MAX_GALLERY_PHOTOS - existing._count.photos;
+  if (room <= 0) {
+    throw new HttpError(422, `${existing.name} already has the maximum of ${MAX_GALLERY_PHOTOS} sample photos. Remove one before adding another.`);
+  }
+  if (list.length > room) {
+    throw new HttpError(422, `Only ${room} more sample photo${room === 1 ? '' : 's'} can be added to ${existing.name} (the limit is ${MAX_GALLERY_PHOTOS}).`);
+  }
+
+  // Files are written BEFORE the rows, so a storage failure leaves no row
+  // pointing at a file that is not there. The reverse would show a resident a
+  // broken image; this way the worst case is an orphaned file nobody references.
+  const saved = [];
+  for (const file of list) saved.push(await storage.save('species', file));
+
+  const created = await prisma.$transaction(
+    saved.map((photo_path, i) =>
+      prisma.speciesPhoto.create({
+        data: {
+          species_id: targetId,
+          photo_path,
+          photo_credit,
+          caption: photoCaption,
+          sort_order: existing._count.photos + i,
+        },
+        select: { species_photo_id: true, photo_path: true, photo_credit: true, caption: true },
+      }),
+    ),
+  );
+
+  await writeAuditLog({
+    performedBy: adminId,
+    action: 'SPECIES_PHOTO_ADD',
+    targetTable: 'Species',
+    targetId: existing.species_id,
+    data: { name: existing.name, added: created.map((p) => p.photo_path), credit: photo_credit },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return created;
+}
+
+/**
+ * Remove one gallery photo. The species' PRIMARY photo is not reachable from
+ * here - it lives on Species.photo_path and is replaced through setSpeciesPhoto.
+ */
+async function removeSpeciesPhoto(adminId, id, photoId, ctx = {}) {
+  const targetId = Number(id);
+  const targetPhoto = Number(photoId);
+  if (!Number.isInteger(targetId) || !Number.isInteger(targetPhoto)) {
+    throw new HttpError(404, 'Photo not found.');
+  }
+
+  // Scoped by BOTH ids: without the species_id in the lookup, an id from one
+  // species would delete a photo belonging to another.
+  const row = await prisma.speciesPhoto.findFirst({
+    where: { species_photo_id: targetPhoto, species_id: targetId },
+    select: { species_photo_id: true, photo_path: true, species: { select: { name: true } } },
+  });
+  if (!row) throw new HttpError(404, 'Photo not found.');
+
+  await prisma.speciesPhoto.delete({ where: { species_photo_id: row.species_photo_id } });
+
+  // After the row is gone, for the same reason setSpeciesPhoto removes after
+  // updating: an orphaned file is a better failure than a row pointing at
+  // nothing. Its own try/catch so a storage failure cannot cost the audit entry
+  // for a deletion that already happened.
+  try {
+    await storage.remove(row.photo_path);
+  } catch {
+    // Best-effort. The row is already gone; nothing renders this path now.
+  }
+
+  await writeAuditLog({
+    performedBy: adminId,
+    action: 'SPECIES_PHOTO_REMOVE',
+    targetTable: 'Species',
+    targetId: targetId,
+    // The path is recorded because storage.remove() above destroys the only
+    // other trace of it.
+    data: { name: row.species?.name, removed: row.photo_path },
+    ipAddress: ctx.ipAddress || null,
+  });
+
+  return { species_photo_id: row.species_photo_id };
+}
+
 module.exports = {
   OTHER_SPECIES, PUBLIC_FIELDS, CATEGORY_VALUES, BIOME_VALUES, INDICATOR_VALUES, HAZARD_VALUES,
+  MAX_GALLERY_PHOTOS,
   listActive, listAll, resolveSpecies, createSpecies, updateSpecies, setSpeciesPhoto,
+  addSpeciesPhotos, removeSpeciesPhoto,
 };

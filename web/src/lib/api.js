@@ -401,6 +401,19 @@ export const adminApi = {
       speciesApi.invalidate();
       return r;
     }),
+  // The gallery: extra sample photos beside the primary one above. The file
+  // parts must all be named `photos` (plural) - multer's .array('photos', 8)
+  // refuses any other field name.
+  addSpeciesPhotos: (id, form) =>
+    apiFetch(`/admin/species/${id}/photos`, { method: 'POST', body: form }).then((r) => {
+      speciesApi.invalidate();
+      return r;
+    }),
+  removeSpeciesPhoto: (id, photoId) =>
+    apiFetch(`/admin/species/${id}/photos/${photoId}`, { method: 'DELETE' }).then((r) => {
+      speciesApi.invalidate();
+      return r;
+    }),
 
   // Soft delete: archived reports leave the working system but stay on record.
   archive: {

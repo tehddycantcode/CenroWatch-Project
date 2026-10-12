@@ -358,6 +358,24 @@ export default function WildlifeFormPage() {
               imgClassName="max-h-48 w-auto object-contain"
             />
           )}
+          {/* The extra angles, if an Admin has added any. This is the screen the
+              gallery exists for: a resident deciding whether the animal in front
+              of them is this row, where one photo of a coiled python says little
+              about a stretched-out one. */}
+          {(selected.photos || []).length > 0 && (
+            <div className="mb-2 flex flex-wrap justify-center gap-1.5">
+              {selected.photos.map((p) => (
+                <PreviewableImage
+                  key={p.species_photo_id}
+                  src={fileUrl(p.photo_path)}
+                  alt={p.caption ? `${selected.name}, ${p.caption}` : `${selected.name}, additional photograph`}
+                  caption={`${selected.name}${p.caption ? ` - ${p.caption}` : ''} - photo: ${p.photo_credit}`}
+                  className="h-14 w-20"
+                  imgClassName="h-full w-full object-cover"
+                />
+              ))}
+            </div>
+          )}
           <p className="font-medium">
             {selected.name}
             {selected.scientific_name && <span className="ml-1 font-normal italic text-muted-foreground">{selected.scientific_name}</span>}

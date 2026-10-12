@@ -308,10 +308,48 @@ model Species {
   updated_at DateTime @updatedAt
 
   turnovers WildlifeTurnover[]
+  photos    SpeciesPhoto[]
 
   @@index([category])
   @@index([is_endangered])
   @@index([is_active])
+}
+
+// Extra sample photographs for a species, beyond the one on Species.photo_path.
+//
+// WHY A TABLE AND NOT MORE COLUMNS. One animal rarely looks like one picture:
+// a Reticulated Python coiled is a different silhouette from one stretched out,
+// and a juvenile monitor lizard does not read like an adult. A resident trying
+// to tell which row matches what is in front of them needs more than one angle,
+// and the number needed differs per species, so it cannot be a fixed photo_2,
+// photo_3.
+//
+// Species.photo_path stays the PRIMARY: it is the thumbnail in the picker, the
+// card image in the guide, and the one the identification card leads with. This
+// table is the rest of the gallery. Keeping the primary where it was means no
+// data migration and nothing that reads photo_path today has to change.
+//
+// THE COLUMNS ARE NAMED photo_path AND photo_credit ON PURPOSE. storage.signFiles
+// walks nested objects and signs any key in its FILE_FIELDS set, so naming them
+// anything else (`path`, `url`) would return UNSIGNED paths that 403 when the
+// browser asks for them - the exact bug class CLAUDE.md records for the proof
+// fields. Do not rename these to something tidier.
+//
+// photo_credit is REQUIRED here, unlike on Species where it is nullable for
+// historical rows. Every gallery photo is created through an endpoint that
+// demands a credit, so there is no legitimate way to make one without it.
+model SpeciesPhoto {
+  species_photo_id Int      @id @default(autoincrement())
+  species_id       Int
+  photo_path       String   @db.VarChar(500)
+  photo_credit     String   @db.VarChar(255)
+  caption          String?  @db.VarChar(255) // e.g. "juvenile", "coiled", "in flight"
+  sort_order       Int      @default(0)
+  created_at       DateTime @default(now())
+
+  species Species @relation(fields: [species_id], references: [species_id], onDelete: Cascade)
+
+  @@index([species_id])
 }
 
 // ============================================================

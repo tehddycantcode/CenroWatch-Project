@@ -51,8 +51,49 @@ describe('listActive - what the report forms and the public page read', () => {
     expect(selected.sort()).toEqual([
       'biome', 'body_description', 'category', 'handling_note', 'hazard',
       'indicator', 'is_endangered', 'local_name', 'name', 'photo_credit',
-      'photo_path', 'scientific_name', 'sort_order',
+      'photo_path', 'photos', 'scientific_name', 'sort_order',
     ]);
+  });
+
+  // `photos` is a RELATION, so the allowlist above only proves the relation is
+  // included - it says nothing about which of ITS columns come back. Without
+  // this, adding an uploader id or an internal note to SpeciesPhoto would reach
+  // the public endpoint and the test above would stay green.
+  test('the photo gallery carries no personal data either', async () => {
+    await svc.listActive();
+    const photos = prisma.species.findMany.mock.calls[0][0].select.photos;
+    expect(Object.keys(photos.select).sort()).toEqual([
+      'caption', 'photo_credit', 'photo_path', 'species_photo_id',
+    ]);
+    // Ordered by the service, not by each client, so the gallery reads the same
+    // on the website, the phone and the admin table.
+    expect(photos.orderBy).toEqual([{ sort_order: 'asc' }, { species_photo_id: 'asc' }]);
+  });
+
+  // The nested column is named photo_path SO THAT storage.signFiles signs it:
+  // that helper matches on KEY NAME and walks nested objects. Renaming it to
+  // something tidier would hand the browser unsigned paths that 403 - the bug
+  // class CLAUDE.md records for the closure-proof fields, which were required,
+  // stored, selected, rendered and then refused because nothing signed them.
+  //
+  // Asserting the real helper rather than the field list: the field list only
+  // proves the name was chosen, this proves the name still WORKS.
+  test('signFiles reaches a gallery photo nested under a species', async () => {
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-for-signing';
+    // requireActual: this suite mocks the storage module for the upload tests,
+    // and a mock would prove nothing about whether real signing reaches a
+    // nested photo - which is the entire question here.
+    const storage = jest.requireActual('../src/services/storage');
+    const signed = await storage.signFiles({
+      name: 'Reticulated Python',
+      photo_path: '/uploads/species/primary.jpg',
+      photos: [{ species_photo_id: 1, photo_path: '/uploads/species/extra.jpg', photo_credit: 'X' }],
+    });
+    const nested = signed.photos[0].photo_path;
+    expect(nested).toContain('/uploads/species/extra.jpg');
+    // Signed, not passed through: the local driver appends an expiry and an
+    // HMAC, so the returned value must differ from the stored path.
+    expect(nested).not.toBe('/uploads/species/extra.jpg');
   });
 });
 

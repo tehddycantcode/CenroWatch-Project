@@ -365,6 +365,23 @@ export default function WildlifeFormScreen() {
               style={styles.idPhoto}
             />
           ) : null}
+          {/* The extra angles, if an Admin has added any. This is the screen the
+              gallery exists for: a resident deciding whether the animal in front
+              of them is this row, where one photo of a coiled python says little
+              about a stretched-out one. */}
+          {(selected.photos || []).length > 0 ? (
+            <View style={styles.sampleStrip}>
+              {selected.photos.map((p) => (
+                <PreviewableImage
+                  key={p.species_photo_id}
+                  source={{ uri: fileUrl(p.photo_path) }}
+                  label={p.caption ? `${selected.name}, ${p.caption}` : `${selected.name}, additional photograph`}
+                  caption={`${selected.name}${p.caption ? ` - ${p.caption}` : ''} - photo: ${p.photo_credit}`}
+                  style={styles.samplePhoto}
+                />
+              ))}
+            </View>
+          ) : null}
           <Text style={styles.idName}>{selected.name}</Text>
           {selected.scientific_name ? <Text style={styles.idSci}>{selected.scientific_name}</Text> : null}
           {selected.local_name ? (
@@ -577,6 +594,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     backgroundColor: colors.tint,
   },
+  // The extra sample photos, as a wrapping row of thumbnails under the main one.
+  sampleStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  samplePhoto: { width: 76, height: 56 },
   // Safety guidance. Red for the hazard, matching the web form's red badge.
   hazardBadge: {
     alignSelf: 'flex-start',

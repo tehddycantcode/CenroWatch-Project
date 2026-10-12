@@ -9,6 +9,35 @@ import { Card } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/icons';
 import PreviewableImage from '@/components/ui/previewable-image';
 
+// The extra sample photographs, as a row of thumbnails under the card's main
+// image. One animal rarely looks like one picture: a python coiled is a
+// different silhouette from one stretched out, and a juvenile monitor lizard
+// does not read like an adult. Each opens full size.
+//
+// Renders nothing when a species has no extras, which is most of them - this is
+// an addition to the card, not a slot that has to be filled.
+function SampleStrip({ species }) {
+  const photos = species.photos || [];
+  if (photos.length === 0) return null;
+  return (
+    <div className="mt-3">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">More photos</p>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {photos.map((p) => (
+          <PreviewableImage
+            key={p.species_photo_id}
+            src={fileUrl(p.photo_path)}
+            alt={p.caption ? `${species.name}, ${p.caption}` : `${species.name}, additional photograph`}
+            caption={`${species.name}${p.caption ? ` - ${p.caption}` : ''} - photo: ${p.photo_credit}`}
+            className="h-14 w-20"
+            imgClassName="h-full w-full object-cover"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // `indicator` is descriptive and nullable - an Admin may add a species without
 // deciding its conservation standing. Nothing is shown in that case: defaulting
 // the label to "Common" would turn a blank field into a claim about the animal.
@@ -49,11 +78,26 @@ export default function WildlifePage() {
   // must never appear in a field guide.
   const rows = common.concat(endangered);
 
-  // Attribution for whichever species currently carry a photo. A credit with no
-  // photo attributes nothing, so both are required.
-  const credits = rows
-    .filter((s) => s.photo_path && s.photo_credit)
-    .map((s) => ({ name: s.name, credit: s.photo_credit }));
+  // Attribution for every photo on this page, the primary one AND each gallery
+  // sample. A credit with no photo attributes nothing, so both are required.
+  //
+  // THE GALLERY PHOTOS BELONG HERE TOO. This line is the catalogue's credit list
+  // of record - the resident form stopped printing credits inline on
+  // 2026-10-12 and points here instead - so a sample photo missing from it is a
+  // CC BY / CC BY-SA image published with no attribution anywhere.
+  // Deduplicated: a batch uploaded under one credit would otherwise repeat that
+  // credit once per file.
+  const credits = [];
+  const seen = new Set();
+  for (const s of rows) {
+    for (const credit of [s.photo_path ? s.photo_credit : null, ...(s.photos || []).map((p) => p.photo_credit)]) {
+      const key = `${s.name}|${credit}`;
+      if (credit && !seen.has(key)) {
+        seen.add(key);
+        credits.push({ name: s.name, credit });
+      }
+    }
+  }
 
   useEffect(() => {
     gisApi.stats().then((r) => setStats(r.data.stats)).catch(() => {});
@@ -190,6 +234,7 @@ export default function WildlifePage() {
                     {s.local_name && (
                       <p className="mt-2 text-xs text-muted-foreground">Also called &ldquo;{s.local_name}&rdquo;</p>
                     )}
+                    <SampleStrip species={s} />
                     {/* A spacer even when empty, so the handling note stays
                         pinned to the bottom of every card in a row. */}
                     <div className="mt-3 flex-1">

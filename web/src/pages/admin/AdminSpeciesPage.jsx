@@ -69,7 +69,127 @@ function EnumSelect({ label, value, options, blank = '--', disabled, onChange, c
   );
 }
 
-function SpeciesRow({ row, busy, onField, onPhoto }) {
+// How many extra photos one species may carry. Mirrors MAX_GALLERY_PHOTOS in
+// backend/src/services/species.service.js, which is what actually enforces it -
+// this copy only decides when to stop offering the picker, so an Admin is not
+// told "no" by a 422 after choosing files.
+const MAX_GALLERY_PHOTOS = 8;
+
+// Extra sample photographs for one species. One animal rarely looks like one
+// picture - a python coiled is a different silhouette from one stretched out,
+// and a juvenile monitor lizard does not read like an adult - so a resident
+// checking what is in front of them needs more than one angle.
+//
+// The species' PRIMARY photo is not managed here: it lives in the row's own
+// cell above, because it is the thumbnail in the resident picker and the card
+// image in the guide, and replacing it is a different act from adding an angle.
+function GalleryManager({ row, busy, onAdd, onRemove }) {
+  const photos = row.photos || [];
+  const [credit, setCredit] = useState('');
+  const [caption, setCaption] = useState('');
+  const full = photos.length >= MAX_GALLERY_PHOTOS;
+
+  function pick(e) {
+    const files = Array.from(e.target.files || []);
+    // Cleared so choosing the SAME files again still fires a change event.
+    e.target.value = '';
+    if (files.length) onAdd(row.species_id, files, credit.trim(), caption.trim());
+    setCaption('');
+  }
+
+  return (
+    <div className="mt-5 border-t pt-4">
+      <h4 className="text-sm font-semibold">Sample photos</h4>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Extra angles shown beside the main photo on the species guide and the wildlife form.
+        {' '}
+        {photos.length} of {MAX_GALLERY_PHOTOS} used.
+      </p>
+
+      {photos.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-3">
+          {photos.map((p) => (
+            <li key={p.species_photo_id} className="w-32">
+              {/* Through fileUrl(): the API signs these paths, which makes them
+                  authorised, not absolute. */}
+              <img
+                src={fileUrl(p.photo_path)}
+                alt={p.caption ? `${row.name} - ${p.caption}` : `${row.name} sample photo`}
+                className="h-20 w-32 rounded border object-cover"
+              />
+              {p.caption && <p className="mt-1 truncate text-[11px] text-foreground" title={p.caption}>{p.caption}</p>}
+              <p className="truncate text-[10px] text-muted-foreground" title={p.photo_credit}>{p.photo_credit}</p>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="mt-0.5 h-6 px-0 text-xs text-destructive"
+                disabled={busy}
+                onClick={() => onRemove(row.species_id, p.species_photo_id, row.name)}
+              >
+                Remove
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {full ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          This species has the maximum of {MAX_GALLERY_PHOTOS} sample photos. Remove one before adding another.
+        </p>
+      ) : (
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <FormField
+            id={`gal-credit-${row.species_id}`}
+            label="Photo credit"
+            // Stated rather than implied: an Admin choosing eight files from
+            // different sources must know ONE credit is being applied to all of
+            // them, or the attribution it records is wrong for seven of them.
+            hint="Applies to every file in this upload. Upload separately if they have different sources."
+          >
+            <Input
+              id={`gal-credit-${row.species_id}`}
+              value={credit}
+              onChange={(e) => setCredit(e.target.value)}
+              placeholder="Photographer, licence"
+              className="h-8 w-56 text-xs"
+              maxLength={255}
+            />
+          </FormField>
+          <FormField id={`gal-caption-${row.species_id}`} label="Caption" hint="Optional, e.g. juvenile, coiled, in flight.">
+            <Input
+              id={`gal-caption-${row.species_id}`}
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="juvenile"
+              className="h-8 w-40 text-xs"
+              maxLength={255}
+            />
+          </FormField>
+          <div>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              aria-label={`Add sample photos for ${row.name}`}
+              // Gated on the credit for the same reason the primary upload is:
+              // the server refuses without one, and finding that out after
+              // choosing eight files is worse than not being able to pick yet.
+              disabled={busy || !credit.trim()}
+              onChange={pick}
+              className="block text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-primary file:px-2 file:py-1 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50"
+            />
+            {!credit.trim() && (
+              <p className="mt-1 text-[10px] text-muted-foreground">Add a credit to enable upload.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SpeciesRow({ row, busy, onField, onPhoto, onAddPhotos, onRemovePhoto }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(null);
 
@@ -340,6 +460,15 @@ function SpeciesRow({ row, busy, onField, onPhoto }) {
                 <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
               </div>
             </form>
+
+            {/* Outside the details <form>: a file picker inside it would submit
+                the whole form on Enter, and these upload immediately anyway. */}
+            <GalleryManager
+              row={row}
+              busy={busy}
+              onAdd={onAddPhotos}
+              onRemove={onRemovePhoto}
+            />
           </td>
         </tr>
       )}
@@ -412,6 +541,48 @@ export default function AdminSpeciesPage() {
       reload();
     } catch (e) {
       setError(e.message || 'Could not upload the photo.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addGalleryPhotos(species_id, files, credit, caption) {
+    const fd = new FormData();
+    // All parts named `photos`: multer's .array('photos', 8) refuses any other
+    // field name with "Unexpected file field".
+    for (const f of files) fd.append('photos', f);
+    // ONE credit for the whole batch, and the UI says so. Per-file credits
+    // would invite copying the first one down a list of eight, which produces
+    // confident WRONG attribution; different sources are separate uploads.
+    fd.append('photo_credit', credit || '');
+    if (caption) fd.append('caption', caption);
+    setBusy(true);
+    try {
+      await adminApi.addSpeciesPhotos(species_id, fd);
+      reload();
+      setError('');
+    } catch (e) {
+      setError(e.message || 'Could not add the sample photos.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeGalleryPhoto(species_id, photoId, speciesName) {
+    const ok = await ask({
+      title: 'Remove this sample photo?',
+      body: `It stops appearing for ${speciesName} on the species guide and the wildlife form, and the file is deleted. The species keeps its main photo.`,
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
+    if (!ok) return;
+    setBusy(true);
+    try {
+      await adminApi.removeSpeciesPhoto(species_id, photoId);
+      reload();
+      setError('');
+    } catch (e) {
+      setError(e.message || 'Could not remove the photo.');
     } finally {
       setBusy(false);
     }
@@ -558,7 +729,15 @@ export default function AdminSpeciesPage() {
             />
             <tbody className="divide-y">
               {rows.map((row) => (
-                <SpeciesRow key={row.species_id} row={row} busy={busy} onField={saveField} onPhoto={uploadPhoto} />
+                <SpeciesRow
+                  key={row.species_id}
+                  row={row}
+                  busy={busy}
+                  onField={saveField}
+                  onPhoto={uploadPhoto}
+                  onAddPhotos={addGalleryPhotos}
+                  onRemovePhoto={removeGalleryPhoto}
+                />
               ))}
             </tbody>
           </table>

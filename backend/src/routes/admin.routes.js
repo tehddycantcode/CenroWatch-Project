@@ -53,6 +53,11 @@ router.get('/species', controller.listSpecies);
 router.post('/species', sv.createSpeciesRules, validate, controller.createSpecies);
 router.patch('/species/:id', sv.updateSpeciesRules, validate, controller.updateSpecies);
 router.post('/species/:id/photo', speciesUpload.single('photo'), controller.setSpeciesPhoto);
+// The gallery: extra sample photographs beside the primary one above. Capped at
+// the same 8 the service enforces, so multer refuses an oversized batch before
+// a single file is written to disk.
+router.post('/species/:id/photos', speciesUpload.array('photos', 8), controller.addSpeciesPhotos);
+router.delete('/species/:id/photos/:photoId', controller.removeSpeciesPhoto);
 
 // Barangays. Mutations re-derive every Voronoi boundary, not just the changed
 // row - see barangay.service.rederiveBoundaries.
