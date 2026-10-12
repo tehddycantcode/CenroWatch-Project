@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
+import PreviewableImage from '@/components/ui/previewable-image';
 
 // One selectable species. The radio is a real <input type="radio">, only hidden
 // visually: it gives arrow-key movement inside the group and a single tab stop
@@ -349,11 +350,11 @@ export default function WildlifeFormPage() {
               credit list for every catalogue photo. Do not drop `title` without
               putting the attribution somewhere a reader can reach. */}
           {selected.photo_path && (
-            <img
+            <PreviewableImage
               src={fileUrl(selected.photo_path)}
               alt={`Reference photograph of the ${selected.name}`}
-              title={selected.photo_credit ? `Photo: ${selected.photo_credit}` : undefined}
-              className="mb-2 h-40 w-full rounded-md object-cover"
+              caption={selected.photo_credit ? `Photo: ${selected.photo_credit}` : undefined}
+              className="mb-2 h-40"
             />
           )}
           <p className="font-medium">

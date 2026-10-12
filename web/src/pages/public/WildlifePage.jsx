@@ -7,6 +7,7 @@ import { INDICATOR_TONE, HAZARD_TONE, HAZARD_LABEL, BADGE, hasHazard } from '@/l
 import PublicHeader from '@/components/public/PublicHeader';
 import { Card } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/icons';
+import PreviewableImage from '@/components/ui/previewable-image';
 
 // `indicator` is descriptive and nullable - an Admin may add a species without
 // deciding its conservation standing. Nothing is shown in that case: defaulting
@@ -153,12 +154,17 @@ export default function WildlifePage() {
                       resolve against this app's origin - fine behind Vite's dev
                       proxy, a 404 on the deployed site, where the API is a
                       different origin. */}
+                  {/* The grid wants cards of one height, so the frame stays
+                      4:3 - but the image is letterboxed inside it rather than
+                      cropped, and clicking opens the whole photo. A field guide
+                      whose pictures cut off the animal is not a field guide. */}
                   {s.photo_path && (
-                    <img
+                    <PreviewableImage
                       src={fileUrl(s.photo_path)}
                       alt={`Reference photograph of the ${s.name}`}
-                      loading="lazy"
-                      className="aspect-[4/3] w-full object-cover img-outline"
+                      caption={s.photo_credit ? `${s.name} - photo: ${s.photo_credit}` : s.name}
+                      className="aspect-[4/3] rounded-none"
+                      imgClassName="img-outline"
                     />
                   )}
                   <div className="flex flex-1 flex-col p-5">

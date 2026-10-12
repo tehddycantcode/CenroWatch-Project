@@ -15,6 +15,7 @@ import BarangayPicker from '../../components/BarangayPicker';
 import PhotoPicker from '../../components/PhotoPicker';
 import LocationField from '../../components/LocationField';
 import ConfirmDialog, { useConfirm } from '../../components/ConfirmDialog';
+import PreviewableImage from '../../components/PreviewableImage';
 
 // The three options offered for "Other", mirroring the SpeciesCategory enum.
 // Hoisted so the array keeps referential equality across renders.
@@ -357,15 +358,11 @@ export default function WildlifeFormScreen() {
               credit list for every catalogue photo. Do not drop it from the
               label without putting the attribution somewhere a reader reaches. */}
           {selected.photo_path ? (
-            <Image
+            <PreviewableImage
               source={{ uri: fileUrl(selected.photo_path) }}
+              label={`Reference photograph of a ${selected.name}`}
+              caption={selected.photo_credit ? `Photo: ${selected.photo_credit}` : undefined}
               style={styles.idPhoto}
-              resizeMode="cover"
-              accessibilityLabel={
-                selected.photo_credit
-                  ? `Reference photograph of a ${selected.name}. Photo: ${selected.photo_credit}`
-                  : `Reference photograph of a ${selected.name}`
-              }
             />
           ) : null}
           <Text style={styles.idName}>{selected.name}</Text>
