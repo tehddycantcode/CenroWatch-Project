@@ -31,6 +31,10 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
 
   const visibleExtras = extraFields.filter((f) => !f.visibleFor || f.visibleFor.includes(status));
 
+  // A required extra field blocks submission here as well as in the API, so a
+  // staff member is told before they wait for a round trip.
+  const missingRequired = visibleExtras.some((f) => f.required && !extra[f.name]);
+
   async function submit(e) {
     e.preventDefault();
     if (TERMINAL.includes(status) && status !== current) {
@@ -49,10 +53,25 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
     }
     setError('');
     setOk(false);
-    const payload = { status };
-    if (note.trim()) payload.note = note.trim();
-    for (const f of visibleExtras) {
-      if (extra[f.name]) payload[f.name] = extra[f.name];
+    const hasFile = visibleExtras.some((f) => f.type === 'file' && extra[f.name]);
+    let payload;
+    if (hasFile) {
+      payload = new FormData();
+      payload.append('status', status);
+      if (note.trim()) payload.append('note', note.trim());
+      for (const f of visibleExtras) {
+        const v = extra[f.name];
+        if (!v) continue;
+        // The file rides under the name the route's multer expects, not the
+        // field's own name - the server turns it into a path.
+        payload.append(f.type === 'file' ? 'proof' : f.name, v);
+      }
+    } else {
+      payload = { status };
+      if (note.trim()) payload.note = note.trim();
+      for (const f of visibleExtras) {
+        if (extra[f.name]) payload[f.name] = extra[f.name];
+      }
     }
     setSubmitting(true);
     try {
@@ -87,6 +106,14 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
               value={extra[f.name] || ''}
               onChange={(e) => setExtra((x) => ({ ...x, [f.name]: e.target.value }))}
             />
+          ) : f.type === 'file' ? (
+            <input
+              id={f.name}
+              type="file"
+              accept="image/*"
+              onChange={(e) => setExtra((x) => ({ ...x, [f.name]: e.target.files?.[0] || null }))}
+              className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+            />
           ) : (
             <Input
               id={f.name}
@@ -106,7 +133,7 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {ok && <p className="text-sm font-medium text-primary">Status updated and the resident was notified.</p>}
 
-      <Button type="submit" loading={submitting}>Save update</Button>
+      <Button type="submit" loading={submitting} disabled={missingRequired}>Save update</Button>
       <ConfirmDialog {...confirmProps} />
     </form>
   );

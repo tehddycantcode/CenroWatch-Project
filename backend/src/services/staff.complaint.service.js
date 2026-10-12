@@ -55,6 +55,7 @@ const DETAIL_SELECT = {
   logged_by: true,
   staff_notes: true,
   resolution_notes: true,
+  resolution_proof_path: true,
   submitted_at: true,
   observed_at: true,
   updated_at: true,

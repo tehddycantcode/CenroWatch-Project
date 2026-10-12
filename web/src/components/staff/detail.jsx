@@ -335,19 +335,19 @@ export function ComplaintReporter({ complaint: c }) {
   return <ReporterCard user={c.user} />;
 }
 
-export function Attachment({ path }) {
+export function Attachment({ path, label = 'Attachment' }) {
   const url = fileUrl(path);
   if (!url) return null;
   const isPdf = isPdfPath(path);
   return (
     <div>
-      <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">Attachment</div>
+      <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
       {isPdf ? (
         <a href={url} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary hover:underline">
           View document (PDF)
         </a>
       ) : (
-        <img src={url} alt="attachment" className="max-h-80 rounded-lg img-outline" />
+        <img src={url} alt={label} className="max-h-80 rounded-lg img-outline" />
       )}
     </div>
   );

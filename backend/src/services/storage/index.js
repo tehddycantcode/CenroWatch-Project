@@ -22,10 +22,10 @@ const remove = (storedPath) => driver.remove(storedPath);
 // upload was lost still prints - see report.layout.attachment().
 const read = (storedPath) => driver.read(storedPath);
 
-const FILE_FIELDS = new Set(['photo_path', 'document_path']);
+const FILE_FIELDS = new Set(['photo_path', 'document_path', 'resolution_proof_path', 'completion_proof_path']);
 
 // Deep-copy a response payload, replacing file fields with servable URLs:
-//   photo_path / document_path : string  -> awaited fileUrl
+//   photo_path / document_path / *_proof_path : string  -> awaited fileUrl
 //   chain_of_custody_photos    : string[] -> [{ key, url }]  (key kept for removal)
 // Only plain objects/arrays are walked; Date/Decimal/other class instances pass
 // through untouched (critical: never iterate a Date's own keys).

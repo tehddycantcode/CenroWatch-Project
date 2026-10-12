@@ -78,6 +78,7 @@ export default function RequestDetailPage() {
             <div className="mt-6 space-y-6">
               <ReporterCard user={q.user} />
               {q.document_path && <Attachment path={q.document_path} />}
+              {q.completion_proof_path && <Attachment path={q.completion_proof_path} label="Proof of delivery" />}
             </div>
             <LocationBlock
               marker={{
@@ -105,6 +106,7 @@ export default function RequestDetailPage() {
               current={q.status}
               extraFields={[
                 { name: 'scheduled_date', label: 'Scheduled date', type: 'date', min: todayStr(), visibleFor: ['Scheduled'], hint: 'When the service will be carried out. Cannot be in the past.' },
+                { name: 'completion_proof', label: 'Proof of delivery', type: 'file', required: true, visibleFor: ['Completed'], hint: 'A photo showing the service was delivered. Required before this request can be Completed.' },
               ]}
               onSubmit={async (payload) => { await staffApi.requests.updateStatus(id, payload); load(); }}
             />

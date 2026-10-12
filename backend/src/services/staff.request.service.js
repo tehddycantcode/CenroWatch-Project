@@ -35,6 +35,7 @@ const DETAIL_SELECT = {
   request_type: true,
   description: true,
   document_path: true,
+  completion_proof_path: true,
   latitude: true,
   longitude: true,
   address_details: true,

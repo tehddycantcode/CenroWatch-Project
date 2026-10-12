@@ -90,6 +90,7 @@ export default function ComplaintDetailPage() {
             <div className="mt-6 space-y-6">
               <ComplaintReporter complaint={c} />
               {c.photo_path && <Attachment path={c.photo_path} />}
+              {c.resolution_proof_path && <Attachment path={c.resolution_proof_path} label="Proof of work" />}
             </div>
           </Card>
 
@@ -106,6 +107,7 @@ export default function ComplaintDetailPage() {
               current={c.status}
               extraFields={[
                 { name: 'resolution_notes', label: 'Resolution notes', type: 'textarea', visibleFor: ['Resolved'], hint: 'Recorded on the complaint.' },
+                { name: 'resolution_proof', label: 'Proof of work', type: 'file', required: true, visibleFor: ['Resolved'], hint: 'A photo showing the work was done. Required before this complaint can be Resolved.' },
               ]}
               onSubmit={async (payload) => { await staffApi.complaints.updateStatus(id, payload); load(); }}
             />
