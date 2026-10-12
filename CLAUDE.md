@@ -603,6 +603,24 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   what "closing" means. Generally: when you add a precondition to a state, ask
   what it does to rows already in that state, because they were written under
   the old rules and cannot retroactively satisfy the new one.
+- **QUERYING A CONTROL'S CONTENTS IS NOT SEEING THE SCREEN.** The wildlife form's
+  "separate the common and endangered species" requirement was reported done, and
+  the evidence was a DOM query showing two `<optgroup>`s with the right rows in
+  them. The user then asked to "bring back the selection of common and endangered
+  species", because inside a collapsed `<select>` a group does not exist until
+  you open the control: the page read as a search box over a generic "Select a
+  species", and nothing told a resident the catalogue was split at all. The
+  assertion was true and the feature was invisible. One screenshot settled in
+  seconds what the DOM query had got wrong, and it was the user who took it.
+  **Take the screenshot before claiming a UI requirement is met** - especially
+  when the requirement is about what someone can SEE (grouping, ordering,
+  emphasis, "make X obvious"), where a passing structural assertion is close to
+  no evidence at all. Related: the `overflow-hidden` table lesson above, where
+  the page looked fine precisely because the card swallowed the overflow.
+  Second half of the same lesson: a grouping that only exists inside a dropdown
+  is not a grouping a person can compare, so when the group CHANGES WHAT HAPPENS
+  to the record - `is_endangered` drives priority review and public-map
+  coordinate obfuscation - it belongs on the page, not folded into the widget.
 
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
