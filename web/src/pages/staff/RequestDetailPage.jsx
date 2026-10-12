@@ -106,7 +106,11 @@ export default function RequestDetailPage() {
               current={q.status}
               extraFields={[
                 { name: 'scheduled_date', label: 'Scheduled date', type: 'date', min: todayStr(), visibleFor: ['Scheduled'], hint: 'When the service will be carried out. Cannot be in the past.' },
-                { name: 'completion_proof', label: 'Proof of delivery', type: 'file', required: true, visibleFor: ['Completed'], hint: 'A photo showing the service was delivered. Required before this request can be Completed.' },
+                // Required only when the record has no proof yet. The API
+                // accepts a stored one (`input || existing`), so a stricter form
+                // would block adding a note to an already-closed request without
+                // re-uploading.
+                { name: 'completion_proof', label: 'Proof of delivery', type: 'file', required: !q.completion_proof_path, visibleFor: ['Completed'], hint: q.completion_proof_path ? 'A photo is already attached. Upload another only to replace it.' : 'A photo showing the service was delivered. Required before this request can be Completed.' },
               ]}
               onSubmit={async (payload) => { await staffApi.requests.updateStatus(id, payload); load(); }}
             />

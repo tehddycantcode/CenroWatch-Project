@@ -107,7 +107,11 @@ export default function ComplaintDetailPage() {
               current={c.status}
               extraFields={[
                 { name: 'resolution_notes', label: 'Resolution notes', type: 'textarea', visibleFor: ['Resolved'], hint: 'Recorded on the complaint.' },
-                { name: 'resolution_proof', label: 'Proof of work', type: 'file', required: true, visibleFor: ['Resolved'], hint: 'A photo showing the work was done. Required before this complaint can be Resolved.' },
+                // Required only when the record has no proof yet. The API
+                // accepts a stored one (`input || existing`), so a stricter form
+                // would block adding a note to an already-closed complaint without
+                // re-uploading.
+                { name: 'resolution_proof', label: 'Proof of work', type: 'file', required: !c.resolution_proof_path, visibleFor: ['Resolved'], hint: c.resolution_proof_path ? 'A photo is already attached. Upload another only to replace it.' : 'A photo showing the work was done. Required before this complaint can be Resolved.' },
               ]}
               onSubmit={async (payload) => { await staffApi.complaints.updateStatus(id, payload); load(); }}
             />
