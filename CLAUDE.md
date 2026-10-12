@@ -167,6 +167,23 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   editing a migration after it has run breaks its `_prisma_migrations` checksum.
   `backend/tests/migrationCasing.test.js` now fails the suite if any migration
   disagrees with the model names, so `npm test` catches it.
+  **Two refinements measured on 2026-10-12, both of which change how to use
+  this.** First, `--create-only` DOES NOT protect a migration that is already
+  pending: `migrate dev` applies every unapplied migration BEFORE creating the
+  new one, so a run that errors out and gets retried applies the file you
+  retried to inspect. That happened here — the first invocation exited 1, the
+  second printed "Applying migration" and ran it, with no casing check in
+  between. Mitigations: never re-run `migrate dev` after a failure without
+  reading the migration directory first, and check `_prisma_migrations` (not
+  the file list) to see what actually ran. The retry ALSO left an empty
+  duplicate directory (`-- This is an empty migration.`) with no row, safe to
+  delete once you have confirmed it has none.
+  Second, the casing bug only affects **ALTER TABLE**, not CREATE TABLE: Prisma
+  reads existing table names back from the database for an ALTER, but a CREATE
+  emits the model name verbatim from the schema. The `SpeciesPhoto` migration
+  came out correctly cased with no intervention. So a new-table migration is
+  not a false alarm waiting to happen, and an ALTER still is — seven for seven
+  on ALTERs.
 - **A status enum value missing from the OPEN/TERMINAL arrays vanishes silently:**
   the overdue query is `status IN (...OPEN) AND sla_deadline < now`, so a status
   absent from those arrays never matches — every report in that state drops out of
