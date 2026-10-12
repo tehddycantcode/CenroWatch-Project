@@ -71,6 +71,7 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
             <Input
               id={f.name}
               type={f.type || 'text'}
+              min={f.min}
               value={extra[f.name] || ''}
               onChange={(e) => setExtra((x) => ({ ...x, [f.name]: e.target.value }))}
             />

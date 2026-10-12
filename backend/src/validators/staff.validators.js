@@ -1,6 +1,7 @@
 const { body, query } = require('express-validator');
 const { complaintTypeRule } = require('./complaint.validators');
 const { locationRules } = require('./location.validators');
+const { notPast } = require('./notPast');
 
 // Status enums — mirror schema.prisma.
 const COMPLAINT_STATUSES = ['Pending', 'Under_Review', 'Approved', 'In_Progress', 'Resolved', 'Rejected'];
@@ -93,7 +94,7 @@ const wildlifeUpdateRules = [
 const requestStatusRules = [
   body('status').trim().notEmpty().withMessage('Status is required.').bail().isIn(REQUEST_STATUSES).withMessage('Invalid status.'),
   noteRule,
-  body('scheduled_date').optional({ values: 'falsy' }).isISO8601().withMessage('Invalid scheduled date.').toDate(),
+  notPast('scheduled_date', 'Scheduled date'),
 ];
 
 const requestUpdateRules = [

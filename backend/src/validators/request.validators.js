@@ -1,6 +1,7 @@
 const { body } = require('express-validator');
 const { locationRules } = require('./location.validators');
 const { isSelectable } = require('../services/category.service');
+const { notPast } = require('./notPast');
 
 // Referential, not a hardcoded list - see the note in complaint.validators.js.
 const requestTypeRule = body('request_type')
@@ -30,10 +31,8 @@ const createRequestRules = [
     .optional({ values: 'falsy' })
     .isInt({ min: 1, max: 100000 }).withMessage('Quantity must be a positive number.')
     .toInt(),
-  body('preferred_schedule')
-    .optional({ values: 'falsy' })
-    .isISO8601().withMessage('Preferred schedule must be a valid date.')
-    .toDate(),
+  // Forward-looking, so it cannot be in the past - see notPast.js.
+  notPast('preferred_schedule', 'Preferred schedule'),
   // A pin OR a landmark, same rule as the other three intake routes - see
   // location.validators.js.
   ...locationRules,

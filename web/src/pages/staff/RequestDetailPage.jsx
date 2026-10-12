@@ -11,6 +11,8 @@ import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
 import { Rows, ReporterCard, Attachment, LocationBlock, PrintReportButton, ArchiveControl } from '@/components/staff/detail';
 
+const todayStr = () => new Date().toLocaleDateString('en-CA');
+
 export default function RequestDetailPage() {
   const { id } = useParams();
   const base = useSectionBase();
@@ -102,7 +104,7 @@ export default function RequestDetailPage() {
               statuses={REQUEST_STATUSES}
               current={q.status}
               extraFields={[
-                { name: 'scheduled_date', label: 'Scheduled date', type: 'date', visibleFor: ['Scheduled'], hint: 'When the service will be carried out.' },
+                { name: 'scheduled_date', label: 'Scheduled date', type: 'date', min: todayStr(), visibleFor: ['Scheduled'], hint: 'When the service will be carried out. Cannot be in the past.' },
               ]}
               onSubmit={async (payload) => { await staffApi.requests.updateStatus(id, payload); load(); }}
             />

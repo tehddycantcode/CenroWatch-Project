@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
+const todayStr = () => new Date().toLocaleDateString('en-CA');
+
 export default function ServiceRequestFormPage() {
   // Categories come from the API, not a compiled-in array, so an Admin can
   // add or retire one without a redeploy. categoriesError is surfaced next to
@@ -184,7 +186,7 @@ export default function ServiceRequestFormPage() {
           <Input id="requested_quantity" type="number" min="1" placeholder="e.g. 50" value={form.requested_quantity} onChange={set('requested_quantity')} />
         </FormField>
         <FormField id="preferred_schedule" label="Preferred date" hint={`Optional. / ${FORM_TL.schedule}`}>
-          <Input id="preferred_schedule" type="date" value={form.preferred_schedule} onChange={set('preferred_schedule')} />
+          <Input id="preferred_schedule" type="date" min={todayStr()} value={form.preferred_schedule} onChange={set('preferred_schedule')} />
         </FormField>
       </div>
 

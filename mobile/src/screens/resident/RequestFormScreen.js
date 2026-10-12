@@ -12,6 +12,7 @@ import Select from '../../components/Select';
 import BarangayPicker from '../../components/BarangayPicker';
 import DatePicker from '../../components/DatePicker';
 import LocationField from '../../components/LocationField';
+import { todayISO } from '../../lib/calendar';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -182,12 +183,13 @@ export default function RequestFormScreen() {
       </Field>
 
       <Field label="Preferred date" hint={`Optional. / ${FORM_TL.schedule}`} error={fieldErrors.preferred_schedule}>
-        {/* No min or max: the API accepts any valid date here and the web form
-            is unrestricted too, so a mobile-only rule would be an
-            inconsistency someone hits later. */}
+        {/* min=today because the API now refuses a past date (notPast.js) and
+            the web form sets the same bound. The calendar should not offer a day
+            the server will reject. */}
         <DatePicker
           value={form.preferred_schedule}
           onChange={set('preferred_schedule')}
+          min={todayISO()}
           placeholder="Select a date (optional)"
         />
       </Field>
