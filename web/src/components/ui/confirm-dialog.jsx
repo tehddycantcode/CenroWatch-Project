@@ -114,8 +114,14 @@ export function useConfirm() {
     if (r) r(value);
   }, []);
 
+  // Memoised on purpose: ConfirmDialog's effect lists onCancel in its deps, so a
+  // fresh function on every render would re-run it whenever the parent
+  // re-renders while open, bouncing focus to the opener and back to Cancel.
+  const onConfirm = useCallback(() => settle(true), [settle]);
+  const onCancel = useCallback(() => settle(false), [settle]);
+
   return [
-    { ...state.opts, open: state.open, onConfirm: () => settle(true), onCancel: () => settle(false) },
+    { ...state.opts, open: state.open, onConfirm, onCancel },
     ask,
   ];
 }
