@@ -127,7 +127,11 @@ async function updateRequestStatus(staffId, idOrTracking, input, ctx = {}) {
 
   // Proof is required to COMPLETE, not to reject: a request staff declined has
   // no service to photograph.
-  if (newStatus === 'Completed') {
+  // The gate belongs on the act of CLOSING, not on the status: a record that is
+  // already closed was closed under whatever rules applied then, and refusing
+  // it now would make every pre-existing closure un-editable (a corrected note
+  // could never be saved).
+  if (newStatus === 'Completed' && newStatus !== existing.status) {
     const proof = input.completion_proof_path || existing.completion_proof_path;
     if (!proof) {
       throw new HttpError(422, 'Attach a photo showing the service was delivered before marking this request Completed.');

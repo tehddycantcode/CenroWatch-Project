@@ -136,7 +136,11 @@ async function updateTurnoverStatus(staffId, idOrRef, input, ctx = {}) {
   // counts STORED photos rather than reading the request body. Array.isArray
   // guards the null the column holds on every row filed before custody photos
   // existed. Deceased is exempt: there may be nothing to photograph.
-  if (newStatus === 'Released' || newStatus === 'Transferred') {
+  // The gate belongs on the act of CLOSING, not on the status: a record that is
+  // already closed was closed under whatever rules applied then, and refusing
+  // it now would make every pre-existing closure un-editable (a corrected note
+  // could never be saved).
+  if ((newStatus === 'Released' || newStatus === 'Transferred') && newStatus !== existing.status) {
     const photos = Array.isArray(existing.chain_of_custody_photos) ? existing.chain_of_custody_photos : [];
     if (photos.length === 0) {
       throw new HttpError(422, `Upload at least one chain-of-custody photo before marking this turnover ${newStatus}.`);

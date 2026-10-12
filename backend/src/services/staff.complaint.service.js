@@ -225,7 +225,11 @@ async function updateComplaintStatus(staffId, idOrTracking, input, ctx = {}) {
   // Proof is required to RESOLVE, not to reject. A complaint staff decided
   // against has often nothing to photograph, and a report that cannot be closed
   // at all is worse than one closed without a picture.
-  if (newStatus === 'Resolved') {
+  // The gate belongs on the act of CLOSING, not on the status: a record that is
+  // already closed was closed under whatever rules applied then, and refusing
+  // it now would make every pre-existing closure un-editable (a corrected note
+  // could never be saved).
+  if (newStatus === 'Resolved' && newStatus !== existing.status) {
     const proof = input.resolution_proof_path || existing.resolution_proof_path;
     if (!proof) {
       throw new HttpError(422, 'Attach a photo showing the work was done before marking this complaint Resolved.');

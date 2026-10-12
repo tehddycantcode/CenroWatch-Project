@@ -32,8 +32,11 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
   const visibleExtras = extraFields.filter((f) => !f.visibleFor || f.visibleFor.includes(status));
 
   // A required extra field blocks submission here as well as in the API, so a
-  // staff member is told before they wait for a round trip.
-  const missingRequired = visibleExtras.some((f) => f.required && !extra[f.name]);
+  // staff member is told before they wait for a round trip. Only block when the
+  // status is actually CHANGING, matching both the API guard and the
+  // confirmation below - otherwise a record closed before proof was required
+  // can never be edited again.
+  const missingRequired = status !== current && visibleExtras.some((f) => f.required && !extra[f.name]);
 
   async function submit(e) {
     e.preventDefault();
@@ -45,7 +48,7 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
       // afterwards, but the resident has already been told.
       const confirmed = await ask({
         title: `Mark this report as ${humanize(status)}?`,
-        body: 'This closes the report and stops its deadline clock. If the reporter gave contact details, they are emailed to tell them. You can change the status afterwards, but they will already have been notified.',
+        body: 'This closes the report and stops its deadline clock. If they filed through an account, we email them to tell them. You can change the status afterwards, but they will already have been told.',
         confirmLabel: `Mark ${humanize(status)}`,
         destructive: true,
       });
@@ -131,7 +134,7 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
       </FormField>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {ok && <p className="text-sm font-medium text-primary">Status updated and the resident was notified.</p>}
+      {ok && <p className="text-sm font-medium text-primary">Status updated. If the reporter has an account, they have been emailed.</p>}
 
       <Button type="submit" loading={submitting} disabled={missingRequired}>Save update</Button>
       <ConfirmDialog {...confirmProps} />

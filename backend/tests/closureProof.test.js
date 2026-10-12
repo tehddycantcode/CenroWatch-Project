@@ -84,6 +84,15 @@ describe('a complaint cannot be Resolved without proof', () => {
     expect(out.status).toBe('Resolved');
   });
 
+  test('a record ALREADY Resolved with no proof can still be edited (gate is on the transition)', async () => {
+    // Every complaint closed before proof was required has no proof. Saving a
+    // corrected note on one must not be refused.
+    stubRow(prisma.complaint, row({ status: 'Resolved', resolved_at: new Date() }));
+    const out = await svc.updateComplaintStatus(9, '1', { status: 'Resolved', note: 'Corrected note' }, {});
+    expect(out.status).toBe('Resolved');
+    expect(prisma.complaint.update).toHaveBeenCalled();
+  });
+
   test('REJECTED IS EXEMPT - the opposite polarity, so the rule cannot be written as "any terminal status"', async () => {
     stubRow(prisma.complaint, row());
     const out = await svc.updateComplaintStatus(9, '1', { status: 'Rejected' }, {});
@@ -130,6 +139,13 @@ describe('a request cannot be Completed without proof', () => {
     expect(out.status).toBe('Completed');
   });
 
+  test('a request ALREADY Completed with no proof can still be edited', async () => {
+    stubRow(prisma.environmentalRequest, row({ status: 'Completed', completion_date: new Date() }));
+    const out = await svc.updateRequestStatus(9, '1', { status: 'Completed', note: 'Corrected note' }, {});
+    expect(out.status).toBe('Completed');
+    expect(prisma.environmentalRequest.update).toHaveBeenCalled();
+  });
+
   test('Rejected is exempt', async () => {
     stubRow(prisma.environmentalRequest, row());
     const out = await svc.updateRequestStatus(9, '1', { status: 'Rejected' }, {});
@@ -159,6 +175,13 @@ describe('a wildlife turnover cannot be Released without a custody photo', () =>
     stubRow(prisma.wildlifeTurnover, row({ chain_of_custody_photos: ['/uploads/custody/a.jpg'] }));
     const out = await svc.updateTurnoverStatus(9, '1', { status: 'Released' }, {});
     expect(out.status).toBe('Released');
+  });
+
+  test('a turnover ALREADY Transferred with a null custody column can still be edited', async () => {
+    stubRow(prisma.wildlifeTurnover, row({ status: 'Transferred', chain_of_custody_photos: null }));
+    const out = await svc.updateTurnoverStatus(9, '1', { status: 'Transferred', note: 'Corrected note' }, {});
+    expect(out.status).toBe('Transferred');
+    expect(prisma.wildlifeTurnover.update).toHaveBeenCalled();
   });
 
   test('Transferred needs one too', async () => {
