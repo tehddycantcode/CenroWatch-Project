@@ -41,7 +41,7 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
       // afterwards, but the resident has already been told.
       const confirmed = await ask({
         title: `Mark this report as ${humanize(status)}?`,
-        body: 'This closes the report, stops its deadline clock, and emails the resident to tell them. You can change the status afterwards, but they will already have been notified.',
+        body: 'This closes the report and stops its deadline clock. If the reporter gave contact details, they are emailed to tell them. You can change the status afterwards, but they will already have been notified.',
         confirmLabel: `Mark ${humanize(status)}`,
         destructive: true,
       });

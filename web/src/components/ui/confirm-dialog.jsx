@@ -30,6 +30,7 @@ export default function ConfirmDialog({
 }) {
   const cancelRef = useRef(null);
   const confirmRef = useRef(null);
+  const dialogRef = useRef(null);
   const openerRef = useRef(null);
 
   // Focus capture/restore keys off `open` ALONE. It used to also depend on
@@ -52,6 +53,14 @@ export default function ConfirmDialog({
     function onKey(e) {
       if (e.key === 'Escape' && !busy) { onCancel(); return; }
       if (e.key !== 'Tab') return;
+      // Focus can land on <body> if someone clicks the dialog's text, and from
+      // there Tab escapes behind the backdrop - the same hole the cycle below
+      // closes for the buttons. Pull it back in first.
+      if (dialogRef.current && !dialogRef.current.contains(document.activeElement)) {
+        e.preventDefault();
+        cancelRef.current?.focus();
+        return;
+      }
       // Exactly two focusable controls, so the trap is a two-element cycle.
       // Without this, aria-modal is a claim the component does not honour: Tab
       // off Confirm lands behind the backdrop, on the control that opened this.
@@ -83,9 +92,11 @@ export default function ConfirmDialog({
         className="absolute inset-0 cursor-default bg-black/45"
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
+        tabIndex={-1}
         className="relative w-full max-w-md rounded-2xl border bg-card p-5 shadow-soft"
       >
         <h2 id="confirm-title" className="text-lg font-semibold text-foreground">{title}</h2>
