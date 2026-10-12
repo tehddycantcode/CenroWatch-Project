@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, TextInput, Image, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Image, Pressable, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { api, fileUrl } from '../../api/client';
 import { ANIMAL_CONDITIONS, humanize } from '../../lib/reports';
@@ -22,6 +22,62 @@ const OTHER_CATEGORIES = [
   { value: 'Mammal', label: 'Mammal' },
   { value: 'Reptile', label: 'Reptile' },
 ];
+
+// One selectable species. accessibilityRole="radio" plus the checked state is
+// what tells a screen reader this is one choice among several, rather than a
+// list of buttons that each do something.
+function SpeciesOption({ value, checked, onPick, title, subtitle, photo }) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked }}
+      accessibilityLabel={subtitle ? `${title}, ${subtitle}` : title}
+      style={[styles.option, checked && styles.optionActive]}
+      onPress={() => onPick(value)}
+    >
+      {photo ? (
+        <Image source={{ uri: fileUrl(photo) }} style={styles.optionThumb} resizeMode="cover" />
+      ) : (
+        <View style={[styles.optionThumb, styles.optionThumbEmpty]} />
+      )}
+      <View style={{ flex: 1 }}>
+        {/* Two lines, not one: measured on the web picker at 375px, "Black-crowned
+            Night Heron" and "Southeast Asian Box Turtle" both overran a single
+            line, and a clipped species name is the one thing on this form a
+            resident cannot afford to misread. */}
+        <Text style={[styles.optionTitle, checked && styles.optionTitleActive]} numberOfLines={2}>
+          {title}
+        </Text>
+        {subtitle ? <Text style={styles.optionSub} numberOfLines={1}>{subtitle}</Text> : null}
+      </View>
+    </Pressable>
+  );
+}
+
+// A heading plus its rows. Renders nothing when the search has emptied the
+// group, so a filtered list never shows a heading over no options.
+function SpeciesGroup({ title, subtitle, tone, rows, value, onPick }) {
+  if (!rows.length) return null;
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={[styles.groupHeader, tone]}>
+        {title}
+        {subtitle ? <Text style={styles.groupHeaderSub}>{`  ${subtitle}`}</Text> : null}
+      </Text>
+      {rows.map((s) => (
+        <SpeciesOption
+          key={s.name}
+          value={s.name}
+          checked={value === s.name}
+          onPick={onPick}
+          title={s.name}
+          subtitle={s.local_name ? `“${s.local_name}”` : s.scientific_name}
+          photo={s.photo_path}
+        />
+      ))}
+    </View>
+  );
+}
 
 export default function WildlifeFormScreen() {
   const { token } = useAuth();
@@ -56,15 +112,17 @@ export default function WildlifeFormScreen() {
     loading: speciesLoading, error: speciesError,
   } = useSpecies();
 
-  // One flat list with header entries, which the Select renders as
-  // non-pressable section headings (web gets this from <optgroup>).
+  // The two groups, kept apart and SHOWN on the form rather than folded inside a
+  // dropdown a resident has to open before meeting them. Which group an animal
+  // falls in changes what happens to the report - is_endangered drives priority
+  // review and the coordinate obfuscation on the public map.
   // Filtered by what the resident typed, including the LOCAL name - "sawa" finds
-  // Reticulated Python. The headers only appear for a group that still has rows,
+  // Reticulated Python. A heading only appears for a group that still has rows,
   // and "Other" is always last so a filter that matches nothing is never a dead
-  // end. The picked species stays listed so the Select never shows a blank for a
-  // choice the resident already made.
+  // end. The picked species stays listed so narrowing the search can never hide
+  // the choice the resident already made.
   const q = speciesQuery.trim().toLowerCase();
-  const { speciesOptions, nothingMatches } = useMemo(() => {
+  const { commonShown, endangeredShown, nothingMatches } = useMemo(() => {
     const matches = (s) => {
       if (!q || s.name === speciesChoice) return true;
       return [s.name, s.scientific_name, s.local_name]
@@ -73,17 +131,11 @@ export default function WildlifeFormScreen() {
     };
     const c = common.filter(matches);
     const e = endangered.filter(matches);
-    const out = [];
-    if (c.length) {
-      out.push({ header: true, label: 'Common species' });
-      out.push(...c.map((s) => ({ value: s.name, label: s.name })));
-    }
-    if (e.length) {
-      out.push({ header: true, label: 'Endangered or protected species' });
-      out.push(...e.map((s) => ({ value: s.name, label: s.name })));
-    }
-    out.push({ value: 'Other', label: 'Other (not in this list)…' });
-    return { speciesOptions: out, nothingMatches: Boolean(q) && !c.length && !e.length };
+    return {
+      commonShown: c,
+      endangeredShown: e,
+      nothingMatches: Boolean(q) && !c.length && !e.length,
+    };
   }, [common, endangered, q, speciesChoice]);
 
   // The picked catalogue row, or null.
@@ -224,36 +276,64 @@ export default function WildlifeFormScreen() {
               onChangeText={setSpeciesQuery}
             />
           </Field>
-          <Select
-            label="Species"
-            hint={FORM_TL.species_name}
-            options={speciesOptions}
-            value={speciesChoice}
-            onChange={onSpeciesChoice}
-            placeholder={speciesLoading ? 'Loading species…' : 'Select a species'}
-            error={fieldErrors.species_name}
-          />
+          <Field label="Species" hint={FORM_TL.species_name} error={fieldErrors.species_name}>
+            {speciesLoading ? (
+              // The groups are empty until the catalogue arrives, so without this
+              // the field would show only the "Other" row and read as a list with
+              // one entry rather than one that has not loaded.
+              <Text style={styles.idMeta}>Loading species…</Text>
+            ) : (
+              <View style={{ gap: 12 }}>
+                <SpeciesGroup
+                  title="Common species"
+                  subtitle={FORM_TL.species_group_common}
+                  rows={commonShown}
+                  value={speciesChoice}
+                  onPick={onSpeciesChoice}
+                />
+                <SpeciesGroup
+                  title="Endangered or protected species"
+                  subtitle={FORM_TL.species_group_endangered}
+                  tone={styles.groupHeaderProtected}
+                  rows={endangeredShown}
+                  value={speciesChoice}
+                  onPick={onSpeciesChoice}
+                />
+                {/* Always last and never filtered out, so a search that matches
+                    nothing is not a dead end. */}
+                <SpeciesOption
+                  value="Other"
+                  checked={speciesChoice === 'Other'}
+                  onPick={onSpeciesChoice}
+                  title="Other (not in this list)…"
+                  subtitle={FORM_TL.species_other}
+                />
+              </View>
+            )}
+          </Field>
           {nothingMatches ? <Text style={styles.idMeta}>{FORM_TL.species_none}</Text> : null}
         </>
       )}
 
       {selected && !isOther ? (
         <View style={styles.idCard}>
+          {/* No visible credit line here: it was clutter on the one screen a
+              resident has to read quickly. The photos are CC BY / CC BY-SA and
+              still require attribution, so it moves into the accessibility label
+              and the public species guide on the web carries the full, readable
+              credit list for every catalogue photo. Do not drop it from the
+              label without putting the attribution somewhere a reader reaches. */}
           {selected.photo_path ? (
-            <View>
-              <Image
-                source={{ uri: fileUrl(selected.photo_path) }}
-                style={styles.idPhoto}
-                resizeMode="cover"
-                accessibilityLabel={`Reference photograph of a ${selected.name}`}
-              />
-              {/* The credit travels with the photo. The seeded photos are CC BY
-                  or CC BY-SA, which require attribution wherever they are
-                  shown - a phone screen included. */}
-              {selected.photo_credit ? (
-                <Text style={styles.idCredit}>Photo: {selected.photo_credit}</Text>
-              ) : null}
-            </View>
+            <Image
+              source={{ uri: fileUrl(selected.photo_path) }}
+              style={styles.idPhoto}
+              resizeMode="cover"
+              accessibilityLabel={
+                selected.photo_credit
+                  ? `Reference photograph of a ${selected.name}. Photo: ${selected.photo_credit}`
+                  : `Reference photograph of a ${selected.name}`
+              }
+            />
           ) : null}
           <Text style={styles.idName}>{selected.name}</Text>
           {selected.scientific_name ? <Text style={styles.idSci}>{selected.scientific_name}</Text> : null}
@@ -421,7 +501,30 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     backgroundColor: colors.border,
   },
-  idCredit: { fontSize: 11, color: colors.muted, marginTop: 4 },
+  // The two-group species picker, shown inline instead of inside a dropdown.
+  groupHeader: {
+    fontSize: 12, fontWeight: '700', textTransform: 'uppercase',
+    letterSpacing: 0.5, color: colors.muted,
+  },
+  groupHeaderSub: { fontWeight: '400', textTransform: 'none', letterSpacing: 0, color: colors.muted },
+  // Amber, matching the web picker: a caution, not an error.
+  groupHeaderProtected: { color: '#b45309' },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+  },
+  optionActive: { borderColor: colors.primary, backgroundColor: colors.tint },
+  optionThumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.border },
+  optionThumbEmpty: { backgroundColor: colors.tint },
+  optionTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
+  optionTitleActive: { color: colors.primary },
+  optionSub: { fontSize: 12, color: colors.muted },
   idName: { fontSize: 15, fontWeight: '700', color: colors.text },
   idSci: { fontSize: 13, fontStyle: 'italic', color: colors.muted },
   idBody: { fontSize: 13, color: colors.text },

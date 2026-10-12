@@ -15,6 +15,82 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
 
+// One selectable species. The radio is a real <input type="radio">, only hidden
+// visually: it gives arrow-key movement inside the group and a single tab stop
+// for the whole group, which a <div role="radio"> would have to reimplement.
+function SpeciesOption({ value, checked, onPick, title, subtitle, photo }) {
+  return (
+    <label
+      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-2 transition ${
+        checked ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-accent/50'
+      }`}
+    >
+      <input
+        type="radio"
+        name="species_choice"
+        value={value}
+        checked={checked}
+        onChange={() => onPick(value)}
+        className="sr-only"
+      />
+      {/* Decorative: the name sits right beside it, so alt text would only make
+          a screen reader say the species twice. Through fileUrl(), never the
+          bare stored path - the API signs it, which makes it authorised, not
+          absolute. */}
+      {photo ? (
+        <img
+          src={fileUrl(photo)}
+          alt=""
+          loading="lazy"
+          className="h-12 w-12 shrink-0 rounded-md object-cover"
+        />
+      ) : (
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted">
+          <Bird className="h-5 w-5 text-muted-foreground" />
+        </span>
+      )}
+      {/* The name WRAPS rather than truncating: measured at 375px, "Black-crowned
+          Night Heron" and "Southeast Asian Box Turtle" both ran past the row, and
+          a clipped species name is the one thing on this form a resident cannot
+          afford to misread. Only the second line, which repeats information the
+          card below shows in full, is allowed to clip. */}
+      <span className="min-w-0">
+        <span className="block text-sm font-medium">{title}</span>
+        {subtitle && <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>}
+      </span>
+    </label>
+  );
+}
+
+// A heading plus its rows. Renders nothing when the search has emptied the
+// group, so a filtered list never shows a heading over no options.
+function SpeciesGroup({ title, subtitle, tone, rows, value, onPick }) {
+  if (!rows.length) return null;
+  return (
+    <div>
+      <p className={`text-xs font-semibold uppercase tracking-wide ${tone || 'text-muted-foreground'}`}>
+        {title}
+        {subtitle && (
+          <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground">{subtitle}</span>
+        )}
+      </p>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        {rows.map((s) => (
+          <SpeciesOption
+            key={s.name}
+            value={s.name}
+            checked={value === s.name}
+            onPick={onPick}
+            title={s.name}
+            subtitle={s.local_name ? `“${s.local_name}”` : s.scientific_name}
+            photo={s.photo_path}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function WildlifeFormPage() {
   const [form, setForm] = useState({
     species_category: '',
@@ -179,30 +255,51 @@ export default function WildlifeFormPage() {
       )}
 
       <FormField
-        id="species_choice"
         label="Species"
         hint={FORM_TL.species_name}
         error={fieldErrors.species_name}
       >
         {speciesError ? (
           // A picker with no options cannot be submitted, so this is stated
-          // rather than shown as an empty dropdown.
+          // rather than shown as an empty list.
           <p role="alert" className="text-sm text-destructive">{speciesError}</p>
+        ) : loading ? (
+          // The groups are empty until the catalogue arrives, so without this the
+          // field would show nothing but the "Other" row and read as a list that
+          // has only one entry.
+          <p className="text-sm text-muted-foreground">Loading species&hellip;</p>
         ) : (
-          <Select id="species_choice" value={speciesChoice} onChange={(e) => setSpeciesChoice(e.target.value)}>
-            <option value="">{loading ? 'Loading species\u2026' : 'Select a species'}</option>
-            {commonShown.length > 0 && (
-              <optgroup label="Common species">
-                {commonShown.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-              </optgroup>
-            )}
-            {endangeredShown.length > 0 && (
-              <optgroup label="Endangered or protected species">
-                {endangeredShown.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-              </optgroup>
-            )}
-            <option value="Other">Other (not in this list)&hellip;</option>
-          </Select>
+          // The two groups are SHOWN, not folded into a dropdown's <optgroup>
+          // where a resident meets them only after opening the control. Which
+          // group an animal falls in changes what happens to the report -
+          // is_endangered drives priority review and the coordinate obfuscation
+          // on the public map - so it belongs on the page, not inside the widget.
+          <div role="radiogroup" aria-label="Species" className="space-y-4">
+            <SpeciesGroup
+              title="Common species"
+              subtitle={FORM_TL.species_group_common}
+              rows={commonShown}
+              value={speciesChoice}
+              onPick={setSpeciesChoice}
+            />
+            <SpeciesGroup
+              title="Endangered or protected species"
+              subtitle={FORM_TL.species_group_endangered}
+              tone="text-amber-700"
+              rows={endangeredShown}
+              value={speciesChoice}
+              onPick={setSpeciesChoice}
+            />
+            {/* Always last and never filtered out, so a search that matches
+                nothing is not a dead end. */}
+            <SpeciesOption
+              value="Other"
+              checked={speciesChoice === 'Other'}
+              onPick={setSpeciesChoice}
+              title={'Other (not in this list)\u2026'}
+              subtitle={FORM_TL.species_other}
+            />
+          </div>
         )}
         {nothingMatches && (
           <p role="status" className="mt-1.5 text-xs text-muted-foreground">{FORM_TL.species_none}</p>
@@ -211,19 +308,19 @@ export default function WildlifeFormPage() {
 
       {selected && !isOther && (
         <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+          {/* No visible credit line here: it was clutter on the one screen a
+              resident has to read quickly. The photos are CC BY / CC BY-SA and
+              still require attribution, so it moves into the image's title
+              instead, and the public species guide carries the full, readable
+              credit list for every catalogue photo. Do not drop `title` without
+              putting the attribution somewhere a reader can reach. */}
           {selected.photo_path && (
-            <figure className="mb-2">
-              <img
-                src={fileUrl(selected.photo_path)}
-                alt={`Reference photograph of the ${selected.name}`}
-                className="h-40 w-full rounded-md object-cover"
-              />
-              {/* The credit travels with the photo. The seeded photos are CC BY or
-                  CC BY-SA, which require attribution wherever they are shown. */}
-              {selected.photo_credit && (
-                <figcaption className="mt-1 text-xs text-muted-foreground">Photo: {selected.photo_credit}</figcaption>
-              )}
-            </figure>
+            <img
+              src={fileUrl(selected.photo_path)}
+              alt={`Reference photograph of the ${selected.name}`}
+              title={selected.photo_credit ? `Photo: ${selected.photo_credit}` : undefined}
+              className="mb-2 h-40 w-full rounded-md object-cover"
+            />
           )}
           <p className="font-medium">
             {selected.name}

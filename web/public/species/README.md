@@ -13,12 +13,22 @@ screen, not because anything serves them.
 ## The credit is required, and the upload screen enforces it
 
 Every file here is CC BY or CC BY-SA, which require attribution **wherever the
-image is shown** — and a catalogue photo is shown in three places: the public
-species guide, the resident wildlife form's identification card, and the admin
-table. So `POST /admin/species/:id/photo` refuses an upload that carries no
+image is shown** — and a catalogue photo is shown on the public species guide,
+in the admin table, and on the resident wildlife form (both as a thumbnail in
+the species picker and in the identification card). So
+`POST /admin/species/:id/photo` refuses an upload that carries no
 `photo_credit`, and `/admin/species` disables the file picker until the credit
 box beside it is filled. The two are stored in the same write, so a photo can
 never exist in the catalogue without its attribution.
+
+**Where the credit is actually printed changed on 2026-10-12.** The resident
+wildlife form used to caption every photo with "Photo: …". That was clutter on
+the one screen a resident reads in a hurry, so the form now carries the credit
+in the image's `title` (web) and accessibility label (mobile) instead, and the
+**public species guide at `/wildlife` is the readable credit list** — it prints
+"Photos: <species> (<credit>); …" for every catalogue photo. That page is the
+attribution of record. If it is ever removed or trimmed, the credits have to
+reappear somewhere a reader can reach, or the licences are no longer satisfied.
 
 The attributions for the ten files here are in `backend/prisma/seed.js`, where
 each seeded species already carries its own `photo_credit`; the upload screen

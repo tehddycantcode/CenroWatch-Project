@@ -16,10 +16,13 @@ export default function Select({ label, hint, options = EMPTY_OPTIONS, value, on
   // Stable renderItem so FlatList rows don't re-render when unrelated
   // parent state (e.g. the open flag) changes.
   //
-  // Section headings, so one list can show "Common species" and "Endangered or
-  // protected species" as separate groups - web gets this free from <optgroup>.
-  // A header entry is { header: true, label }: not pressable, no value, and
-  // skipped by the selected-option lookup above.
+  // Section headings, so one list can show grouped options - the equivalent of
+  // web's <optgroup>. A header entry is { header: true, label }: not pressable,
+  // no value, and skipped by the selected-option lookup above.
+  // NO CALLER SENDS ONE TODAY. The wildlife species picker did, and it moved to
+  // an inline grouped list on the form because a group a resident meets only
+  // after opening a dropdown is not a group they can compare. Kept because the
+  // next grouped dropdown needs it and it costs one branch.
   const renderItem = useCallback(({ item }) => {
     if (item.header) {
       return (

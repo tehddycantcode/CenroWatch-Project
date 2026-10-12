@@ -427,8 +427,14 @@ async function setSpeciesPhoto(adminId, id, file, credit, ctx = {}) {
   // merely allowed, because this is the moment the obligation is created.
   // Every photo in the curated set is CC BY or CC BY-SA, which require
   // attribution wherever the image is shown - and this catalogue's photos are
-  // shown in three places (the public species guide, the resident wildlife
-  // form's identification card, and the admin table). photo_credit used to be
+  // shown on the public species guide, the admin table, and the resident
+  // wildlife form (both the picker's thumbnails and the identification card).
+  // The resident form stopped printing the credit as visible text on 2026-10-12
+  // because it was clutter on a screen people read in a hurry; it carries it in
+  // the image title / accessibility label instead, and the PUBLIC SPECIES GUIDE
+  // IS NOW THE READABLE CREDIT LIST for the whole catalogue. If that list ever
+  // goes away, the attribution has to reappear somewhere a reader can get to.
+  // photo_credit used to be
   // readable but UNWRITABLE: PUBLIC_FIELDS returned it, the seed filled it, and
   // no write path anywhere accepted it - so an uploaded photo got a path and a
   // permanently NULL credit, and both clients then displayed it with no
