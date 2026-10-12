@@ -15,6 +15,7 @@ import PhotoPicker from '../../components/PhotoPicker';
 import DatePicker from '../../components/DatePicker';
 import LocationField from '../../components/LocationField';
 import Checkbox from '../../components/Checkbox';
+import ConfirmDialog, { useConfirm } from '../../components/ConfirmDialog';
 
 // todayISO lives in lib/calendar now, alongside the rest of the picker's date
 // arithmetic and with tests. It formats the LOCAL calendar day rather than the
@@ -35,6 +36,7 @@ export default function ComplaintFormScreen() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmProps, ask] = useConfirm();
   const [success, setSuccess] = useState(null);
   // Kept out of `form` on purpose: it is not a detail about the incident, it
   // decides who the report belongs to. Separate state means nothing that
@@ -73,6 +75,27 @@ export default function ComplaintFormScreen() {
     const e = validate();
     setFieldErrors(e);
     if (Object.keys(e).length) return;
+
+    // Asked only after validate() passes, so nobody confirms a form that is
+    // about to be rejected, and before any FormData or submitting state.
+    // Anonymous is irreversible, so it gets the English wording the anonymous
+    // screen uses (same branch as the web twin).
+    const ok = await ask(
+      anonymous
+        ? {
+            title: 'Send this anonymously?',
+            body: 'CENRO will not know who filed it, and that cannot be undone later even if you ask. It will not appear in My Reports and you will get no updates - save the reference number on the next screen.',
+            confirmLabel: 'Send anonymously',
+            destructive: true,
+          }
+        : {
+            title: 'Ipadala na sa CENRO?',
+            body: 'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.',
+            confirmLabel: 'Ipadala',
+            cancelLabel: 'Hindi pa',
+          },
+    );
+    if (!ok) return;
 
     const fd = new FormData();
     fd.append('complaint_type', form.complaint_type);
@@ -238,6 +261,7 @@ export default function ComplaintFormScreen() {
           </View>
         ) : null}
       </View>
+      <ConfirmDialog {...confirmProps} />
     </ReportFormShell>
   );
 }

@@ -12,6 +12,7 @@ import Select from '../../components/Select';
 import BarangayPicker from '../../components/BarangayPicker';
 import DatePicker from '../../components/DatePicker';
 import LocationField from '../../components/LocationField';
+import ConfirmDialog, { useConfirm } from '../../components/ConfirmDialog';
 import { todayISO } from '../../lib/calendar';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -36,6 +37,7 @@ export default function RequestFormScreen() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmProps, ask] = useConfirm();
   const [success, setSuccess] = useState(null);
 
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
@@ -71,6 +73,16 @@ export default function RequestFormScreen() {
     const e = validate();
     setFieldErrors(e);
     if (Object.keys(e).length) return;
+
+    // Asked only after validate() passes, so nobody confirms a form that is
+    // about to be rejected, and before any FormData or submitting state.
+    const ok = await ask({
+      title: 'Ipadala na sa CENRO?',
+      body: 'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.',
+      confirmLabel: 'Ipadala',
+      cancelLabel: 'Hindi pa',
+    });
+    if (!ok) return;
 
     const fd = new FormData();
     fd.append('request_type', form.request_type);
@@ -193,6 +205,7 @@ export default function RequestFormScreen() {
           placeholder="Select a date (optional)"
         />
       </Field>
+      <ConfirmDialog {...confirmProps} />
     </ReportFormShell>
   );
 }

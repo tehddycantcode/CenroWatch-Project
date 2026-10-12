@@ -13,6 +13,7 @@ import Select from '../../components/Select';
 import BarangayPicker from '../../components/BarangayPicker';
 import PhotoPicker from '../../components/PhotoPicker';
 import LocationField from '../../components/LocationField';
+import ConfirmDialog, { useConfirm } from '../../components/ConfirmDialog';
 
 // The three options offered for "Other", mirroring the SpeciesCategory enum.
 // Hoisted so the array keeps referential equality across renders.
@@ -46,6 +47,7 @@ export default function WildlifeFormScreen() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmProps, ask] = useConfirm();
   const [success, setSuccess] = useState(null);
 
   const {
@@ -129,6 +131,16 @@ export default function WildlifeFormScreen() {
   async function onSubmit() {
     setError('');
     if (!validate()) return;
+
+    // Asked only after validate() passes, so nobody confirms a form that is
+    // about to be rejected, and before any FormData or submitting state.
+    const ok = await ask({
+      title: 'Ipadala na sa CENRO?',
+      body: 'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.',
+      confirmLabel: 'Ipadala',
+      cancelLabel: 'Hindi pa',
+    });
+    if (!ok) return;
 
     const fd = new FormData();
     // Always a catalogue name or 'Other', because that is all the picker offers.
@@ -325,6 +337,7 @@ export default function WildlifeFormScreen() {
       <Field label="Photo" hint={`Optional: helps identify the species. / ${FORM_TL.photo}`}>
         <PhotoPicker onChange={setPhoto} />
       </Field>
+      <ConfirmDialog {...confirmProps} />
     </ReportFormShell>
   );
 }

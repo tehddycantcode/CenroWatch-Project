@@ -25,6 +25,7 @@ import LocationField from '../components/LocationField';
 import Checkbox from '../components/Checkbox';
 import ErrorBanner from '../components/ErrorBanner';
 import Button from '../components/Button';
+import ConfirmDialog, { useConfirm } from '../components/ConfirmDialog';
 
 // Whistleblower reporting with NO ACCOUNT, mirroring the web app's
 // /report-anonymous. Reached from the sign-in screen, so it is available to
@@ -52,6 +53,7 @@ export default function AnonymousReportScreen({ onNavigate }) {
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmProps, ask] = useConfirm();
   const [success, setSuccess] = useState(null);
 
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
@@ -86,6 +88,16 @@ export default function AnonymousReportScreen({ onNavigate }) {
     const e = validate();
     setFieldErrors(e);
     if (Object.keys(e).length) return;
+
+    // Asked only after validate() passes, so nobody confirms a form that is
+    // about to be rejected, and before any FormData or submitting state.
+    const ok = await ask({
+      title: 'Send this anonymously?',
+      body: 'CENRO will not know who filed it, and that cannot be undone later even if you ask. It will not appear in My Reports and you will get no updates - save the reference number on the next screen.',
+      confirmLabel: 'Send anonymously',
+      destructive: true,
+    });
+    if (!ok) return;
 
     const fd = new FormData();
     fd.append('complaint_type', form.complaint_type);
@@ -255,6 +267,7 @@ export default function AnonymousReportScreen({ onNavigate }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <ConfirmDialog {...confirmProps} />
     </SafeAreaView>
   );
 }
