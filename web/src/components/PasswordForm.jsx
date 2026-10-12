@@ -51,15 +51,23 @@ export default function PasswordForm() {
       <h2 className="text-lg font-semibold">Change password</h2>
       <form onSubmit={onSubmit} className="mt-4 grid gap-4 sm:grid-cols-2">
         {error && <div className="sm:col-span-2"><Alert>{error}</Alert></div>}
+        {/* SAID OUT LOUD, because a blocked paste is otherwise a keystroke that
+            does nothing: the person presses Ctrl+V, no text appears and no
+            error appears either, and the only available conclusion is that the
+            page is broken. A rule nobody is told about reads as a bug. */}
+        <p className="sm:col-span-2 text-xs text-muted-foreground">
+          Type each box by hand. Copying and pasting is turned off on this form, so a password is never
+          left sitting on your clipboard.
+        </p>
         <FormField id="current_password" label="Current password">
-          <PasswordInput id="current_password" autoComplete="current-password" value={form.current_password} onChange={set('current_password')} required />
+          <PasswordInput id="current_password" autoComplete="current-password" value={form.current_password} onChange={set('current_password')} required noClipboard />
         </FormField>
         <div className="hidden sm:block" />
         <FormField id="new_password" label="New password" hint="≥ 8 chars, a letter and a number">
-          <PasswordInput id="new_password" autoComplete="new-password" value={form.new_password} onChange={set('new_password')} required />
+          <PasswordInput id="new_password" autoComplete="new-password" value={form.new_password} onChange={set('new_password')} required noClipboard />
         </FormField>
         <FormField id="confirm" label="Confirm new password">
-          <PasswordInput id="confirm" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} required />
+          <PasswordInput id="confirm" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} required noClipboard />
         </FormField>
         <div className="sm:col-span-2 flex items-center gap-3">
           <Button type="submit" loading={saving}>Update password</Button>

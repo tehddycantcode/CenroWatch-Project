@@ -139,14 +139,26 @@ function PasswordSection() {
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>Change password</Text>
+      {/* SAID OUT LOUD, because a missing menu is otherwise just a long-press
+          that does nothing - and a rule nobody is told about reads as a bug.
+          Matches the line on the web form. */}
+      <Text style={styles.cardNote}>
+        Type each box by hand. Copying and pasting is turned off here, so a password is never left
+        sitting on your clipboard.
+      </Text>
+      {/* contextMenuHidden is the React Native way to do what the web form does
+          with onCopy/onCut/onPaste: it removes the long-press Cut/Copy/Paste
+          menu from the field. ONLY on this form - a login screen that refuses
+          a password manager is the loudest complaint in password UX, and both
+          NIST SP 800-63B and the UK NCSC say verifiers SHOULD allow pasting. */}
       <Field label="Current password">
-        <SecureTextInput style={styles.input} value={form.current_password} onChangeText={set('current_password')} placeholderTextColor={colors.placeholder} />
+        <SecureTextInput style={styles.input} contextMenuHidden value={form.current_password} onChangeText={set('current_password')} placeholderTextColor={colors.placeholder} />
       </Field>
       <Field label="New password" hint="≥ 8 chars, a letter and a number">
-        <SecureTextInput style={styles.input} value={form.new_password} onChangeText={set('new_password')} placeholderTextColor={colors.placeholder} />
+        <SecureTextInput style={styles.input} contextMenuHidden value={form.new_password} onChangeText={set('new_password')} placeholderTextColor={colors.placeholder} />
       </Field>
       <Field label="Confirm new password">
-        <SecureTextInput style={styles.input} value={form.confirm} onChangeText={set('confirm')} placeholderTextColor={colors.placeholder} />
+        <SecureTextInput style={styles.input} contextMenuHidden value={form.confirm} onChangeText={set('confirm')} placeholderTextColor={colors.placeholder} />
       </Field>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -310,6 +322,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   cardTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
+  cardNote: { fontSize: 12, color: colors.muted, lineHeight: 17 },
   cardHint: { fontSize: 13, color: colors.muted, marginTop: 4 },
   switchRow: {
     flexDirection: 'row',
