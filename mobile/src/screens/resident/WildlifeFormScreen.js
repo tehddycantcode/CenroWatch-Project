@@ -258,20 +258,19 @@ export default function WildlifeFormScreen() {
           <Text style={styles.idName}>{selected.name}</Text>
           {selected.scientific_name ? <Text style={styles.idSci}>{selected.scientific_name}</Text> : null}
           {selected.local_name ? (
-            <Text style={styles.idMeta}>{`Also called “${selected.local_name}”`}</Text>
+            <Text style={styles.idMeta}>{`${FORM_TL.species_also_called} “${selected.local_name}”`}</Text>
           ) : null}
           {selected.body_description ? <Text style={styles.idBody}>{selected.body_description}</Text> : null}
           <Text style={styles.idMeta}>
             {[
               selected.category,
-              selected.biome && `Usually found in: ${humanize(selected.biome)}`,
+              selected.biome && `${FORM_TL.species_found_in}: ${humanize(selected.biome)}`,
               selected.indicator && humanize(selected.indicator),
             ].filter(Boolean).join(' · ')}
           </Text>
           {selected.is_endangered ? (
             <Text style={styles.idProtected}>
-              Protected species. This report goes to priority review, and its exact location is hidden
-              on the public map.
+              {FORM_TL.species_protected}
             </Text>
           ) : null}
         </View>

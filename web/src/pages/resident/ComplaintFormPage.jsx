@@ -83,11 +83,12 @@ export default function ComplaintFormPage() {
     // Asked only after validate() passes, so nobody is asked to confirm a form
     // that is about to be rejected anyway.
     const ok = await ask({
-      title: anonymous ? 'Send this anonymously?' : 'Send this report to CENRO?',
+      title: anonymous ? 'Send this anonymously?' : 'Ipadala na sa CENRO?',
       body: anonymous
         ? 'CENRO will not know who filed it, and that cannot be undone later even if you ask. It will not appear in My Reports and you will get no updates about it - save the reference number on the next screen.'
-        : 'CENRO will receive it straight away and you will be able to follow it in My Reports.',
-      confirmLabel: anonymous ? 'Send anonymously' : 'Send report',
+        : 'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.',
+      confirmLabel: anonymous ? 'Send anonymously' : 'Ipadala',
+      cancelLabel: anonymous ? undefined : 'Hindi pa',
       destructive: anonymous,
     });
     if (!ok) return;

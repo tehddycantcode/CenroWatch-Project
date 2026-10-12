@@ -67,7 +67,7 @@ export default function MyReportsPage() {
 
       {filtered.length === 0 ? (
         <Card className="p-8 text-center text-sm text-muted-foreground">
-          {COPY_TL.noReports}
+          {tab === 'all' ? COPY_TL.noReports : COPY_TL.noReportsInTab}
         </Card>
       ) : (
         <Card className="divide-y">

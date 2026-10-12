@@ -83,9 +83,10 @@ export default function ServiceRequestFormPage() {
     // Asked only after validate() passes, so nobody is asked to confirm a form
     // that is about to be rejected anyway.
     const ok = await ask({
-      title: 'Send this request to CENRO?',
-      body: 'CENRO will receive it straight away and you will be able to follow it in My Reports.',
-      confirmLabel: 'Send request',
+      title: 'Ipadala na sa CENRO?',
+      body: 'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.',
+      confirmLabel: 'Ipadala',
+      cancelLabel: 'Hindi pa',
     });
     if (!ok) return;
 

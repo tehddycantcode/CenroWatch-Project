@@ -122,11 +122,15 @@ export const FORM_TL = {
   schedule: 'Pumili ng petsa (opsyonal)',
   species_filter: 'I-type ang pangalan ng hayop, hal. "sawa"',
   species_none: 'Walang tugma. Piliin ang "Other" at ilarawan ang hayop',
+  species_also_called: 'Tinatawag ding',
+  species_found_in: 'Karaniwang makikita sa',
+  species_protected: 'Protektadong species ito. Mapupunta ang ulat na ito sa priority review, at nakatago ang eksaktong lokasyon nito sa public map.',
 };
 
 // Short Taglish lines used on empty states and page guidance.
 export const COPY_TL = {
   noReports: 'Wala ka pang naipapasang ulat.',
+  noReportsInTab: 'Wala pang ulat sa klaseng ito.',
   legendIntro: 'Ano ang ibig sabihin ng bawat kulay',
   trackHint: 'Ilagay ang numero ng ulat mo para makita ang status nito.',
   updatesFromCenro: 'Mga update mula sa CENRO',

@@ -115,9 +115,10 @@ export default function WildlifeFormPage() {
     // Asked only after validate() passes, so nobody is asked to confirm a form
     // that is about to be rejected anyway.
     const ok = await ask({
-      title: 'Send this report to CENRO?',
-      body: 'CENRO will receive it straight away and you will be able to follow it in My Reports.',
-      confirmLabel: 'Send report',
+      title: 'Ipadala na sa CENRO?',
+      body: 'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.',
+      confirmLabel: 'Ipadala',
+      cancelLabel: 'Hindi pa',
     });
     if (!ok) return;
 
@@ -228,19 +229,18 @@ export default function WildlifeFormPage() {
             {selected.name}
             {selected.scientific_name && <span className="ml-1 font-normal italic text-muted-foreground">{selected.scientific_name}</span>}
           </p>
-          {selected.local_name && <p className="text-muted-foreground">Also called &ldquo;{selected.local_name}&rdquo;</p>}
+          {selected.local_name && <p className="text-muted-foreground">{FORM_TL.species_also_called} &ldquo;{selected.local_name}&rdquo;</p>}
           {selected.body_description && <p className="mt-1">{selected.body_description}</p>}
           <p className="mt-2 text-xs text-muted-foreground">
             {[
               selected.category,
-              selected.biome && `Usually found in: ${humanize(selected.biome)}`,
+              selected.biome && `${FORM_TL.species_found_in}: ${humanize(selected.biome)}`,
               selected.indicator && humanize(selected.indicator),
             ].filter(Boolean).join(' \u00b7 ')}
           </p>
           {selected.is_endangered && (
             <p className="mt-2 text-xs font-medium text-amber-700">
-              Protected species. This report goes to priority review, and its exact location is
-              hidden on the public map.
+              {FORM_TL.species_protected}
             </p>
           )}
         </div>
