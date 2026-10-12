@@ -32,7 +32,7 @@ export default function ComplaintFormScreen() {
 
   const [form, setForm] = useState({ complaint_type: '', type_other: '', description: '', barangay_id: '', address_details: '', observed_at: todayISO() });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
-  const photoRef = useRef(null);
+  const photoRef = useRef([]); // PhotoPicker emits an ARRAY of files, always
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -66,7 +66,7 @@ export default function ComplaintFormScreen() {
       e.location = 'Pin the location on the map, or describe the address and nearest landmark.';
     }
     if (form.description.trim().length < 10) e.description = 'Describe the concern (at least 10 characters).';
-    if (!photoRef.current) e.photo = 'A photo is required. Please attach at least one.';
+    if (!photoRef.current.length) e.photo = 'A photo is required. Please attach at least one.';
     return e;
   }
 
@@ -111,7 +111,9 @@ export default function ComplaintFormScreen() {
     }
     // Third argument is the multipart filename: the API derives the stored
     // file's extension from it.
-    fd.append('photo', photoRef.current.file, photoRef.current.name); // required
+    // One part per file, all named 'photos'. The API also still accepts a
+    // single 'photo' part, which is what older builds send.
+    for (const f of photoRef.current) fd.append('photos', f.file, f.name);
     // String(), because multipart carries no booleans - the server validator's
     // .toBoolean() turns it back. Always sent, so the value is explicit rather
     // than inferred from the field being absent.
@@ -219,7 +221,7 @@ export default function ComplaintFormScreen() {
         <PhotoPicker
           onChange={(f) => {
             photoRef.current = f;
-            if (f) setFieldErrors((p) => ({ ...p, photo: undefined }));
+            if (f.length) setFieldErrors((p) => ({ ...p, photo: undefined }));
           }}
         />
       </Field>

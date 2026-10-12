@@ -48,7 +48,7 @@ export default function AnonymousReportScreen({ onNavigate }) {
 
   const [form, setForm] = useState({ complaint_type: '', type_other: '', description: '', barangay_id: '', address_details: '' });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
-  const photoRef = useRef(null);
+  const photoRef = useRef([]); // PhotoPicker emits an ARRAY of files, always
   const [consent, setConsent] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
@@ -113,7 +113,7 @@ export default function AnonymousReportScreen({ onNavigate }) {
     }
     // Optional here. Third argument is the multipart filename: the API derives
     // the stored file's extension from it.
-    if (photoRef.current) fd.append('photo', photoRef.current.file, photoRef.current.name);
+    for (const f of photoRef.current) fd.append('photos', f.file, f.name);
 
     setSubmitting(true);
     try {

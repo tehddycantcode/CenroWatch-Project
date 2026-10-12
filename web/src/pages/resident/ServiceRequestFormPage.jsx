@@ -32,7 +32,7 @@ export default function ServiceRequestFormPage() {
     address_details: '',
   });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
-  const [doc, setDoc] = useState(null);
+  const [docs, setDocs] = useState([]); // PhotoField emits an ARRAY
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -55,6 +55,9 @@ export default function ServiceRequestFormPage() {
       errs.type_other = 'Please describe the service you need.';
     }
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
+    // Checked here as well as on the server, so the refusal lands on the field
+    // rather than as a banner after the whole form has been posted.
+    if (!docs.length) errs.document = 'Attach at least one photo or document showing what the request is about.';
     if (form.description.trim().length < 10) errs.description = 'Describe your request (at least 10 characters).';
     // The detail is prepended to the description, and the server caps that at
     // DESCRIPTION_MAX. Checked here so a long request fails on the field the
@@ -103,7 +106,7 @@ export default function ServiceRequestFormPage() {
       fd.append('longitude', location.longitude);
     }
     if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
-    if (doc) fd.append('document', doc);
+    for (const f of docs) fd.append('documents', f);
 
     setSubmitting(true);
     try {
@@ -203,10 +206,11 @@ export default function ServiceRequestFormPage() {
       </div>
 
       <FormField
-        label="Supporting document"
+        label="Photos or documents (required)"
         hint={FORM_TL.document}
+        error={fieldErrors.document}
       >
-        <PhotoField onChange={setDoc} accept="image/*,application/pdf" label="Tap to attach a file" />
+        <PhotoField onChange={setDocs} accept="image/*,application/pdf" label="Tap to attach photos or files" />
       </FormField>
       <ConfirmDialog {...confirmProps} />
     </ReportFormShell>

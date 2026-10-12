@@ -28,7 +28,7 @@ export default function ComplaintFormPage() {
 
   const [form, setForm] = useState({ barangay_id: '', complaint_type: '', description: '', type_other: '', observed_at: todayStr(), address_details: '' });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
-  const photoRef = useRef(null);
+  const photoRef = useRef([]); // PhotoField emits an ARRAY of File, always
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -69,7 +69,7 @@ export default function ComplaintFormPage() {
     if (withOtherDetail(form.description.trim(), form.type_other).length > DESCRIPTION_MAX) {
       errs.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
     }
-    if (!photoRef.current) errs.photo = 'A photo is required. Please attach at least one.';
+    if (!photoRef.current.length) errs.photo = 'A photo is required. Please attach at least one.';
     return errs;
   }
 
@@ -105,7 +105,9 @@ export default function ComplaintFormPage() {
       fd.append('longitude', location.longitude);
     }
     if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
-    fd.append('photo', photoRef.current); // required
+    // One part per file, all named 'photos'. The API also still accepts a
+    // single 'photo' part, which is what older clients send.
+    for (const f of photoRef.current) fd.append('photos', f);
     // String(), because multipart carries no booleans - the validator's
     // .toBoolean() turns it back on the server. Sent either way so the value is
     // always explicit rather than inferred from the field being absent.
@@ -236,7 +238,7 @@ export default function ComplaintFormPage() {
         <PhotoField
           onChange={(f) => {
             photoRef.current = f;
-            if (f) setFieldErrors((p) => ({ ...p, photo: undefined }));
+            if (f.length) setFieldErrors((p) => ({ ...p, photo: undefined }));
           }}
         />
       </FormField>

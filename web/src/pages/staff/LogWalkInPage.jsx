@@ -70,7 +70,7 @@ export default function LogWalkInPage() {
   });
   const [anonymous, setAnonymous] = useState(false);
   const [location, setLocation] = useState({ latitude: null, longitude: null });
-  const [photo, setPhoto] = useState(null);
+  const [photos, setPhotos] = useState([]); // PhotoField emits an ARRAY
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -131,7 +131,7 @@ export default function LogWalkInPage() {
       fd.append('longitude', location.longitude);
     }
     if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
-    if (photo) fd.append('photo', photo);
+    for (const f of photos) fd.append('photos', f);
 
     setSubmitting(true);
     try {
@@ -277,7 +277,7 @@ export default function LogWalkInPage() {
           </FormField>
 
           <FormField label="Photo" hint="Optional: attach evidence if the resident provided one">
-            <PhotoField onChange={setPhoto} />
+            <PhotoField onChange={setPhotos} />
           </FormField>
 
           <Button type="submit" className="w-full" loading={submitting}>

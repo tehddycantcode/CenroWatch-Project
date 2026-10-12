@@ -77,7 +77,8 @@ export default function RequestDetailPage() {
 
             <div className="mt-6 space-y-6">
               <ReporterCard user={q.user} />
-              {q.document_path && <Attachment path={q.document_path} />}
+              {q.document_path && <Attachment path={q.document_path} paths={q.document_paths} label="Documents" />}
+              {q.photo_path && <Attachment path={q.photo_path} paths={q.photo_paths} label="Photos" />}
               {q.completion_proof_path && <Attachment path={q.completion_proof_path} label="Proof of delivery" />}
             </div>
             <LocationBlock

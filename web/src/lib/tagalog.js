@@ -110,9 +110,11 @@ export const FORM_TL = {
   location_found: 'Ituro sa mapa kung saan mo nakita',
   location_service: 'Ituro sa mapa kung saan kailangan',
   address_details: 'Isulat ang kalye, purok, o landmark',
-  photo: 'Maglagay ng kahit isang litrato',
-  photo_optional: 'Maglagay ng litrato (opsyonal)',
-  document: 'Maglagay ng sulat o dokumento (opsyonal)',
+  photo: 'Maglagay ng litrato, pwedeng marami',
+  // No longer used by any form - every upload is required since 2026-10-12.
+  // Kept so an older bundle referencing it does not render `undefined`.
+  photo_optional: 'Maglagay ng litrato, pwedeng marami',
+  document: 'Litrato o dokumento, pwedeng marami',
   quantity: 'Isulat kung ilan (opsyonal)',
   schedule: 'Pumili ng petsa (opsyonal)',
   species_filter: 'I-type ang pangalan ng hayop, hal. "sawa"',

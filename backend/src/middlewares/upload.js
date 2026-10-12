@@ -18,7 +18,17 @@ const UPLOAD_ROOT = path.join(__dirname, '..', '..', 'uploads');
 
 const IMAGE_MIME = /^image\/(jpe?g|png|webp|heic|heif)$/i;
 const DOC_MIME = /^(image\/(jpe?g|png|webp|heic|heif)|application\/pdf)$/i;
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+// 10 MB per file, 5 files per report. Raised from 5 MB / 1 file on 2026-10-12.
+//
+// THE PRODUCT OF THESE TWO IS WHAT MATTERS, not either alone: multer buffers
+// uploads in MEMORY (memoryStorage, so the storage driver stays a runtime
+// choice), so a single request can hold MAX_FILES * MAX_BYTES = 50 MB of RAM
+// before anything is written anywhere. Raising either number raises the
+// footprint of every concurrent submission on the Railway container. A phone
+// photo is typically 2-5 MB, so 10 MB is roughly double the realistic worst
+// case rather than an arbitrary round number.
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB per file
+const MAX_FILES = 5; // per report
 
 // Magic-number signatures for the formats this app accepts. Returns the real
 // MIME type, or null when the bytes match nothing we allow.
@@ -116,4 +126,4 @@ function diskUpload(subdir, allowedMime = IMAGE_MIME) {
   };
 }
 
-module.exports = { diskUpload, sniffMime, sniffGuard, UPLOAD_ROOT, IMAGE_MIME, DOC_MIME, MAX_BYTES };
+module.exports = { diskUpload, sniffMime, sniffGuard, UPLOAD_ROOT, IMAGE_MIME, DOC_MIME, MAX_BYTES, MAX_FILES };

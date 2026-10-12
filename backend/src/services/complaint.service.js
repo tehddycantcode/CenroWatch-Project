@@ -18,6 +18,7 @@ const DETAIL_SELECT = {
   complaint_type: true,
   description: true,
   photo_path: true,
+  photo_paths: true,
   latitude: true,
   longitude: true,
   address_details: true,
@@ -48,6 +49,7 @@ const LIST_SELECT = {
   status: true,
   priority: true,
   photo_path: true,
+  photo_paths: true,
   submitted_at: true,
   observed_at: true,
   sla_deadline: true,
@@ -83,6 +85,9 @@ async function createComplaint(userId, input, photoPath, ctx = {}, options = {})
       complaint_type: input.complaint_type,
       description: input.description,
       photo_path: photoPath || null,
+      // Null, not [], when nothing new arrived: a row filed before
+      // multi-upload has null here and readers treat that as "use photo_path".
+      photo_paths: options.photoPaths && options.photoPaths.length ? options.photoPaths : null,
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
       address_details: input.address_details || null,

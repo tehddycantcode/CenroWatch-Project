@@ -49,7 +49,7 @@ export default function AnonymousReportPage() {
 
   const [form, setForm] = useState({ barangay_id: '', complaint_type: '', description: '', type_other: '', address_details: '' });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
-  const [photo, setPhoto] = useState(null);
+  const [photos, setPhotos] = useState([]); // PhotoField emits an ARRAY
   const [consent, setConsent] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
@@ -69,6 +69,9 @@ export default function AnonymousReportPage() {
   function validate() {
     const errs = {};
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
+    // Checked here as well as on the server, so the refusal lands on the field
+    // rather than as a banner after the whole form has been posted.
+    if (!photos.length) errs.photo = 'A photo is required. Attach one showing what you are reporting.';
     if (!form.complaint_type) errs.complaint_type = 'Please choose a complaint type.';
     // A pin OR a landmark - see backend/src/validators/location.validators.js.
     const hasPin = location.latitude != null && location.longitude != null;
@@ -115,7 +118,7 @@ export default function AnonymousReportPage() {
       fd.append('longitude', location.longitude);
     }
     if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
-    if (photo) fd.append('photo', photo);
+    for (const f of photos) fd.append('photos', f);
 
     setSubmitting(true);
     try {
@@ -233,8 +236,8 @@ export default function AnonymousReportPage() {
                   />
                 </FormField>
 
-                <FormField label="Photo" hint="Optional: adds evidence. Avoid photos that could identify you.">
-                  <PhotoField onChange={setPhoto} />
+                <FormField label="Photos (required)" hint="Avoid photos that could identify you." error={fieldErrors.photo}>
+                  <PhotoField onChange={setPhotos} />
                 </FormField>
 
                 <label className="flex items-start gap-2 text-sm">

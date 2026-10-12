@@ -418,6 +418,19 @@ model Complaint {
   complaint_type   String          @db.VarChar(100) // FK -> ComplaintType.name
   description      String          @db.Text
   photo_path       String?         @db.VarChar(500) // GCS object path
+  // EVERY uploaded photo, including the one in photo_path above.
+  //
+  // photo_path STAYS THE PRIMARY and is still written on every create: it is
+  // what the queues, the tracking card, the PDF and both My Reports lists
+  // render, and keeping it means none of those had to change when multi-upload
+  // arrived. This column is the full set, for the surfaces that show all of
+  // them. Rows filed before multi-upload have a photo_path and a null here,
+  // which readers must treat as "one photo", not "no photos".
+  //
+  // NAMED photo_paths SO storage.signFiles SIGNS IT: that helper matches on key
+  // name and has a branch for list fields. A tidier name returns unsigned paths
+  // that 403 - see the SpeciesPhoto note above for the same trap.
+  photo_paths      Json?
   latitude         Float?
   longitude        Float?
   address_details  String?         @db.VarChar(2000) // encrypted at rest
@@ -502,6 +515,7 @@ model WildlifeTurnover {
   animal_condition        AnimalCondition
   description             String          @db.Text
   photo_path              String?         @db.VarChar(500)
+  photo_paths             Json? // every uploaded photo; see Complaint.photo_paths
   chain_of_custody_photos Json? // array of GCS paths
   latitude                Float?
   longitude               Float?
@@ -586,6 +600,12 @@ model EnvironmentalRequest {
   request_type       String        @db.VarChar(100) // FK -> RequestType.name
   description        String        @db.Text
   document_path      String?       @db.VarChar(500)
+  document_paths     Json? // every uploaded document; see Complaint.photo_paths
+  // Requests had no photo field at all until 2026-10-12. A resident asking for
+  // a creek clean-up or a hauling has something to show, and staff scheduling
+  // the trip need to see it as much as they do on a complaint.
+  photo_path         String?       @db.VarChar(500)
+  photo_paths        Json?
   // Where the service is needed. Nullable, like the other two report models -
   // a request carries a pin, a landmark description, or both, and the API
   // refuses only the case where it has neither (validators/location.validators.js).

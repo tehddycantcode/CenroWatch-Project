@@ -130,7 +130,7 @@ export default function WildlifeFormPage() {
     address_details: '',
   });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
-  const [photo, setPhoto] = useState(null);
+  const [photos, setPhotos] = useState([]); // PhotoField emits an ARRAY
   // A catalogue species NAME, the literal 'Other', or '' before a pick. The
   // single source for which species is selected: it is what gets posted as
   // species_name, so there is no second copy in `form` to fall out of step.
@@ -205,6 +205,9 @@ export default function WildlifeFormPage() {
       errs.location = 'Pin the location on the map, or describe the address and nearest landmark.';
     }
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
+    // Checked here as well as on the server, so the refusal lands on the field
+    // rather than as a banner after the whole form has been posted.
+    if (!photos.length) errs.photo = 'A photo is required. Attach one of the animal, taken from a safe distance.';
     if (form.description.trim().length < 10) errs.description = 'Describe the sighting (at least 10 characters).';
     // The typed name is prepended to the description, and the server caps that at
     // DESCRIPTION_MAX. Checked here so a long report fails on the field the
@@ -248,7 +251,7 @@ export default function WildlifeFormPage() {
       fd.append('longitude', location.longitude);
     }
     if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
-    if (photo) fd.append('photo', photo);
+    for (const f of photos) fd.append('photos', f);
 
     setSubmitting(true);
     try {
@@ -527,8 +530,8 @@ export default function WildlifeFormPage() {
         />
       </FormField>
 
-      <FormField label="Photo" hint={FORM_TL.photo_optional}>
-        <PhotoField onChange={setPhoto} />
+      <FormField label="Photos (required)" hint={FORM_TL.photo} error={fieldErrors.photo}>
+        <PhotoField onChange={setPhotos} />
       </FormField>
       <ConfirmDialog {...confirmProps} />
     </ReportFormShell>

@@ -89,7 +89,7 @@ export default function ComplaintDetailPage() {
 
             <div className="mt-6 space-y-6">
               <ComplaintReporter complaint={c} />
-              {c.photo_path && <Attachment path={c.photo_path} />}
+              {c.photo_path && <Attachment path={c.photo_path} paths={c.photo_paths} label="Photos" />}
               {c.resolution_proof_path && <Attachment path={c.resolution_proof_path} label="Proof of work" />}
             </div>
           </Card>

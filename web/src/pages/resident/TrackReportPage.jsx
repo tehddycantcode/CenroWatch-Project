@@ -18,6 +18,7 @@ function buildView(kind, d) {
       id: d.tracking_id,
       title: humanize(d.complaint_type),
       media: d.photo_path,
+      mediaAll: d.photo_paths,
       rows: [
         ['Type', humanize(d.complaint_type)],
         ['Barangay', d.barangay?.name],
@@ -36,6 +37,7 @@ function buildView(kind, d) {
       id: d.reference_id,
       title: d.species_name,
       media: d.photo_path,
+      mediaAll: d.photo_paths,
       rows: [
         ['Species', d.species_name],
         ['Category', d.species_category || '—'],
@@ -57,6 +59,7 @@ function buildView(kind, d) {
     id: d.tracking_id,
     title: humanize(d.request_type),
     media: d.document_path,
+    mediaAll: d.document_paths,
     rows: [
       ['Service', humanize(d.request_type)],
       ['Barangay', d.barangay?.name],
@@ -113,8 +116,14 @@ export default function TrackReportPage() {
     );
   }
 
-  const mediaUrl = fileUrl(view.media);
-  const isPdf = isPdfPath(view.media);
+  // Every attached file, not just the first. The fallback to the single path
+  // is load-bearing rather than defensive: every report filed before
+  // multi-upload (2026-10-12) has a photo_path and a NULL photo_paths, so a
+  // reader that only looked at the list would show nothing for the whole
+  // existing archive.
+  const mediaList = Array.isArray(view.mediaAll) && view.mediaAll.length
+    ? view.mediaAll
+    : (view.media ? [view.media] : []);
   const hasGeo = view.latitude != null && view.longitude != null;
 
   // Timestamps for the status timeline (only set when the source date exists).
@@ -189,16 +198,26 @@ export default function TrackReportPage() {
           </div>
         )}
 
-        {mediaUrl && (
+        {mediaList.length > 0 && (
           <div className="mt-6">
-            <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">Attachment</div>
-            {isPdf ? (
-              <a href={mediaUrl} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary hover:underline">
-                View document (PDF)
-              </a>
-            ) : (
-              <img src={mediaUrl} alt="attachment" className="max-h-80 rounded-lg img-outline" />
-            )}
+            <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
+              {mediaList.length > 1 ? `Attachments (${mediaList.length})` : 'Attachment'}
+            </div>
+            <div className="flex flex-wrap items-start gap-3">
+              {mediaList.map((m, i) => {
+                const url = fileUrl(m);
+                if (!url) return null;
+                return isPdfPath(m) ? (
+                  <a key={`${m}-${i}`} href={url} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary hover:underline">
+                    View document {mediaList.length > 1 ? i + 1 : ''} (PDF)
+                  </a>
+                ) : (
+                  <a key={`${m}-${i}`} href={url} target="_blank" rel="noreferrer" title="Open full size">
+                    <img src={url} alt={`attachment ${i + 1}`} className="max-h-80 rounded-lg img-outline" />
+                  </a>
+                );
+              })}
+            </div>
           </div>
         )}
       </Card>

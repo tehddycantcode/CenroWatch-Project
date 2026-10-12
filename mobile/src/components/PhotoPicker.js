@@ -24,10 +24,16 @@ function toFile(asset) {
   return { file: new File(asset.uri), name, type: mime };
 }
 
-// Optional photo for a report. Pick from the library or take one with the camera;
-// previews a thumbnail and reports the chosen file (or null) via onChange.
-export default function PhotoPicker({ onChange }) {
-  const [preview, setPreview] = useState(null);
+// Photos for a report. Pick from the library or take them with the camera;
+// previews thumbnails and reports the chosen files via onChange.
+//
+// MULTI-FILE SINCE 2026-10-12, and the contract changed with it: onChange now
+// receives an ARRAY, always - [] rather than null when nothing is chosen. Every
+// call site was updated. `max` mirrors MAX_FILES in the API's upload
+// middleware, which is what actually enforces it; this copy only exists so a
+// resident is told before they upload, not after.
+export default function PhotoPicker({ onChange, max = 5 }) {
+  const [picked, setPicked] = useState([]);
   const [error, setError] = useState('');
 
   async function pickFromLibrary() {
@@ -40,8 +46,12 @@ export default function PhotoPicker({ onChange }) {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.7,
+      // The library is where someone picks several at once; the camera below
+      // takes one per trip, which is what taking a photo is.
+      allowsMultipleSelection: true,
+      selectionLimit: max,
     });
-    if (!result.canceled) apply(result.assets[0]);
+    if (!result.canceled) apply(result.assets);
   }
 
   async function takePhoto() {
@@ -52,27 +62,39 @@ export default function PhotoPicker({ onChange }) {
       return;
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
-    if (!result.canceled) apply(result.assets[0]);
+    if (!result.canceled) apply(result.assets);
   }
 
-  function apply(asset) {
-    setPreview(asset.uri);
-    onChange(toFile(asset));
+  // APPENDED, not replaced: the camera and the library are two separate trips
+  // through this picker, and replacing would silently discard the first one.
+  function apply(assets) {
+    const incoming = assets.map((a) => ({ ...toFile(a), uri: a.uri }));
+    const combined = [...picked, ...incoming];
+    setError(combined.length > max ? `Up to ${max} photos. The extra ones were not added.` : '');
+    const next = combined.slice(0, max);
+    setPicked(next);
+    onChange(next);
   }
 
-  function clear() {
-    setPreview(null);
-    onChange(null);
+  function removeAt(i) {
+    setError('');
+    const next = picked.filter((_, idx) => idx !== i);
+    setPicked(next);
+    onChange(next);
   }
 
   return (
     <View style={{ gap: 10 }}>
-      {preview ? (
-        <View style={styles.previewWrap}>
-          <Image source={{ uri: preview }} style={styles.preview} contentFit="cover" />
-          <Pressable style={styles.remove} onPress={clear} hitSlop={8}>
-            <Text style={styles.removeText}>✕</Text>
-          </Pressable>
+      {picked.length > 0 ? (
+        <View style={styles.grid}>
+          {picked.map((f, i) => (
+            <View key={`${f.name}-${i}`} style={styles.previewWrap}>
+              <Image source={{ uri: f.uri }} style={styles.preview} contentFit="cover" />
+              <Pressable style={styles.remove} onPress={() => removeAt(i)} hitSlop={8}>
+                <Text style={styles.removeText}>✕</Text>
+              </Pressable>
+            </View>
+          ))}
         </View>
       ) : null}
 
@@ -92,8 +114,11 @@ export default function PhotoPicker({ onChange }) {
 }
 
 const styles = StyleSheet.create({
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   previewWrap: { position: 'relative' },
-  preview: { width: '100%', height: 180, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
+  // Sized so two sit side by side on a phone; a single photo no longer fills
+  // the width, which is the trade for showing up to five at once.
+  preview: { width: 150, height: 120, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
   remove: {
     position: 'absolute',
     top: 8,

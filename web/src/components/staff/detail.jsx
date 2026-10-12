@@ -335,20 +335,38 @@ export function ComplaintReporter({ complaint: c }) {
   return <ReporterCard user={c.user} />;
 }
 
-export function Attachment({ path, label = 'Attachment' }) {
+function OneAttachment({ path, label }) {
   const url = fileUrl(path);
   if (!url) return null;
-  const isPdf = isPdfPath(path);
+  return isPdfPath(path) ? (
+    <a href={url} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary hover:underline">
+      View document (PDF)
+    </a>
+  ) : (
+    <a href={url} target="_blank" rel="noreferrer" title="Open full size">
+      <img src={url} alt={label} className="max-h-80 rounded-lg img-outline" />
+    </a>
+  );
+}
+
+// Reports carry up to five files since 2026-10-12.
+//
+// `paths` is the full list and `path` is the first of them. BOTH are read, and
+// the fallback is not defensive clutter: every report filed before multi-upload
+// has a photo_path and a NULL photo_paths, so a reader that only looked at the
+// list would show nothing at all for the entire existing archive.
+export function Attachment({ path, paths, label = 'Attachment' }) {
+  const list = Array.isArray(paths) && paths.length ? paths : (path ? [path] : []);
+  if (list.length === 0) return null;
   return (
     <div>
-      <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-      {isPdf ? (
-        <a href={url} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary hover:underline">
-          View document (PDF)
-        </a>
-      ) : (
-        <img src={url} alt={label} className="max-h-80 rounded-lg img-outline" />
-      )}
+      <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
+        {label}
+        {list.length > 1 && <span className="ml-1 normal-case">({list.length})</span>}
+      </div>
+      <div className="flex flex-wrap items-start gap-3">
+        {list.map((p, i) => <OneAttachment key={`${p}-${i}`} path={p} label={`${label} ${i + 1}`} />)}
+      </div>
     </div>
   );
 }

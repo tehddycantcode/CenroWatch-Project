@@ -13,6 +13,7 @@ import BarangayPicker from '../../components/BarangayPicker';
 import DatePicker from '../../components/DatePicker';
 import LocationField from '../../components/LocationField';
 import ConfirmDialog, { useConfirm } from '../../components/ConfirmDialog';
+import PhotoPicker from '../../components/PhotoPicker';
 import { todayISO } from '../../lib/calendar';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -24,6 +25,7 @@ export default function RequestFormScreen() {
 
   const { token } = useAuth();
   const barangays = useBarangays();
+  const [photos, setPhotos] = useState([]); // PhotoPicker emits an ARRAY, always
 
   const [form, setForm] = useState({
     request_type: '',
@@ -56,6 +58,9 @@ export default function RequestFormScreen() {
       e.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
     }
     if (!form.barangay_id) e.barangay_id = 'Please select a barangay.';
+    // Checked here as well as on the server, so the refusal lands on the field
+    // rather than as a banner after the whole form has been filled in.
+    if (!photos.length) e.photo = 'Attach at least one photo showing what the request is about.';
     // A pin OR a landmark - mirrors the API rule in
     // backend/src/validators/location.validators.js.
     const hasPin = location.latitude != null && location.longitude != null;
@@ -97,6 +102,7 @@ export default function RequestFormScreen() {
       fd.append('longitude', String(location.longitude));
     }
     if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
+    for (const f of photos) fd.append('photos', f.file, f.name);
 
     setSubmitting(true);
     try {
@@ -192,6 +198,18 @@ export default function RequestFormScreen() {
           onChangeText={(v) => set('requested_quantity')(v.replace(/[^0-9]/g, ''))}
           keyboardType="number-pad"
         />
+      </Field>
+
+      {/* THE APP HAD NO ATTACHMENT FIELD AT ALL until 2026-10-12, while the
+          web form had one. An attachment is required on this route now, so
+          without this the phone could not file a service request at all - it
+          had nothing to send. The field is photos only, not documents: picking
+          a PDF needs expo-document-picker, which is a native module, and adding
+          one changes the EAS fingerprint and cuts every installed APK off from
+          OTA updates (see mobile/AGENTS.md). The API accepts either, so a photo
+          satisfies the rule on its own. */}
+      <Field label="Photos (required)" hint={FORM_TL.photo} error={fieldErrors.photo}>
+        <PhotoPicker onChange={setPhotos} />
       </Field>
 
       <Field label="Preferred date" hint={FORM_TL.schedule} error={fieldErrors.preferred_schedule}>

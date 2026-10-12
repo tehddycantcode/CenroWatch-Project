@@ -44,6 +44,7 @@ const DETAIL_SELECT = {
   animal_condition: true,
   description: true,
   photo_path: true,
+  photo_paths: true,
   chain_of_custody_photos: true,
   latitude: true,
   longitude: true,

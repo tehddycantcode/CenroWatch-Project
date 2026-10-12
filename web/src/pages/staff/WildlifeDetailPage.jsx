@@ -164,7 +164,7 @@ export default function WildlifeDetailPage() {
 
             <div className="mt-6 space-y-6">
               <ReporterCard user={w.resident} />
-              {w.photo_path && <Attachment path={w.photo_path} />}
+              {w.photo_path && <Attachment path={w.photo_path} paths={w.photo_paths} label="Photos" />}
             </div>
           </Card>
 

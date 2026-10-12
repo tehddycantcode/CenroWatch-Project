@@ -118,9 +118,11 @@ export const FORM_TL = {
   // Shown when GPS puts the reporter outside the city. The point is still
   // pinned - this tells them why the map will not follow it.
   locationOutside: 'Nasa labas ka ng Cabuyao. Ituro sa mapa ang tamang lugar.',
-  photo: 'Maglagay ng kahit isang litrato',
-  photo_optional: 'Maglagay ng litrato (opsyonal)',
-  document: 'Maglagay ng sulat o dokumento (opsyonal)',
+  photo: 'Maglagay ng litrato, pwedeng marami',
+  // No longer used by any form - every upload is required since 2026-10-12.
+  // Kept so an older bundle referencing it does not render `undefined`.
+  photo_optional: 'Maglagay ng litrato, pwedeng marami',
+  document: 'Litrato o dokumento, pwedeng marami',
   quantity: 'Isulat kung ilan (opsyonal)',
   schedule: 'Pumili ng petsa (opsyonal)',
   species_filter: 'I-type ang pangalan ng hayop, hal. "sawa"',

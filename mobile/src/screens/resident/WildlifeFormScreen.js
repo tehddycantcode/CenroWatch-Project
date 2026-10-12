@@ -122,7 +122,7 @@ export default function WildlifeFormScreen() {
     address_details: '',
   });
   const [location, setLocation] = useState({ latitude: null, longitude: null });
-  const [photo, setPhoto] = useState(null);
+  const [photos, setPhotos] = useState([]); // PhotoPicker emits an ARRAY
   // A catalogue species NAME, the literal 'Other', or '' before a pick. The
   // single source for which species is selected: it is what gets posted as
   // species_name, so there is no second copy in `form` to fall out of step.
@@ -208,6 +208,9 @@ export default function WildlifeFormScreen() {
     // Required here and optional at the API - see the web form and the validator.
     if (!form.turnover_method) e.turnover_method = 'Tell us how the animal will reach CENRO.';
     if (!form.barangay_id) e.barangay_id = 'Please select a barangay.';
+    // Checked here as well as on the server, so the refusal lands on the field
+    // rather than as a banner after the whole form has been filled in.
+    if (!photos.length) e.photo = 'A photo is required. Attach one of the animal, taken from a safe distance.';
     // A pin OR a landmark - mirrors the API rule in
     // backend/src/validators/location.validators.js.
     const hasPin = location.latitude != null && location.longitude != null;
@@ -260,7 +263,7 @@ export default function WildlifeFormScreen() {
     }
     // Third argument is the multipart filename: the API derives the stored
     // file's extension from it.
-    if (photo) fd.append('photo', photo.file, photo.name);
+    for (const f of photos) fd.append('photos', f.file, f.name);
 
     setSubmitting(true);
     try {
@@ -532,8 +535,8 @@ export default function WildlifeFormScreen() {
         />
       </Field>
 
-      <Field label="Photo" hint={FORM_TL.photo_optional}>
-        <PhotoPicker onChange={setPhoto} />
+      <Field label="Photos (required)" hint={FORM_TL.photo} error={fieldErrors.photo}>
+        <PhotoPicker onChange={setPhotos} />
       </Field>
       <ConfirmDialog {...confirmProps} />
     </ReportFormShell>

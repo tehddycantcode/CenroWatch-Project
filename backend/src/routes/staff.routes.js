@@ -8,13 +8,16 @@ const router = express.Router();
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
-const { diskUpload } = require('../middlewares/upload');
+const { diskUpload, MAX_FILES } = require('../middlewares/upload');
 const v = require('../validators/staff.validators');
 
 // Chain-of-custody photos are images only; up to 10 per upload batch.
 const custodyUpload = diskUpload('custody');
 // Optional single photo when a staff logs a walk-in complaint.
 const complaintUpload = diskUpload('complaints');
+// Both names, like the resident routes: a cached staff bundle still posts the
+// singular 'photo'. See utils/uploadFields.js.
+const WALKIN_PHOTO_FIELDS = [{ name: 'photo', maxCount: 1 }, { name: 'photos', maxCount: MAX_FILES }];
 // Photo showing the work was done, required to Resolve a complaint / Complete a request.
 const proofUpload = diskUpload('proof');
 
@@ -42,7 +45,7 @@ router.get('/route', v.routeQueryRules, validate, office.getRoute);
 // Complaints
 router.get('/complaints', v.listQueryRules, validate, complaints.list);
 // Walk-in intake: multer first so multipart text fields populate req.body.
-router.post('/complaints', complaintUpload.single('photo'), v.createWalkInComplaintRules, validate, complaints.createWalkIn);
+router.post('/complaints', complaintUpload.fields(WALKIN_PHOTO_FIELDS), v.createWalkInComplaintRules, validate, complaints.createWalkIn);
 router.get('/complaints/:id', complaints.getOne);
 router.get('/complaints/:id/report', reports.complaintReport);
 router.patch('/complaints/:id/status', proofUpload.single('proof'), v.complaintStatusRules, validate, complaints.updateStatus);
