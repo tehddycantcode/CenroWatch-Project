@@ -122,11 +122,23 @@ repeats. (Project-wide tooling/PowerShell lessons live in the root `CLAUDE.md`.)
 rebuilding the APK or asking anyone to reinstall. Publish with:
 
 ```
-eas update --channel preview --message "what changed" --environment preview
+eas update --channel preview --platform android --message "what changed" --environment preview
 ```
 
 `--environment` is required on SDK 55+. The channel must match the build profile
 the APK came from (`eas.json` sets `channel: preview` and `channel: production`).
+
+**`--platform android`, because THIS PROJECT IS ANDROID ONLY** (confirmed by the
+user 2026-10-12; `eas build:list` has only ANDROID builds). Without the flag,
+`eas update` publishes BOTH platforms and prints two result blocks, and the iOS
+one goes to runtime version `b6d4e0f5...`, which no build has — so it reaches
+nobody and exists only to be misread later as "iOS is covered". It is not an
+error and nothing breaks either way; the flag just stops publishing something
+that cannot be installed. **The Android runtime to match is
+`5fee0555b1dbfc34024e59e6df885e5d5d4aa19c`** (build
+`589c0f39-9ffc-4b3a-b61c-56b452861015`) — if a publish reports any other
+fingerprint for android, STOP: the update will not reach the installed APK. See
+the CRLF lesson above for how that happens silently.
 
 **The update lands on the NEXT launch, not the current one.** `expo-updates`
 checks on startup, downloads in the background, and applies on the following
