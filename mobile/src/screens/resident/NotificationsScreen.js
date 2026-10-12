@@ -82,11 +82,7 @@ export default function NotificationsScreen() {
           <ActivityIndicator color={colors.primary} style={{ marginTop: 32 }} />
         ) : items.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>
-              No notifications yet. You&apos;ll be told here when CENRO updates one of your
-              reports.
-            </Text>
-            <Text style={styles.emptyTextTl}>{COPY_TL.noNotifications}</Text>
+            <Text style={styles.emptyText}>{COPY_TL.noNotifications}</Text>
           </View>
         ) : (
           <View style={styles.list}>

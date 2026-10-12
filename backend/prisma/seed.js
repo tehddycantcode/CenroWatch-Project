@@ -91,6 +91,7 @@ const species = [
   },
   {
     name: 'Philippine Eagle-Owl', scientific_name: 'Bubo philippensis',
+    local_name: 'kuwago',
     category: 'Bird', biome: 'Forest', indicator: 'Endemic',
     hazard: 'Powerful_Bite_Or_Talons', is_endangered: true, sort_order: 2,
     photo_credit: 'Aimee Valencia, CC BY-SA 4.0',
@@ -99,6 +100,7 @@ const species = [
   },
   {
     name: 'Large Flying Fox', scientific_name: 'Pteropus vampyrus',
+    local_name: 'kalong',
     category: 'Mammal', biome: 'Forest', indicator: 'Near_Threatened',
     hazard: 'Disease_Risk', is_endangered: true, sort_order: 3,
     photo_credit: 'NobbiP, CC BY-SA 3.0',

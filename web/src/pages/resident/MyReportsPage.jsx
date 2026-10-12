@@ -67,8 +67,7 @@ export default function MyReportsPage() {
 
       {filtered.length === 0 ? (
         <Card className="p-8 text-center text-sm text-muted-foreground">
-          No reports in this category yet.
-          <span className="mt-1 block text-muted-foreground/80">{COPY_TL.noReports}</span>
+          {COPY_TL.noReports}
         </Card>
       ) : (
         <Card className="divide-y">

@@ -163,10 +163,7 @@ export default function DashboardScreen() {
                 {ACTION_TL[a.kind] ? (
                   <Text style={styles.actionTitleTl}>{ACTION_TL[a.kind].title}</Text>
                 ) : null}
-                <Text style={styles.actionDesc}>{a.desc}</Text>
-                {ACTION_TL[a.kind] ? (
-                  <Text style={styles.actionDescTl}>{ACTION_TL[a.kind].desc}</Text>
-                ) : null}
+                <Text style={styles.actionDesc}>{ACTION_TL[a.kind]?.desc ?? a.desc}</Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </Pressable>
@@ -188,9 +185,8 @@ export default function DashboardScreen() {
         ) : recent.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>
-              You haven&apos;t filed any reports yet. Use an action above to get started.
+              {COPY_TL.noReports} Pumili ng gagawin sa itaas para makapagsimula.
             </Text>
-            <Text style={styles.emptyTextTl}>{COPY_TL.noReports}</Text>
           </View>
         ) : (
           <View style={styles.list}>

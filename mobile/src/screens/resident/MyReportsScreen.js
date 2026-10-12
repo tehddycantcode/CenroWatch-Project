@@ -94,8 +94,7 @@ export default function MyReportsScreen() {
           <ActivityIndicator color={colors.primary} style={{ marginTop: 32 }} />
         ) : filtered.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No reports in this category yet.</Text>
-            <Text style={styles.emptyTextTl}>{COPY_TL.noReports}</Text>
+            <Text style={styles.emptyText}>{COPY_TL.noReports}</Text>
           </View>
         ) : (
           <View style={styles.list}>

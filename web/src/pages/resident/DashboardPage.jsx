@@ -143,10 +143,7 @@ export default function DashboardPage() {
                 {ACTION_TL[a.kind] && (
                   <div className="text-sm font-medium text-primary">{ACTION_TL[a.kind].title}</div>
                 )}
-                <div className="mt-1.5 text-sm text-muted-foreground">{a.desc}</div>
-                {ACTION_TL[a.kind] && (
-                  <div className="text-sm text-muted-foreground/80">{ACTION_TL[a.kind].desc}</div>
-                )}
+                <div className="mt-1.5 text-sm text-muted-foreground">{ACTION_TL[a.kind]?.desc ?? a.desc}</div>
               </Link>
             );
           })}
@@ -162,8 +159,7 @@ export default function DashboardPage() {
         </div>
         {recent.length === 0 ? (
           <Card className="p-8 text-center text-sm text-muted-foreground">
-            You haven&apos;t filed any reports yet. Use an action above to get started.
-            <span className="mt-1 block text-muted-foreground/80">{COPY_TL.noReports}</span>
+            {COPY_TL.noReports} Pumili ng gagawin sa itaas para makapagsimula.
           </Card>
         ) : (
           <Card className="divide-y">

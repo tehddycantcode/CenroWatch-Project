@@ -171,14 +171,14 @@ export default function ServiceRequestFormPage() {
         <Textarea id="description" rows={4} placeholder="Describe what you need and why." value={form.description} onChange={set('description')} />
       </FormField>
 
-      <FormField label="Location" hint={`Where the service is needed. Pin it, or describe it below. / ${FORM_TL.location}`} error={fieldErrors.location}>
+      <FormField label="Location" hint={FORM_TL.location_service} error={fieldErrors.location}>
         <LocationField value={location} onChange={setLocation} required />
       </FormField>
 
       <FormField
         id="address_details"
         label="Address or landmark"
-        hint={`Street, purok, or what it is next to. / ${FORM_TL.address_details}`}
+        hint={FORM_TL.address_details}
         error={fieldErrors.address_details}
       >
         <Input
@@ -193,17 +193,17 @@ export default function ServiceRequestFormPage() {
       {/* Stacks on a phone: two number/date inputs side by side at 320px
           leaves each about 130px wide, and the date picker overflows. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <FormField id="requested_quantity" label="Quantity" hint={`Optional. / ${FORM_TL.quantity}`}>
+        <FormField id="requested_quantity" label="Quantity" hint={FORM_TL.quantity}>
           <Input id="requested_quantity" type="number" min="1" placeholder="e.g. 50" value={form.requested_quantity} onChange={set('requested_quantity')} />
         </FormField>
-        <FormField id="preferred_schedule" label="Preferred date" hint={`Optional. / ${FORM_TL.schedule}`}>
+        <FormField id="preferred_schedule" label="Preferred date" hint={FORM_TL.schedule}>
           <Input id="preferred_schedule" type="date" min={todayStr()} value={form.preferred_schedule} onChange={set('preferred_schedule')} />
         </FormField>
       </div>
 
       <FormField
         label="Supporting document"
-        hint={`Optional: image or PDF (e.g. a letter). / ${FORM_TL.document}`}
+        hint={FORM_TL.document}
       >
         <PhotoField onChange={setDoc} accept="image/*,application/pdf" label="Tap to attach a file" />
       </FormField>

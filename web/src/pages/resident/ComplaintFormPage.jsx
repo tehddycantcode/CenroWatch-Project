@@ -197,7 +197,7 @@ export default function ComplaintFormPage() {
       <FormField
         id="observed_at"
         label="Date issue was observed"
-        hint={`When did you actually see the problem? Defaults to today. / ${FORM_TL.observed_at}`}
+        hint={FORM_TL.observed_at}
       >
         <Input
           id="observed_at"
@@ -208,14 +208,14 @@ export default function ComplaintFormPage() {
         />
       </FormField>
 
-      <FormField label="Location" hint={`Pin it on the map, or describe it below. / ${FORM_TL.location}`} error={fieldErrors.location}>
+      <FormField label="Location" hint={FORM_TL.location} error={fieldErrors.location}>
         <LocationField value={location} onChange={setLocation} required />
       </FormField>
 
       <FormField
         id="address_details"
         label="Address or landmark"
-        hint={`Street, purok, or what it is next to. / ${FORM_TL.address_details}`}
+        hint={FORM_TL.address_details}
         error={fieldErrors.address_details}
       >
         <Input
@@ -229,7 +229,7 @@ export default function ComplaintFormPage() {
 
       <FormField
         label="Photo (required)"
-        hint={`Attach at least one photo as evidence. / ${FORM_TL.photo}`}
+        hint={FORM_TL.photo}
         error={fieldErrors.photo}
       >
         <PhotoField

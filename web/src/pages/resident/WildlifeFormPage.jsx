@@ -29,6 +29,7 @@ export default function WildlifeFormPage() {
   // single source for which species is selected: it is what gets posted as
   // species_name, so there is no second copy in `form` to fall out of step.
   const [speciesChoice, setSpeciesChoice] = useState('');
+  const [speciesQuery, setSpeciesQuery] = useState('');
   // What the resident types when the animal is not in the list. It is NOT posted
   // as species_name - that is a foreign key - fullDescription folds it into the
   // description's first line instead.
@@ -43,6 +44,22 @@ export default function WildlifeFormPage() {
     common, endangered, byName,
     loading, error: speciesError,
   } = useSpecies();
+
+  // Matches the local name as well as the English and scientific names, because
+  // "sawa" is what a resident will type for a Reticulated Python. Without this
+  // the local name is decoration: visible once you have already found the row.
+  // The currently picked species always stays in the list, so narrowing the box
+  // can never leave a controlled <select> pointing at an option that is gone.
+  const q = speciesQuery.trim().toLowerCase();
+  const matches = (s) => {
+    if (!q || s.name === speciesChoice) return true;
+    return [s.name, s.scientific_name, s.local_name]
+      .filter(Boolean)
+      .some((v) => v.toLowerCase().includes(q));
+  };
+  const commonShown = common.filter(matches);
+  const endangeredShown = endangered.filter(matches);
+  const nothingMatches = Boolean(q) && !commonShown.length && !endangeredShown.length;
 
   // The picked catalogue row, or null.
   const selected = byName[speciesChoice] || null;
@@ -149,6 +166,17 @@ export default function WildlifeFormPage() {
       success={success}
       submitLabel="Submit Report"
     >
+      {!speciesError && (
+        <FormField id="species_filter" label="Find a species" hint={FORM_TL.species_filter}>
+          <Input
+            id="species_filter"
+            placeholder="e.g. python, sawa, Varanus"
+            value={speciesQuery}
+            onChange={(e) => setSpeciesQuery(e.target.value)}
+          />
+        </FormField>
+      )}
+
       <FormField
         id="species_choice"
         label="Species"
@@ -162,18 +190,21 @@ export default function WildlifeFormPage() {
         ) : (
           <Select id="species_choice" value={speciesChoice} onChange={(e) => setSpeciesChoice(e.target.value)}>
             <option value="">{loading ? 'Loading species\u2026' : 'Select a species'}</option>
-            {common.length > 0 && (
+            {commonShown.length > 0 && (
               <optgroup label="Common species">
-                {common.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+                {commonShown.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
               </optgroup>
             )}
-            {endangered.length > 0 && (
+            {endangeredShown.length > 0 && (
               <optgroup label="Endangered or protected species">
-                {endangered.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+                {endangeredShown.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
               </optgroup>
             )}
             <option value="Other">Other (not in this list)&hellip;</option>
           </Select>
+        )}
+        {nothingMatches && (
+          <p role="status" className="mt-1.5 text-xs text-muted-foreground">{FORM_TL.species_none}</p>
         )}
       </FormField>
 
@@ -279,14 +310,14 @@ export default function WildlifeFormPage() {
           hidden from a poacher. The server ignores is_endangered if anything still
           sends it. */}
 
-      <FormField label="Location" hint={`Pin where it was found, or describe it below. / ${FORM_TL.location}`} error={fieldErrors.location}>
+      <FormField label="Location" hint={FORM_TL.location_found} error={fieldErrors.location}>
         <LocationField value={location} onChange={setLocation} required />
       </FormField>
 
       <FormField
         id="address_details"
         label="Address or landmark"
-        hint={`Street, purok, or what it is next to. / ${FORM_TL.address_details}`}
+        hint={FORM_TL.address_details}
         error={fieldErrors.address_details}
       >
         <Input
@@ -298,7 +329,7 @@ export default function WildlifeFormPage() {
         />
       </FormField>
 
-      <FormField label="Photo" hint={`Optional: helps identify the species. / ${FORM_TL.photo}`}>
+      <FormField label="Photo" hint={FORM_TL.photo_optional}>
         <PhotoField onChange={setPhoto} />
       </FormField>
       <ConfirmDialog {...confirmProps} />

@@ -1,6 +1,5 @@
-// Tagalog companions for the resident-facing copy that has to be understood
-// correctly, not just read: status stages, timeline steps, the report kinds,
-// and the guidance on the report forms.
+// Resident-facing copy in Tagalog: status stages, timeline steps, the report
+// kinds, and the guidance on the report forms.
 //
 // DUPLICATE OF web/src/lib/tagalog.js. Mobile cannot import from web/src
 // (see AGENTS.md), so the two copies must be kept in sync by hand. Everything
@@ -8,20 +7,29 @@
 // change a string here, change it there too.
 //
 // This is NOT an i18n system. There is no locale switch and no lookup at the
-// call site - English stays the primary label and the Tagalog sits beside or
-// beneath it, so a resident who reads either one gets the same meaning. That
-// keeps every component's logic untouched: nothing here can change what a
-// status IS, only how it is explained.
+// call site. Two policies, and the difference between them matters:
+//
+//   1. INSTRUCTIONAL copy (form hints, empty states, page guidance) is ONE
+//      casual Taglish line. The English sentence is gone, not demoted: a hint
+//      that says the same thing twice makes a phone screen twice as long and
+//      tells the reader that one of the two is the "real" one. Field LABELS and
+//      button text stay short English, so they never wrap on a phone.
+//   2. STATUS vocabulary (STAGE_TL, TIMELINE_TL) KEEPS its English companion.
+//      Those keys are Prisma enum values that are translated nowhere else - a
+//      staff member's screen, the status email and the printed PDF all say
+//      "Resolved". A resident who only ever saw "Naayos na" would lose the
+//      shared word the moment they phone the office. Do not drop the English
+//      from the badge, the legend or the timeline.
 //
 // REGISTER: everyday conversational Tagalog, the way a Cabuyao resident would
 // actually say it - NOT the formal register of a government memo. Deliberately
 // avoided: isinasagawa, nakatakda, maglakip, kahilingan, upang, kabuuang.
-// Loanwords that are genuinely the everyday word (status, report, iskedyul)
-// are kept, because "kalagayan" and "iulat" read as stiffer than the English.
+// Loanwords that are genuinely the everyday word (status, report, litrato,
+// landmark, iskedyul) are kept, because "kalagayan" and "iulat" read as stiffer
+// than the English.
 //
 // Deliberately partial. Staff and admin surfaces stay English (office users,
-// and the system terms have no settled Tagalog), and short button labels stay
-// English so they never wrap onto a second line on a phone.
+// and the system terms have no settled Tagalog).
 
 // The three resident-facing lifecycle stages (see statusStage in lib/reports.js)
 // plus the two terminal exceptions. Keyed by the English label those return.
@@ -89,29 +97,34 @@ export const STAT_TL = {
   'Wildlife Cases': 'Ligaw na hayop',
 };
 
-// Report-form field guidance. Each entry pairs with the English label/hint
-// already on the field; the Tagalog is shown as a second line.
+// Report-form field guidance. Each entry IS the hint under the field - one
+// Taglish line, no English twin. The English label above it stays.
 export const FORM_TL = {
-  complaint_type: 'Anong klaseng reklamo?',
-  request_type: 'Anong serbisyo ang kailangan mo?',
-  type_other: 'Pakisulat kung ano ito.',
-  species_name: 'Anong hayop? Kung alam mo.',
-  animal_condition: 'Kumusta ang lagay ng hayop?',
-  barangay: 'Piliin ang barangay mo',
-  description: 'Ano ang nangyari? Ilagay ang oras, amoy, o gaano na katagal.',
-  observed_at: 'Kailan mo ito nakita?',
-  location: 'Ituro sa mapa kung saan ito nangyari, o isulat ang kalye at landmark.',
-  address_details: 'Isulat ang kalye, purok, o kung ano ang katabi nito.',
+  complaint_type: 'Pumili ng klase ng reklamo',
+  request_type: 'Pumili ng serbisyo',
+  type_other: 'Isulat kung ano ito',
+  species_name: 'Pumili ng hayop',
+  animal_condition: 'Pumili ng lagay ng hayop',
+  barangay: 'Pumili ng barangay',
+  description: 'Isulat ang nangyari',
+  observed_at: 'Pumili ng petsa',
+  location: 'Ituro sa mapa o isulat ang landmark',
+  location_found: 'Ituro sa mapa kung saan mo nakita',
+  location_service: 'Ituro sa mapa kung saan kailangan',
+  address_details: 'Isulat ang kalye, purok, o landmark',
   // Shown when GPS puts the reporter outside the city. The point is still
   // pinned - this tells them why the map will not follow it.
   locationOutside: 'Nasa labas ka ng Cabuyao. Ituro sa mapa ang tamang lugar.',
-  photo: 'Maglagay ng kahit isang litrato bilang patunay.',
-  document: 'Pwedeng laktawan. Pwede kang maglagay ng sulat o dokumento.',
-  quantity: 'Ilan ang kailangan mo?',
-  schedule: 'Kailan mo ito gusto?',
+  photo: 'Maglagay ng kahit isang litrato',
+  photo_optional: 'Maglagay ng litrato (opsyonal)',
+  document: 'Maglagay ng sulat o dokumento (opsyonal)',
+  quantity: 'Isulat kung ilan (opsyonal)',
+  schedule: 'Pumili ng petsa (opsyonal)',
+  species_filter: 'I-type ang pangalan ng hayop, hal. "sawa"',
+  species_none: 'Walang tugma. Piliin ang "Other" at ilarawan ang hayop',
 };
 
-// Short bilingual lines used on empty states and page guidance.
+// Short Taglish lines used on empty states and page guidance.
 export const COPY_TL = {
   noReports: 'Wala ka pang naipapasang ulat.',
   legendIntro: 'Ano ang ibig sabihin ng bawat kulay',

@@ -168,11 +168,11 @@ export default function RequestFormScreen() {
         />
       </Field>
 
-      <Field label="Location" hint={`Where the service is needed. Pin it, or describe it below. / ${FORM_TL.location}`} error={fieldErrors.location}>
+      <Field label="Location" hint={FORM_TL.location_service} error={fieldErrors.location}>
         <LocationField value={location} onChange={setLocation} required />
       </Field>
 
-      <Field label="Address or landmark" hint={`Street, purok, or what it is next to. / ${FORM_TL.address_details}`} error={fieldErrors.address_details}>
+      <Field label="Address or landmark" hint={FORM_TL.address_details} error={fieldErrors.address_details}>
         <TextInput
           style={styles.input}
           placeholder="e.g. Beside the covered court, Purok 3"
@@ -183,7 +183,7 @@ export default function RequestFormScreen() {
         />
       </Field>
 
-      <Field label="Quantity" hint={`Optional: e.g. number of seedlings. / ${FORM_TL.quantity}`}>
+      <Field label="Quantity" hint={FORM_TL.quantity}>
         <TextInput
           style={styles.input}
           placeholder="e.g. 25"
@@ -194,7 +194,7 @@ export default function RequestFormScreen() {
         />
       </Field>
 
-      <Field label="Preferred date" hint={`Optional. / ${FORM_TL.schedule}`} error={fieldErrors.preferred_schedule}>
+      <Field label="Preferred date" hint={FORM_TL.schedule} error={fieldErrors.preferred_schedule}>
         {/* min=today because the API now refuses a past date (notPast.js) and
             the web form sets the same bound. The calendar should not offer a day
             the server will reject. */}

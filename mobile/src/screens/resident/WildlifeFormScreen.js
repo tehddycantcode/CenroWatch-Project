@@ -40,6 +40,7 @@ export default function WildlifeFormScreen() {
   // single source for which species is selected: it is what gets posted as
   // species_name, so there is no second copy in `form` to fall out of step.
   const [speciesChoice, setSpeciesChoice] = useState('');
+  const [speciesQuery, setSpeciesQuery] = useState('');
   // What the resident types when the animal is not in the list. It is NOT posted
   // as species_name - that is a foreign key - fullDescription folds it into the
   // description's first line instead.
@@ -57,19 +58,33 @@ export default function WildlifeFormScreen() {
 
   // One flat list with header entries, which the Select renders as
   // non-pressable section headings (web gets this from <optgroup>).
-  const speciesOptions = useMemo(() => {
+  // Filtered by what the resident typed, including the LOCAL name - "sawa" finds
+  // Reticulated Python. The headers only appear for a group that still has rows,
+  // and "Other" is always last so a filter that matches nothing is never a dead
+  // end. The picked species stays listed so the Select never shows a blank for a
+  // choice the resident already made.
+  const q = speciesQuery.trim().toLowerCase();
+  const { speciesOptions, nothingMatches } = useMemo(() => {
+    const matches = (s) => {
+      if (!q || s.name === speciesChoice) return true;
+      return [s.name, s.scientific_name, s.local_name]
+        .filter(Boolean)
+        .some((v) => v.toLowerCase().includes(q));
+    };
+    const c = common.filter(matches);
+    const e = endangered.filter(matches);
     const out = [];
-    if (common.length) {
+    if (c.length) {
       out.push({ header: true, label: 'Common species' });
-      out.push(...common.map((s) => ({ value: s.name, label: s.name })));
+      out.push(...c.map((s) => ({ value: s.name, label: s.name })));
     }
-    if (endangered.length) {
+    if (e.length) {
       out.push({ header: true, label: 'Endangered or protected species' });
-      out.push(...endangered.map((s) => ({ value: s.name, label: s.name })));
+      out.push(...e.map((s) => ({ value: s.name, label: s.name })));
     }
     out.push({ value: 'Other', label: 'Other (not in this list)…' });
-    return out;
-  }, [common, endangered]);
+    return { speciesOptions: out, nothingMatches: Boolean(q) && !c.length && !e.length };
+  }, [common, endangered, q, speciesChoice]);
 
   // The picked catalogue row, or null.
   const selected = byName[speciesChoice] || null;
@@ -197,15 +212,29 @@ export default function WildlifeFormScreen() {
           <Text style={styles.speciesError}>{speciesError}</Text>
         </Field>
       ) : (
-        <Select
-          label="Species"
-          hint={FORM_TL.species_name}
-          options={speciesOptions}
-          value={speciesChoice}
-          onChange={onSpeciesChoice}
-          placeholder={speciesLoading ? 'Loading species…' : 'Select a species'}
-          error={fieldErrors.species_name}
-        />
+        <>
+          <Field label="Find a species" hint={FORM_TL.species_filter}>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. python, sawa, Varanus"
+              placeholderTextColor={colors.placeholder}
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={speciesQuery}
+              onChangeText={setSpeciesQuery}
+            />
+          </Field>
+          <Select
+            label="Species"
+            hint={FORM_TL.species_name}
+            options={speciesOptions}
+            value={speciesChoice}
+            onChange={onSpeciesChoice}
+            placeholder={speciesLoading ? 'Loading species…' : 'Select a species'}
+            error={fieldErrors.species_name}
+          />
+          {nothingMatches ? <Text style={styles.idMeta}>{FORM_TL.species_none}</Text> : null}
+        </>
       )}
 
       {selected && !isOther ? (
@@ -319,11 +348,11 @@ export default function WildlifeFormScreen() {
           hidden from a poacher. The server ignores is_endangered if anything still
           sends it. */}
 
-      <Field label="Location" hint={`Pin where it was found, or describe it below. / ${FORM_TL.location}`} error={fieldErrors.location}>
+      <Field label="Location" hint={FORM_TL.location_found} error={fieldErrors.location}>
         <LocationField value={location} onChange={setLocation} required />
       </Field>
 
-      <Field label="Address or landmark" hint={`Street, purok, or what it is next to. / ${FORM_TL.address_details}`} error={fieldErrors.address_details}>
+      <Field label="Address or landmark" hint={FORM_TL.address_details} error={fieldErrors.address_details}>
         <TextInput
           style={styles.input}
           placeholder="e.g. Beside the covered court, Purok 3"
@@ -334,7 +363,7 @@ export default function WildlifeFormScreen() {
         />
       </Field>
 
-      <Field label="Photo" hint={`Optional: helps identify the species. / ${FORM_TL.photo}`}>
+      <Field label="Photo" hint={FORM_TL.photo_optional}>
         <PhotoPicker onChange={setPhoto} />
       </Field>
       <ConfirmDialog {...confirmProps} />
