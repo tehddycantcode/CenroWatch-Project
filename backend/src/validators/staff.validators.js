@@ -99,7 +99,7 @@ const requestStatusRules = [
 
 const requestUpdateRules = [
   body('staff_notes').optional({ values: 'falsy' }).trim().isLength({ max: 5000 }),
-  body('scheduled_date').optional({ values: 'falsy' }).isISO8601().withMessage('Invalid scheduled date.').toDate(),
+  notPast('scheduled_date', 'Scheduled date'),
 ];
 
 module.exports = {

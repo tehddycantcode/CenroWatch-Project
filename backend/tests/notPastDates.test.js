@@ -23,10 +23,15 @@ async function runRules(rules, body) {
   return validationResult(req).array().map((e) => e.path);
 }
 
+// LOCAL date arithmetic, deliberately - not toISOString(), which is UTC.
+// The rule floors at server-local midnight, and a browser date input sends the
+// user's local calendar date, so a UTC-derived fixture makes this suite fail
+// for eight hours a day on a UTC+8 machine while passing on Railway.
 const dayOffset = (n) => {
   const d = new Date();
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  const pad = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
 const requestBody = (over = {}) => ({
@@ -80,6 +85,21 @@ describe('staff cannot schedule a request for the past either', () => {
 
   test('omitting it is fine - it is only set on the Scheduled transition', async () => {
     expect(await runRules(requestStatusRules, { status: 'Approved' })).toEqual([]);
+  });
+});
+
+describe('the general request-update route is covered too, not just the status route', () => {
+  // The rule lived only on requestStatusRules at first, so a past date could
+  // still be set through PATCH /staff/requests/:id - the same field, a
+  // different validator array. Two arrays, one rule.
+  const { requestUpdateRules } = require('../src/validators/staff.validators');
+
+  test('yesterday is refused here as well', async () => {
+    expect(await runRules(requestUpdateRules, { scheduled_date: dayOffset(-1) })).toContain('scheduled_date');
+  });
+
+  test('today is still accepted', async () => {
+    expect(await runRules(requestUpdateRules, { scheduled_date: dayOffset(0) })).toEqual([]);
   });
 });
 
