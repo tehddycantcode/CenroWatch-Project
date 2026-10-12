@@ -354,7 +354,8 @@ export default function WildlifeFormPage() {
               src={fileUrl(selected.photo_path)}
               alt={`Reference photograph of the ${selected.name}`}
               caption={selected.photo_credit ? `Photo: ${selected.photo_credit}` : undefined}
-              className="mb-2 h-40"
+              className="mb-2 mx-auto w-fit"
+              imgClassName="max-h-48 w-auto object-contain"
             />
           )}
           <p className="font-medium">

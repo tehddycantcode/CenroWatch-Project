@@ -163,8 +163,8 @@ export default function WildlifePage() {
                       src={fileUrl(s.photo_path)}
                       alt={`Reference photograph of the ${s.name}`}
                       caption={s.photo_credit ? `${s.name} - photo: ${s.photo_credit}` : s.name}
-                      className="aspect-[4/3] rounded-none"
-                      imgClassName="img-outline"
+                      className="aspect-[4/3] w-full rounded-none"
+                      imgClassName="h-full w-full object-contain img-outline"
                     />
                   )}
                   <div className="flex flex-1 flex-col p-5">

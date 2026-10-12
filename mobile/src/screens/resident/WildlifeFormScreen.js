@@ -568,11 +568,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: 14,
   },
+  // Taller than it was (160) because the image is letterboxed now rather than
+  // cropped: at phone width a 1.4:1 wildlife photo in a short, full-width box is
+  // mostly empty panel. The whole animal is visible, and a tap opens it bigger.
   idPhoto: {
     width: '100%',
-    height: 160,
+    height: 190,
     borderRadius: radius.sm,
-    backgroundColor: colors.border,
+    backgroundColor: colors.tint,
   },
   // Safety guidance. Red for the hazard, matching the web form's red badge.
   hazardBadge: {

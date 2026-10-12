@@ -12,7 +12,22 @@ import { useEffect, useRef, useState } from 'react';
 // The card keeps a fixed height so the form does not jump as you change
 // species, but the image inside is `object-contain` - letterboxed on a muted
 // panel rather than cropped - and clicking it opens the whole frame.
-export default function PreviewableImage({ src, alt, caption, className = '', imgClassName = '' }) {
+// `imgClassName` controls how the image sits in the frame, and the two callers
+// need DIFFERENT answers:
+//
+//   - The wildlife form hugs the photo (`w-fit` + `max-h-48 w-auto`). A fixed
+//     wide frame letterboxing a 1.4:1 wildlife photo is mostly empty panel -
+//     measured, worse-looking than the crop it replaced.
+//   - The public guide keeps a fixed 4:3 frame, because its cards sit in a grid
+//     that has to line up. Those photos are near 4:3 already, so `object-contain`
+//     costs only a thin band.
+export default function PreviewableImage({
+  src,
+  alt,
+  caption,
+  className = '',
+  imgClassName = 'h-full w-full object-contain',
+}) {
   const [open, setOpen] = useState(false);
   const closeRef = useRef(null);
   const openerRef = useRef(null);
@@ -36,9 +51,9 @@ export default function PreviewableImage({ src, alt, caption, className = '', im
         ref={openerRef}
         onClick={() => setOpen(true)}
         title={caption || undefined}
-        className={`group relative block w-full overflow-hidden rounded-md bg-muted ${className}`}
+        className={`group relative block overflow-hidden rounded-md bg-muted ${className}`}
       >
-        <img src={src} alt={alt} loading="lazy" className={`h-full w-full object-contain ${imgClassName}`} />
+        <img src={src} alt={alt} loading="lazy" className={imgClassName} />
         <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-background/85 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
           View full photo
         </span>
