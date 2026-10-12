@@ -565,6 +565,44 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   alive for days, so every reference photo would 403 while the hook's `error`
   stayed empty. When you fix something that a written-but-unexecuted plan copied,
   grep the plan for it too — and prefer referencing a file over pasting it.
+- **A CONFIRMATION DIALOG IS THE EASIEST PLACE IN THIS CODEBASE TO SHIP A LIE.**
+  Adding confirmations across web and mobile produced **five** separate false
+  promises, every one caught by a reviewer rather than by the person writing it:
+  (1) "emails the resident to tell them" — anonymous complaints store no
+  `user_id` and are sent nothing (`notify.js:189`); (2) an anonymous filer told
+  they could "follow it in My Reports", where their report never appears;
+  (3) the same email claim on a no-op re-save, where the service only notifies
+  when the status actually changed; (4) the softened "if the reporter gave
+  contact details" — still false for a counter walk-in, which captures
+  `reporter_contact` (a phone number) but has no account, while the mailer sends
+  to `existing.user?.email`; (5) a success line asserting "they have been
+  emailed" after *every* save, including the note-only re-save.
+  The pattern: a confirmation describes a CONSEQUENCE, and consequences in this
+  system are conditional — on having an account, on the status actually
+  changing, on not being anonymous. Generic copy is wrong for the minority path
+  almost every time. **Before writing any confirm body or success message, find
+  the code that performs the consequence and read its guards.** If the
+  consequence is conditional, either state the condition or do not promise it.
+  A confirmation that misdescribes what it is about to do is worse than no
+  confirmation, because people stop reading the ones that are accurate.
+  Related and cheaper to get right: gate the confirm itself on the thing
+  actually changing (`status !== current`), so a no-op save does not prompt at
+  all and the copy only has to be true of a real change.
+- **A guard on a terminal state must key off the TRANSITION, not the target
+  status, or it retroactively locks every record already in that state.** The
+  proof-before-closing rule first read `newStatus === 'Resolved'`, which fires
+  even when the record is ALREADY Resolved and nothing is changing. Every row
+  closed before the feature existed has no proof — measured: 27 of 27 Resolved
+  complaints, 1 of 1 Completed request, 3 of 3 closed wildlife rows. So staff
+  opening a resolved complaint to fix its resolution note found Save disabled
+  and the note unreachable, and an already-Transferred turnover answered a bare
+  422 about an animal transferred weeks ago. The workaround — attach any photo —
+  pollutes the very evidence the feature exists to create. The fix is
+  `&& newStatus !== existing.status` in the service AND the matching condition
+  in the form, so the API, the submit gate and the confirmation all agree about
+  what "closing" means. Generally: when you add a precondition to a state, ask
+  what it does to rows already in that state, because they were written under
+  the old rules and cannot retroactively satisfy the new one.
 
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
