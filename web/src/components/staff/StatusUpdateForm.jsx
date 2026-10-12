@@ -26,6 +26,8 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
   const [extra, setExtra] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  // false | 'changed' | 'saved' - only a real status change sends an email, so
+  // the success line must say which happened.
   const [ok, setOk] = useState(false);
   const [confirmProps, ask] = useConfirm();
 
@@ -78,8 +80,9 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
     }
     setSubmitting(true);
     try {
+      const wasStatusChange = status !== current;
       await onSubmit(payload);
-      setOk(true);
+      setOk(wasStatusChange ? 'changed' : 'saved');
       setNote('');
       // Fall back to the record again so the select shows the refetched status.
       setPicked(null);
@@ -134,7 +137,13 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
       </FormField>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {ok && <p className="text-sm font-medium text-primary">Status updated. If the reporter has an account, they have been emailed.</p>}
+      {ok && (
+        <p className="text-sm font-medium text-primary">
+          {ok === 'changed'
+            ? 'Status updated. If the reporter has an account, they have been emailed.'
+            : 'Saved.'}
+        </p>
+      )}
 
       <Button type="submit" loading={submitting} disabled={missingRequired}>Save update</Button>
       <ConfirmDialog {...confirmProps} />
