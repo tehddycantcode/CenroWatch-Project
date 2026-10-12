@@ -33,7 +33,9 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
 
   async function submit(e) {
     e.preventDefault();
-    if (TERMINAL.includes(status)) {
+    if (TERMINAL.includes(status) && status !== current) {
+      // Only when the status is actually changing: the copy below says the
+      // resident is emailed, which is false for a re-save that only adds a note.
       // A terminal status stops the SLA clock, emails the resident, and is how
       // the office says it is finished with the report. It can be changed
       // afterwards, but the resident has already been told.

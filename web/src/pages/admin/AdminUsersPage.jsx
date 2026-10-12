@@ -118,7 +118,7 @@ export default function AdminUsersPage() {
     // established ownership off-system.
     const ok = await ask({
       title: 'Mark this address as confirmed?',
-      body: 'Only do this once you have checked that the address really belongs to this person. It is recorded against your account in the audit log.',
+      body: 'This is you vouching for the address, not the resident proving it. Only do it once you have checked it really belongs to this person. It is recorded against your account in the audit log.',
       confirmLabel: 'Mark confirmed',
     });
     if (!ok) return;

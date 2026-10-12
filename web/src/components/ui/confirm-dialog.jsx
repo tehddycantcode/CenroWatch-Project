@@ -29,22 +29,44 @@ export default function ConfirmDialog({
   onCancel,
 }) {
   const cancelRef = useRef(null);
+  const confirmRef = useRef(null);
   const openerRef = useRef(null);
 
+  // Focus capture/restore keys off `open` ALONE. It used to also depend on
+  // `busy`, so a caller toggling busy mid-dialog ran the cleanup, threw focus
+  // back to the opener behind the backdrop, then failed to re-focus the
+  // now-disabled Cancel button - leaving Enter able to re-fire the action.
   useEffect(() => {
     if (!open) return undefined;
     openerRef.current = document.activeElement;
     cancelRef.current?.focus();
-    function onKey(e) {
-      if (e.key === 'Escape' && !busy) onCancel();
-    }
-    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('keydown', onKey);
       // Return focus to the control that opened it, so keyboard users are not
       // dumped at the top of the document.
       if (openerRef.current instanceof HTMLElement) openerRef.current.focus();
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    function onKey(e) {
+      if (e.key === 'Escape' && !busy) { onCancel(); return; }
+      if (e.key !== 'Tab') return;
+      // Exactly two focusable controls, so the trap is a two-element cycle.
+      // Without this, aria-modal is a claim the component does not honour: Tab
+      // off Confirm lands behind the backdrop, on the control that opened this.
+      const cancel = cancelRef.current;
+      const confirm = confirmRef.current;
+      if (!cancel || !confirm) return;
+      const first = e.shiftKey ? cancel : confirm;
+      const next = e.shiftKey ? confirm : cancel;
+      if (document.activeElement === first) {
+        e.preventDefault();
+        next.focus();
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, [open, busy, onCancel]);
 
   if (!open) return null;
@@ -73,6 +95,7 @@ export default function ConfirmDialog({
             {cancelLabel}
           </Button>
           <Button
+            ref={confirmRef}
             type="button"
             size="sm"
             variant={destructive ? 'destructive' : 'default'}
@@ -99,10 +122,14 @@ export function useConfirm() {
   const resolveRef = useRef(null);
 
   const ask = useCallback((opts) => {
+    // Settle any in-flight question as a cancel before replacing it, or its
+    // awaiting handler never resumes.
+    if (resolveRef.current) {
+      resolveRef.current(false);
+      resolveRef.current = null;
+    }
     setState({ open: true, opts });
-    return new Promise((resolve) => {
-      resolveRef.current = resolve;
-    });
+    return new Promise((resolve) => { resolveRef.current = resolve; });
   }, []);
 
   const settle = useCallback((value) => {
