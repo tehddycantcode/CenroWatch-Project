@@ -155,7 +155,11 @@ export default function WildlifeDetailPage() {
 
         <div className="space-y-6">
           <Card className="p-6">
-            <h2 className="mb-4 text-lg font-semibold">Update status</h2>
+            <h2 className="mb-3 text-lg font-semibold">Update status</h2>
+            <p className="mb-4 text-xs text-muted-foreground">
+              Releasing or transferring this animal needs at least one chain-of-custody
+              photo. Add one in the Chain-of-custody documentation section before changing the status.
+            </p>
             <StatusUpdateForm
               statuses={WILDLIFE_STATUSES}
               current={w.status}
