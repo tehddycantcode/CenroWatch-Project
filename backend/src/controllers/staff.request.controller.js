@@ -13,7 +13,14 @@ const getOne = asyncHandler(async (req, res) => {
 });
 
 const updateStatus = asyncHandler(async (req, res) => {
-  const request = await service.updateRequestStatus(req.user.user_id, req.params.id, req.body, { ipAddress: req.ip });
+  // The proof path is minted HERE from the uploaded file, never read from the
+  // body: otherwise a caller could post any string and satisfy the gate.
+  const { completion_proof_path: _ignored, ...body } = req.body;
+  const proofPath = req.file ? await storage.save('proof', req.file) : null;
+  const request = await service.updateRequestStatus(req.user.user_id, req.params.id, {
+    ...body,
+    ...(proofPath ? { completion_proof_path: proofPath } : {}),
+  }, { ipAddress: req.ip });
   res.json({ success: true, message: 'Status updated.', data: { request: await storage.signFiles(request) } });
 });
 

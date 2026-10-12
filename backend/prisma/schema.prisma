@@ -378,6 +378,9 @@ model Complaint {
   priority         Boolean         @default(false)
   staff_notes      String?         @db.Text
   resolution_notes String?         @db.Text
+  // Evidence that the work actually happened, required before the report can be
+  // Resolved (staff.complaint.service). Rejected is exempt - see that guard.
+  resolution_proof_path String? @db.VarChar(500)
   submitted_at     DateTime        @default(now()) // filing date/time (auto)
   observed_at      DateTime? // optional: when the resident says they saw the issue
   updated_at       DateTime        @updatedAt
@@ -531,6 +534,8 @@ model EnvironmentalRequest {
   scheduled_date     DateTime?
   completion_date    DateTime?
   staff_notes        String?       @db.Text
+  // Evidence the service was delivered, required before Completed.
+  completion_proof_path String? @db.VarChar(500)
   submitted_at       DateTime      @default(now())
   updated_at         DateTime      @updatedAt
 

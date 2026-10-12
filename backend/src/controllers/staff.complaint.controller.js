@@ -20,7 +20,14 @@ const createWalkIn = asyncHandler(async (req, res) => {
 });
 
 const updateStatus = asyncHandler(async (req, res) => {
-  const complaint = await service.updateComplaintStatus(req.user.user_id, req.params.id, req.body, { ipAddress: req.ip });
+  // The proof path is minted HERE from the uploaded file, never read from the
+  // body: otherwise a caller could post any string and satisfy the gate.
+  const { resolution_proof_path: _ignored, ...body } = req.body;
+  const proofPath = req.file ? await storage.save('proof', req.file) : null;
+  const complaint = await service.updateComplaintStatus(req.user.user_id, req.params.id, {
+    ...body,
+    ...(proofPath ? { resolution_proof_path: proofPath } : {}),
+  }, { ipAddress: req.ip });
   res.json({ success: true, message: 'Status updated.', data: { complaint: await storage.signFiles(complaint) } });
 });
 

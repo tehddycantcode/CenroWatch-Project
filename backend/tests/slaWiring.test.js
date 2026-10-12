@@ -144,7 +144,7 @@ describe('the clock never restarts', () => {
       sla_deadline: ph('2026-01-07T17:05'), // long past
     });
 
-    await updateComplaintStatus(9, 1, { status: 'Resolved' });
+    await updateComplaintStatus(9, 1, { status: 'Resolved', resolution_proof_path: '/uploads/proof/x.jpg' });
 
     expect(written().exceeded_sla).toBe(true);
   });

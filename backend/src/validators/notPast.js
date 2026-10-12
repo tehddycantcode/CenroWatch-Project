@@ -6,14 +6,16 @@ const { body } = require('express-validator');
 // the two cannot drift. Deliberately NOT applied to observed_at, which records
 // when someone SAW something and carries the opposite bound.
 //
-// Compared at DAY granularity, not by timestamp: `new Date('2026-10-12')` parses
-// as midnight UTC, so a plain `< new Date()` comparison would reject TODAY for
-// most of the day. Same-day scheduling is legitimate, so the floor is the start
-// of today in the server's own timezone.
-function startOfToday() {
+// Compared as YYYY-MM-DD STRINGS, deliberately, not as Date objects.
+// A date-only string parses as UTC midnight, so any Date comparison makes this
+// rule depend on the server's offset: it was lenient by up to 8 hours on a
+// UTC+8 host and REJECTED TODAY on a host west of UTC. The question is only
+// whether one calendar date precedes another, and ISO dates compare correctly
+// as strings. Same-day scheduling is legitimate, so today itself passes.
+function todayLocalISO() {
   const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const pad = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function notPast(field, label) {
@@ -21,9 +23,9 @@ function notPast(field, label) {
     .optional({ values: 'falsy' })
     .isISO8601().withMessage(`${label} must be a valid date.`)
     .bail()
-    .custom((v) => new Date(v) >= startOfToday())
+    .custom((v) => String(v).slice(0, 10) >= todayLocalISO())
     .withMessage(`${label} cannot be in the past.`)
     .toDate();
 }
 
-module.exports = { notPast, startOfToday };
+module.exports = { notPast, todayLocalISO };

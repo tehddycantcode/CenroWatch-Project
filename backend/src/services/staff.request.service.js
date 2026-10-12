@@ -114,6 +114,8 @@ async function updateRequestStatus(staffId, idOrTracking, input, ctx = {}) {
       sla_started_at: true, sla_deadline: true,
       scheduled_date: true, completion_date: true, approval_date: true, user_id: true,
       archived_at: true,
+      // The Completed guard below reads this; see the complaint service.
+      completion_proof_path: true,
       user: { select: { email: true, first_name: true } },
     },
   });
@@ -121,6 +123,15 @@ async function updateRequestStatus(staffId, idOrTracking, input, ctx = {}) {
   assertNotArchived(existing, 'request');
 
   const newStatus = input.status;
+
+  // Proof is required to COMPLETE, not to reject: a request staff declined has
+  // no service to photograph.
+  if (newStatus === 'Completed') {
+    const proof = input.completion_proof_path || existing.completion_proof_path;
+    if (!proof) {
+      throw new HttpError(422, 'Attach a photo showing the service was delivered before marking this request Completed.');
+    }
+  }
   const changed = newStatus !== existing.status;
   const isTerminal = TERMINAL.includes(newStatus);
 
@@ -157,6 +168,7 @@ async function updateRequestStatus(staffId, idOrTracking, input, ctx = {}) {
     exceeded_sla,
     approval_date,
     ...(approved ? { approved_by_cenro_head: true } : {}),
+    ...(input.completion_proof_path ? { completion_proof_path: input.completion_proof_path } : {}),
   };
 
   await prisma.$transaction(async (tx) => {

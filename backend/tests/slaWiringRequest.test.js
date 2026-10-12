@@ -103,7 +103,7 @@ test('a request type with no charter SLA never gets a deadline', async () => {
 test('approving and completing in one motion is judged against the new deadline', async () => {
   givenRequest({ request_type: 'Seedling_Distribution' });
 
-  await updateRequestStatus(9, 1, { status: 'Completed' });
+  await updateRequestStatus(9, 1, { status: 'Completed', completion_proof_path: '/uploads/proof/x.jpg' });
 
   // Not approved, so no deadline exists and nothing can be late - but the
   // important part is that it did not throw and did not invent a breach.

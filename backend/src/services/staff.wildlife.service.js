@@ -120,6 +120,9 @@ async function updateTurnoverStatus(staffId, idOrRef, input, ctx = {}) {
     select: {
       turnover_id: true, reference_id: true, status: true, sla_deadline: true,
       intake_date: true, release_date: true, reported_by: true, archived_at: true,
+      // The Released/Transferred guard below reads this; omit it and every
+      // closure is refused forever.
+      chain_of_custody_photos: true,
       resident: { select: { email: true, first_name: true } },
     },
   });
@@ -127,6 +130,18 @@ async function updateTurnoverStatus(staffId, idOrRef, input, ctx = {}) {
   assertNotArchived(existing, 'wildlife record');
 
   const newStatus = input.status;
+
+  // Wildlife has no proof column of its own: the chain-of-custody photos ARE
+  // the evidence, and they already have their own upload endpoint. So this gate
+  // counts STORED photos rather than reading the request body. Array.isArray
+  // guards the null the column holds on every row filed before custody photos
+  // existed. Deceased is exempt: there may be nothing to photograph.
+  if (newStatus === 'Released' || newStatus === 'Transferred') {
+    const photos = Array.isArray(existing.chain_of_custody_photos) ? existing.chain_of_custody_photos : [];
+    if (photos.length === 0) {
+      throw new HttpError(422, `Upload at least one chain-of-custody photo before marking this turnover ${newStatus}.`);
+    }
+  }
   const changed = newStatus !== existing.status;
   const isTerminal = TERMINAL.includes(newStatus);
 

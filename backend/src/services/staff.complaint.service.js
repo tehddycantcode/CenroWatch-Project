@@ -208,6 +208,9 @@ async function updateComplaintStatus(staffId, idOrTracking, input, ctx = {}) {
       complaint_id: true, tracking_id: true, status: true, resolved_at: true,
       sla_started_at: true, sla_deadline: true,
       user_id: true, archived_at: true,
+      // The Resolved guard below reads this. Omit it here and the guard sees
+      // undefined and refuses every closure forever.
+      resolution_proof_path: true,
       user: { select: { email: true, first_name: true } },
     },
   });
@@ -217,6 +220,16 @@ async function updateComplaintStatus(staffId, idOrTracking, input, ctx = {}) {
   assertNotArchived(existing, 'complaint');
 
   const newStatus = input.status;
+
+  // Proof is required to RESOLVE, not to reject. A complaint staff decided
+  // against has often nothing to photograph, and a report that cannot be closed
+  // at all is worse than one closed without a picture.
+  if (newStatus === 'Resolved') {
+    const proof = input.resolution_proof_path || existing.resolution_proof_path;
+    if (!proof) {
+      throw new HttpError(422, 'Attach a photo showing the work was done before marking this complaint Resolved.');
+    }
+  }
   const changed = newStatus !== existing.status;
   const isTerminal = TERMINAL.includes(newStatus);
   const resolved_at =
@@ -249,6 +262,7 @@ async function updateComplaintStatus(staffId, idOrTracking, input, ctx = {}) {
         sla_deadline,
         exceeded_sla,
         ...(input.resolution_notes !== undefined ? { resolution_notes: input.resolution_notes || null } : {}),
+        ...(input.resolution_proof_path ? { resolution_proof_path: input.resolution_proof_path } : {}),
       },
     });
     if (changed) {

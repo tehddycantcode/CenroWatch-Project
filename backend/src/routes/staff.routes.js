@@ -15,6 +15,8 @@ const v = require('../validators/staff.validators');
 const custodyUpload = diskUpload('custody');
 // Optional single photo when a staff logs a walk-in complaint.
 const complaintUpload = diskUpload('complaints');
+// Photo showing the work was done, required to Resolve a complaint / Complete a request.
+const proofUpload = diskUpload('proof');
 
 const overview = require('../controllers/staff.overview.controller');
 const office = require('../controllers/staff.office.controller');
@@ -43,7 +45,7 @@ router.get('/complaints', v.listQueryRules, validate, complaints.list);
 router.post('/complaints', complaintUpload.single('photo'), v.createWalkInComplaintRules, validate, complaints.createWalkIn);
 router.get('/complaints/:id', complaints.getOne);
 router.get('/complaints/:id/report', reports.complaintReport);
-router.patch('/complaints/:id/status', v.complaintStatusRules, validate, complaints.updateStatus);
+router.patch('/complaints/:id/status', proofUpload.single('proof'), v.complaintStatusRules, validate, complaints.updateStatus);
 router.patch('/complaints/:id', v.complaintUpdateRules, validate, complaints.update);
 
 // Wildlife turnovers
@@ -59,7 +61,7 @@ router.delete('/wildlife/:id/custody-photos', wildlife.removeCustodyPhoto);
 router.get('/requests', v.listQueryRules, validate, requests.list);
 router.get('/requests/:id', requests.getOne);
 router.get('/requests/:id/report', reports.requestReport);
-router.patch('/requests/:id/status', v.requestStatusRules, validate, requests.updateStatus);
+router.patch('/requests/:id/status', proofUpload.single('proof'), v.requestStatusRules, validate, requests.updateStatus);
 router.patch('/requests/:id', v.requestUpdateRules, validate, requests.update);
 
 module.exports = router;
