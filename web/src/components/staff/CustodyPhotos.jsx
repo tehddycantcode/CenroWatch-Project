@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { staffApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
 
 // Chain-of-custody photo gallery + uploader for the staff wildlife detail view
 // (manuscript Objective 2.3). Photos document the animal's condition, handling,
@@ -10,6 +11,7 @@ export default function CustodyPhotos({ id, photos = [], onChange }) {
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [confirmProps, ask] = useConfirm();
 
   async function upload() {
     if (!files.length) return;
@@ -30,6 +32,13 @@ export default function CustodyPhotos({ id, photos = [], onChange }) {
   }
 
   async function remove(path) {
+    const ok = await ask({
+      title: 'Delete this custody photo?',
+      body: 'The file is removed permanently and the chain-of-custody record will no longer show it. This cannot be undone.',
+      confirmLabel: 'Delete photo',
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(true);
     setError('');
     try {
@@ -88,6 +97,7 @@ export default function CustodyPhotos({ id, photos = [], onChange }) {
         </Button>
       </div>
       {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }

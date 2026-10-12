@@ -5,6 +5,11 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
+
+// Statuses that end a report's life. Reaching one stops the SLA clock and tells
+// the resident, so it is worth a question first.
+const TERMINAL = ['Resolved', 'Rejected', 'Completed', 'Released', 'Transferred', 'Deceased'];
 
 // Status-update panel shared by the three detail pages. `extraFields` are
 // resource-specific inputs (e.g. resolution notes, transfer destination,
@@ -22,11 +27,24 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [ok, setOk] = useState(false);
+  const [confirmProps, ask] = useConfirm();
 
   const visibleExtras = extraFields.filter((f) => !f.visibleFor || f.visibleFor.includes(status));
 
   async function submit(e) {
     e.preventDefault();
+    if (TERMINAL.includes(status)) {
+      // A terminal status stops the SLA clock, emails the resident, and is how
+      // the office says it is finished with the report. It can be changed
+      // afterwards, but the resident has already been told.
+      const confirmed = await ask({
+        title: `Mark this report as ${humanize(status)}?`,
+        body: 'This closes the report, stops its deadline clock, and emails the resident to tell them. You can change the status afterwards, but they will already have been notified.',
+        confirmLabel: `Mark ${humanize(status)}`,
+        destructive: true,
+      });
+      if (!confirmed) return;
+    }
     setError('');
     setOk(false);
     const payload = { status };
@@ -87,6 +105,7 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
       {ok && <p className="text-sm font-medium text-primary">Status updated and the resident was notified.</p>}
 
       <Button type="submit" loading={submitting}>Save update</Button>
+      <ConfirmDialog {...confirmProps} />
     </form>
   );
 }

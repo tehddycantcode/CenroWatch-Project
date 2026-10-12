@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { FormField } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/icons';
+import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
 
 // Admin-managed wildlife species catalogue.
 //
@@ -358,6 +359,7 @@ export default function AdminSpeciesPage() {
   const [form, setForm] = useState(EMPTY_CREATE);
   const [addErr, setAddErr] = useState('');
   const [saving, setSaving] = useState(false);
+  const [confirmProps, ask] = useConfirm();
 
   const reload = useCallback(() => {
     adminApi.listSpecies()
@@ -373,6 +375,17 @@ export default function AdminSpeciesPage() {
   // stops a species retired here lingering in the wildlife form for the rest of
   // the session.
   async function saveField(species_id, patch) {
+    // Only retiring asks. The checkbox is controlled by the stored value, so
+    // declining leaves it ticked with nothing to undo.
+    if (patch.is_active === false) {
+      const ok = await ask({
+        title: 'Retire this species?',
+        body: 'It disappears from the wildlife form. Reports already filed against it keep it and stay readable.',
+        confirmLabel: 'Retire',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
     setBusy(true);
     try {
       await adminApi.updateSpecies(species_id, patch);
@@ -551,6 +564,7 @@ export default function AdminSpeciesPage() {
           </table>
         </div>
       </Card>
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }

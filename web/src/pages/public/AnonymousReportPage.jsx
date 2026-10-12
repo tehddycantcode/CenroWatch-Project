@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
+import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
 
 function SuccessCard({ trackingId }) {
   return (
@@ -53,6 +54,7 @@ export default function AnonymousReportPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmProps, ask] = useConfirm();
   const [success, setSuccess] = useState(null);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -90,6 +92,16 @@ export default function AnonymousReportPage() {
     const errs = validate();
     setFieldErrors(errs);
     if (Object.keys(errs).length) return;
+
+    // Asked only after validate() passes, so nobody is asked to confirm a form
+    // that is about to be rejected anyway.
+    const ok = await ask({
+      title: 'Send this anonymously?',
+      body: 'CENRO will not know who filed it, and that cannot be undone later even if you ask. It will not appear in My Reports and you will get no updates about it - save the reference number on the next screen.',
+      confirmLabel: 'Send anonymously',
+      destructive: true,
+    });
+    if (!ok) return;
 
     const fd = new FormData();
     fd.append('barangay_id', form.barangay_id);
@@ -249,6 +261,7 @@ export default function AnonymousReportPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }

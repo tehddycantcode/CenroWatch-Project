@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/icons';
+import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
 
 // Small presentational helpers shared by the three staff detail pages.
 
@@ -152,10 +153,24 @@ export function ArchiveControl({ kind, id, archivedAt, archiveReason, onChanged 
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [confirmProps, ask] = useConfirm();
 
   if (user?.role !== 'Admin') return null;
 
   async function run(action) {
+    // Archiving pulls a report out of every queue, analytic and public
+    // endpoint. Restoring is possible, but nobody looking for the report will
+    // find it meanwhile, so the step is worth one question.
+    const ok = await ask({
+      title: action === 'archive' ? 'Archive this report?' : 'Restore this report?',
+      body: action === 'archive'
+        ? 'It will drop out of the staff queues, the analytics and the public map. You can restore it later from this page.'
+        : 'It will reappear in the queues, the analytics and the public map.',
+      confirmLabel: action === 'archive' ? 'Archive' : 'Restore',
+      destructive: action === 'archive',
+    });
+    if (!ok) return;
+
     setError('');
     setBusy(true);
     try {
@@ -187,6 +202,7 @@ export function ArchiveControl({ kind, id, archivedAt, archiveReason, onChanged 
           </Button>
           {error && <span className="text-xs text-destructive">{error}</span>}
         </div>
+        <ConfirmDialog {...confirmProps} />
       </div>
     );
   }
@@ -225,6 +241,7 @@ export function ArchiveControl({ kind, id, archivedAt, archiveReason, onChanged 
         </Button>
         {error && <span className="text-xs text-destructive">{error}</span>}
       </div>
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }

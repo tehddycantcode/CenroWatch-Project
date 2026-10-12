@@ -12,6 +12,7 @@ import { FormField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
 
 const todayStr = () => new Date().toLocaleDateString('en-CA');
 
@@ -35,6 +36,7 @@ export default function ServiceRequestFormPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmProps, ask] = useConfirm();
   const [success, setSuccess] = useState(null);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -77,6 +79,15 @@ export default function ServiceRequestFormPage() {
     const errs = validate();
     setFieldErrors(errs);
     if (Object.keys(errs).length) return;
+
+    // Asked only after validate() passes, so nobody is asked to confirm a form
+    // that is about to be rejected anyway.
+    const ok = await ask({
+      title: 'Send this report to CENRO?',
+      body: 'CENRO will receive it straight away and you will be able to follow it in My Reports.',
+      confirmLabel: 'Send report',
+    });
+    if (!ok) return;
 
     const fd = new FormData();
     fd.append('request_type', form.request_type);
@@ -196,6 +207,7 @@ export default function ServiceRequestFormPage() {
       >
         <PhotoField onChange={setDoc} accept="image/*,application/pdf" label="Tap to attach a file" />
       </FormField>
+      <ConfirmDialog {...confirmProps} />
     </ReportFormShell>
   );
 }

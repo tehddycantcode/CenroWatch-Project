@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { FormField } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/icons';
+import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
 
 // Administrator accounts are not created or granted from this screen (only the
 // bootstrap admin holds that role), so it is not offered when creating or
@@ -32,11 +33,9 @@ export default function AdminUsersPage() {
   const [formErr, setFormErr] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Confirming an address on someone's behalf is an assertion that CENRO
-  // established ownership off-system, so it takes two clicks. The row holding
-  // this id is showing "is this really theirs?" rather than the plain button.
-  const [confirmId, setConfirmId] = useState(null);
-  const [confirming, setConfirming] = useState(false);
+  // One confirmation pattern for every consequential action on this page:
+  // deactivating, reactivating, changing a role, and confirming an address.
+  const [confirmProps, ask] = useConfirm();
 
   const load = useCallback(() => {
     adminApi.users
@@ -84,17 +83,51 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function changeRole(id, role) {
+    // The select is controlled by the stored role, so declining leaves it
+    // showing the old value with nothing to undo.
+    const ok = await ask({
+      title: "Change this person's role?",
+      body: "Role decides what they can see and do across the whole system, including other people's reports and personal data.",
+      confirmLabel: 'Change role',
+      destructive: true,
+    });
+    if (!ok) return;
+    await patch(id, { role });
+  }
+
+  async function toggleActive(u) {
+    const ok = await ask(u.is_active
+      ? {
+        title: 'Deactivate this account?',
+        body: 'They will not be able to sign in. Reports they already filed are unaffected. You can reactivate the account later.',
+        confirmLabel: 'Deactivate',
+        destructive: true,
+      }
+      : {
+        title: 'Reactivate this account?',
+        body: 'They will be able to sign in again.',
+        confirmLabel: 'Reactivate',
+      });
+    if (!ok) return;
+    await patch(u.user_id, { is_active: !u.is_active });
+  }
+
   async function confirmEmail(id) {
-    setConfirming(true);
+    // Confirming an address on someone's behalf is an assertion that CENRO
+    // established ownership off-system.
+    const ok = await ask({
+      title: 'Mark this address as confirmed?',
+      body: 'Only do this once you have checked that the address really belongs to this person. It is recorded against your account in the audit log.',
+      confirmLabel: 'Mark confirmed',
+    });
+    if (!ok) return;
     setError('');
     try {
       await adminApi.users.verifyEmail(id);
-      setConfirmId(null);
       load();
     } catch (err) {
       setError(err.message || 'Could not confirm that address.');
-    } finally {
-      setConfirming(false);
     }
   }
 
@@ -197,7 +230,7 @@ export default function AdminUsersPage() {
                         <Select
                           value={u.role}
                           disabled={isMe}
-                          onChange={(e) => patch(u.user_id, { role: e.target.value })}
+                          onChange={(e) => changeRole(u.user_id, e.target.value)}
                           className="h-8 w-36"
                         >
                           {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
@@ -209,28 +242,16 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap items-center justify-end gap-2">
-                        {!u.email_verified_at && (confirmId === u.user_id ? (
-                          <>
-                            <span className="text-xs text-muted-foreground">
-                              Confirmed this address is theirs?
-                            </span>
-                            <Button size="sm" loading={confirming} onClick={() => confirmEmail(u.user_id)}>
-                              Yes, confirm
-                            </Button>
-                            <Button size="sm" variant="ghost" onClick={() => setConfirmId(null)}>
-                              Cancel
-                            </Button>
-                          </>
-                        ) : (
-                          <Button size="sm" variant="outline" onClick={() => setConfirmId(u.user_id)}>
+                        {!u.email_verified_at && (
+                          <Button size="sm" variant="outline" onClick={() => confirmEmail(u.user_id)}>
                             Mark confirmed
                           </Button>
-                        ))}
+                        )}
                         {!isMe && (
                           <Button
                             size="sm"
                             variant={u.is_active ? 'outline' : 'default'}
-                            onClick={() => patch(u.user_id, { is_active: !u.is_active })}
+                            onClick={() => toggleActive(u)}
                           >
                             {u.is_active ? 'Deactivate' : 'Activate'}
                           </Button>
@@ -244,6 +265,7 @@ export default function AdminUsersPage() {
           </table>
         </div>
       </Card>
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }

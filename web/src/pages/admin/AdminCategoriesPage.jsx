@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { FormField } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/icons';
+import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
 
 // Report categories and barangays: the lists CENRO can change without a
 // developer. Both were previously fixed - the categories as Prisma enums
@@ -31,6 +32,7 @@ function CategorySection({ kind, title, blurb, rows, onChanged, onError }) {
   const [saving, setSaving] = useState(false);
   const [addErr, setAddErr] = useState('');
   const [busyId, setBusyId] = useState(null);
+  const [confirmProps, ask] = useConfirm();
 
   const idOf = (r) => (kind === 'complaint' ? r.complaint_type_id : r.request_type_id);
 
@@ -56,6 +58,17 @@ function CategorySection({ kind, title, blurb, rows, onChanged, onError }) {
   }
 
   async function toggle(row) {
+    // Retiring is the direction that takes something away from residents.
+    // Restoring gives it back, so it needs no question.
+    if (row.is_active) {
+      const ok = await ask({
+        title: 'Retire this category?',
+        body: 'Residents will no longer be able to pick it. Reports already filed under it keep it and stay readable.',
+        confirmLabel: 'Retire',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
     setBusyId(idOf(row));
     onError('');
     try {
@@ -129,6 +142,7 @@ function CategorySection({ kind, title, blurb, rows, onChanged, onError }) {
           </Row>
         ))}
       </Card>
+      <ConfirmDialog {...confirmProps} />
     </section>
   );
 }
@@ -143,6 +157,7 @@ export default function AdminCategoriesPage() {
   const [savingBgy, setSavingBgy] = useState(false);
   const [bgyErr, setBgyErr] = useState('');
   const [busyBgy, setBusyBgy] = useState(null);
+  const [confirmProps, ask] = useConfirm();
 
   const load = useCallback(() => {
     Promise.all([adminApi.categories.list(), adminApi.barangays.list()])
@@ -176,6 +191,17 @@ export default function AdminCategoriesPage() {
   }
 
   async function toggleBarangay(b) {
+    // Not in the brief's table, but the same action on the same page: retiring
+    // a barangay takes it off the report forms.
+    if (b.is_active) {
+      const ok = await ask({
+        title: 'Retire this barangay?',
+        body: 'Residents will no longer be able to pick it. Reports already filed in it keep it and stay readable.',
+        confirmLabel: 'Retire',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
     setBusyBgy(b.barangay_id);
     setError('');
     try {
@@ -291,6 +317,7 @@ export default function AdminCategoriesPage() {
           ))}
         </Card>
       </section>
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 }

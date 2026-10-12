@@ -13,6 +13,7 @@ import { FormField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
 
 export default function WildlifeFormPage() {
   const [form, setForm] = useState({
@@ -35,6 +36,7 @@ export default function WildlifeFormPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmProps, ask] = useConfirm();
   const [success, setSuccess] = useState(null);
 
   const {
@@ -92,6 +94,15 @@ export default function WildlifeFormPage() {
     const errs = validate();
     setFieldErrors(errs);
     if (Object.keys(errs).length) return;
+
+    // Asked only after validate() passes, so nobody is asked to confirm a form
+    // that is about to be rejected anyway.
+    const ok = await ask({
+      title: 'Send this report to CENRO?',
+      body: 'CENRO will receive it straight away and you will be able to follow it in My Reports.',
+      confirmLabel: 'Send report',
+    });
+    if (!ok) return;
 
     const fd = new FormData();
     // Always a catalogue name or 'Other', because that is all the picker offers.
@@ -290,6 +301,7 @@ export default function WildlifeFormPage() {
       <FormField label="Photo" hint={`Optional: helps identify the species. / ${FORM_TL.photo}`}>
         <PhotoField onChange={setPhoto} />
       </FormField>
+      <ConfirmDialog {...confirmProps} />
     </ReportFormShell>
   );
 }
