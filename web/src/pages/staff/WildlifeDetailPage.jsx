@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
-import { humanize } from '@/lib/reports';
+import { humanize, turnoverMethodLabel } from '@/lib/reports';
 import { WILDLIFE_STATUSES, fmtDate, useSectionBase, isBreached } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
@@ -76,6 +76,7 @@ export default function WildlifeDetailPage() {
               <Rows rows={[
                 ['Category', w.species_category],
                 ['Condition', humanize(w.animal_condition)],
+                ['Turnover method', turnoverMethodLabel(w.turnover_method)],
                 ['Endangered', w.is_endangered ? 'Yes (priority review)' : 'No'],
                 ['Barangay', w.barangay?.name],
                 ['Submitted', fmtDate(w.submitted_at)],
@@ -86,6 +87,32 @@ export default function WildlifeDetailPage() {
                 ['Processed by', w.staff ? `${w.staff.first_name} ${w.staff.last_name}` : '—'],
               ]} />
             </div>
+
+            {/* Called out rather than left as one row among twelve, because it
+                is the one field that decides what the office does next: wait at
+                the counter, or send someone out. Shown only when the reporter
+                actually answered - a turnover filed before the question existed
+                gets nothing here rather than a guess. */}
+            {w.turnover_method && (
+              <div
+                className={`mt-3 rounded-md border p-3 text-sm ${
+                  w.turnover_method === 'Walk_In'
+                    ? 'border-emerald-200 bg-emerald-50'
+                    : 'border-amber-200 bg-amber-50'
+                }`}
+              >
+                <p className="font-medium">
+                  {w.turnover_method === 'Walk_In'
+                    ? 'In-person turnover at the CENRO office'
+                    : 'The reporter asked CENRO to collect the animal'}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {w.turnover_method === 'Walk_In'
+                    ? 'The reporter said they would bring the animal in. Record the receipt by moving this to Under care, which stamps the intake date, and add a chain-of-custody photo at the counter.'
+                    : 'Nobody is bringing this one in. Arrange the trip, then move it to Under care when the animal is with CENRO.'}
+                </p>
+              </div>
+            )}
 
             {/* Beside the Endangered row rather than behind a modal: this is a
                 one-click correction staff make while looking at the photo. */}

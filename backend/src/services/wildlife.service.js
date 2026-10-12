@@ -57,6 +57,7 @@ const DETAIL_SELECT = {
   longitude: true,
   address_details: true,
   status: true,
+  turnover_method: true,
   intake_date: true,
   release_date: true,
   transfer_destination: true,
@@ -133,6 +134,10 @@ async function createTurnover(userId, input, photoPath, ctx = {}) {
       latitude: input.latitude ?? null,
       longitude: input.longitude ?? null,
       address_details: input.address_details || null,
+      // Null when the client did not ask - an installed APK that predates the
+      // question, or any other old caller. Staff read that as "Not specified"
+      // rather than being shown a guess; see the column note in schema.prisma.
+      turnover_method: input.turnover_method || null,
       status: endangered ? 'Priority_Review' : 'Pending_Review',
       submitted_at,
       sla_started_at,

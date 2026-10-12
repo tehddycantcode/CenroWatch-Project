@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react';
 import { View, Text, TextInput, Image, Pressable, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { api, fileUrl } from '../../api/client';
-import { ANIMAL_CONDITIONS, humanize } from '../../lib/reports';
+import { ANIMAL_CONDITIONS, TURNOVER_METHODS, humanize } from '../../lib/reports';
 import { FORM_TL } from '../../lib/tagalog';
 import useBarangays from '../../lib/useBarangays';
 import useSpecies from '../../lib/useSpecies';
 import { withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '../../lib/otherCategory';
+import { HAZARD_LABEL, hasHazard } from '../../lib/speciesLabels';
 import { colors, radius } from '../../theme';
 import ReportFormShell, { Field } from '../../components/ReportFormShell';
 import Select from '../../components/Select';
@@ -54,6 +55,34 @@ function SpeciesOption({ value, checked, onPick, title, subtitle, photo }) {
   );
 }
 
+// The hazard badge and the species' own handling note, shown ON THE FORM and
+// not only on the website's public species guide. The person filling this in is
+// the one standing near the animal; they have no reason to have opened a guide
+// page first, and "keep your distance" is worth nothing on a screen they never
+// reach. Renders nothing when the catalogue row has neither.
+function SafetyNote({ species }) {
+  const hazard = hasHazard(species.hazard);
+  if (!hazard && !species.handling_note) return null;
+  return (
+    <View style={{ gap: 6, marginTop: 6 }}>
+      {hazard ? (
+        <Text style={styles.hazardBadge}>
+          {HAZARD_LABEL[species.hazard] || humanize(species.hazard)}
+        </Text>
+      ) : null}
+      {species.handling_note ? (
+        <View style={styles.handlingBox}>
+          <Text style={styles.handlingText}>
+            <Text style={styles.handlingLead}>Safe handling: </Text>
+            {species.handling_note}
+          </Text>
+          <Text style={styles.idMeta}>{FORM_TL.species_handling}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 // A heading plus its rows. Renders nothing when the search has emptied the
 // group, so a filtered list never shows a heading over no options.
 function SpeciesGroup({ title, subtitle, tone, rows, value, onPick }) {
@@ -86,6 +115,7 @@ export default function WildlifeFormScreen() {
   const [form, setForm] = useState({
     species_category: '',
     animal_condition: '',
+    turnover_method: '',
     description: '',
     barangay_id: '',
     address_details: '',
@@ -174,6 +204,8 @@ export default function WildlifeFormScreen() {
     // name would push them into guessing - which is worse than "Other" for both
     // the record and the staff reading it.
     if (!form.animal_condition) e.animal_condition = 'Select the animal condition.';
+    // Required here and optional at the API - see the web form and the validator.
+    if (!form.turnover_method) e.turnover_method = 'Tell us how the animal will reach CENRO.';
     if (!form.barangay_id) e.barangay_id = 'Please select a barangay.';
     // A pin OR a landmark - mirrors the API rule in
     // backend/src/validators/location.validators.js.
@@ -216,6 +248,7 @@ export default function WildlifeFormScreen() {
     // resident's answer for "Other", which has none of its own.
     if (isOther && form.species_category) fd.append('species_category', form.species_category);
     fd.append('animal_condition', form.animal_condition);
+    fd.append('turnover_method', form.turnover_method);
     fd.append('description', fullDescription);
     fd.append('barangay_id', String(form.barangay_id));
     if (form.address_details.trim()) fd.append('address_details', form.address_details.trim());
@@ -353,6 +386,18 @@ export default function WildlifeFormScreen() {
               {FORM_TL.species_protected}
             </Text>
           ) : null}
+          <SafetyNote species={selected} />
+        </View>
+      ) : null}
+
+      {/* "Other" has a catalogue row of its own and it carries the most
+          important handling note in the set - treat an unidentified animal as
+          dangerous. The identification card is suppressed for it (there is no
+          animal to identify), so without this the one person who does not know
+          what they are looking at got no safety guidance at all. */}
+      {isOther && byName.Other?.handling_note ? (
+        <View style={styles.otherSafety}>
+          <SafetyNote species={byName.Other} />
         </View>
       ) : null}
 
@@ -399,6 +444,37 @@ export default function WildlifeFormScreen() {
         placeholder="Select condition"
         error={fieldErrors.animal_condition}
       />
+
+      {/* NO DEFAULT IS PRE-SELECTED. Either answer is a commitment - one says a
+          person will walk into the office, the other books a trip for staff -
+          and a pre-ticked option would record a commitment the reporter never
+          made. Required here and optional at the API, so an installed APK that
+          predates the question keeps working; see the validator's note. */}
+      <Field
+        label="How will the animal reach CENRO?"
+        hint={FORM_TL.turnover_method}
+        error={fieldErrors.turnover_method}
+      >
+        <View style={{ gap: 8 }}>
+          {TURNOVER_METHODS.map((m) => {
+            const active = form.turnover_method === m.value;
+            return (
+              <Pressable
+                key={m.value}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: active }}
+                style={[styles.methodOption, active && styles.optionActive]}
+                onPress={() => set('turnover_method')(m.value)}
+              >
+                <Text style={[styles.optionTitle, active && styles.optionTitleActive]}>{m.label}</Text>
+                <Text style={styles.optionSub}>
+                  {m.value === 'Walk_In' ? FORM_TL.turnover_walkin : FORM_TL.turnover_pickup}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Field>
 
       <BarangayPicker
         items={barangays}
@@ -501,6 +577,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     backgroundColor: colors.border,
   },
+  // Safety guidance. Red for the hazard, matching the web form's red badge.
+  hazardBadge: {
+    alignSelf: 'flex-start',
+    fontSize: 12, fontWeight: '700', color: '#991b1b',
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.sm,
+  },
+  handlingBox: { gap: 4, backgroundColor: colors.tint, borderRadius: radius.sm, padding: 8 },
+  handlingText: { fontSize: 12, color: colors.text },
+  handlingLead: { fontWeight: '700' },
+  otherSafety: {
+    borderWidth: 1, borderColor: '#fcd34d', backgroundColor: '#fffbeb',
+    borderRadius: radius.md, padding: 12,
+  },
   // The two-group species picker, shown inline instead of inside a dropdown.
   groupHeader: {
     fontSize: 12, fontWeight: '700', textTransform: 'uppercase',
@@ -520,6 +610,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   optionActive: { borderColor: colors.primary, backgroundColor: colors.tint },
+  // Same chrome as a species row but stacked, since the label is a sentence.
+  methodOption: {
+    gap: 3,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+  },
   optionThumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.border },
   optionThumbEmpty: { backgroundColor: colors.tint },
   optionTitle: { fontSize: 15, fontWeight: '600', color: colors.text },

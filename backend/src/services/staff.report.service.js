@@ -163,6 +163,11 @@ async function writeWildlifeReport(doc, w, meta = {}) {
     ['Endangered', w.is_endangered ? 'Yes (priority review)' : 'No'],
     ['Condition', humanize(w.animal_condition)],
     ['Status', humanize(w.status)],
+    // "Not specified" rather than a guess: the column is nullable and every row
+    // filed before the question existed has none. Printing a default here would
+    // put a commitment the reporter never made onto the retained copy of the
+    // record.
+    ['Turnover method', w.turnover_method ? humanize(w.turnover_method) : 'Not specified'],
     ['Barangay', w.barangay?.name || 'Not set'],
     ['Filed', fmt(w.submitted_at)],
     ['SLA deadline', fmt(w.sla_deadline)],

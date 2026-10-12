@@ -4,6 +4,9 @@ const { locationRules } = require('./location.validators');
 // Mirrors the AnimalCondition enum in schema.prisma.
 const ANIMAL_CONDITIONS = ['Healthy', 'Injured', 'Sick', 'Dead'];
 
+// Mirrors the TurnoverMethod enum in schema.prisma.
+const TURNOVER_METHODS = ['Walk_In', 'Pickup_Request'];
+
 const createWildlifeRules = [
   body('barangay_id')
     .notEmpty().withMessage('Barangay is required.')
@@ -41,6 +44,16 @@ const createWildlifeRules = [
   // express-validator ignores unknown fields, so an old client sending it is
   // silently ignored rather than refused. DO NOT "restore" this rule.
 
+  // How the animal reaches CENRO. OPTIONAL at the API and required only in each
+  // client's own UI: making it mandatory here would 422 every report from an
+  // installed APK that predates the question, which is the shape of bug
+  // CLAUDE.md records for removing a field a client depends on - it fails AFTER
+  // the person has filled the whole form. `values: 'falsy'` is safe for this one
+  // (unlike the coordinate rules) because neither enum value is falsy.
+  body('turnover_method')
+    .optional({ values: 'falsy' })
+    .isIn(TURNOVER_METHODS).withMessage('Choose how the animal will reach CENRO.'),
+
   // A pin OR a landmark - see location.validators.js. Where an animal was found
   // matters more here than anywhere else: it is what the endangered-species
   // coordinate obfuscation operates on, and a turnover with neither a pin nor
@@ -48,4 +61,4 @@ const createWildlifeRules = [
   ...locationRules,
 ];
 
-module.exports = { createWildlifeRules, ANIMAL_CONDITIONS };
+module.exports = { createWildlifeRules, ANIMAL_CONDITIONS, TURNOVER_METHODS };

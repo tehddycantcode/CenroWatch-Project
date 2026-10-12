@@ -135,6 +135,15 @@ enum WildlifeReportedVia {
   Social_Media
 }
 
+// How the animal reaches CENRO. Two values, because they are the two things a
+// reporter can actually commit to: bring it in themselves, or ask CENRO to come
+// and get it. See the note on WildlifeTurnover.turnover_method for why this is
+// not the same field as WildlifeReportedVia.
+enum TurnoverMethod {
+  Walk_In
+  Pickup_Request
+}
+
 enum CenroPersonRole {
   CENRO_Head
   Administrative_Staff
@@ -460,6 +469,23 @@ model WildlifeTurnover {
   longitude               Float?
   address_details         String?         @db.VarChar(2000) // encrypted at rest
   status                  WildlifeStatus  @default(Pending_Review)
+
+  // How the animal gets to CENRO, chosen by the REPORTER when they file.
+  //
+  // NOT the same thing as `reported_via` below, which is the channel the report
+  // itself arrived through (a staff intake field, and currently unwired). This
+  // one answers "will someone bring the animal in, or does CENRO have to go and
+  // collect it?", which is what decides whether a counter receipt or a rescue
+  // trip is scheduled.
+  //
+  // NULLABLE on purpose, and the API accepts a create without it: every row
+  // written before this column existed has none, and so does every report from
+  // an installed APK that predates the OTA carrying the question. Both clients
+  // make it a required choice in their own UI, so new reports carry one without
+  // the API having to reject the old ones. Staff screens read a null as
+  // "Not specified" rather than guessing.
+  turnover_method         TurnoverMethod?
+
   intake_date             DateTime?
   release_date            DateTime?
   transfer_destination    String?         @db.VarChar(255)

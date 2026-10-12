@@ -49,6 +49,7 @@ const DETAIL_SELECT = {
   longitude: true,
   address_details: true,
   status: true,
+  turnover_method: true,
   intake_date: true,
   release_date: true,
   transfer_destination: true,

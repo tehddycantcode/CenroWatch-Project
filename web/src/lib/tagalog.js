@@ -99,6 +99,9 @@ export const FORM_TL = {
   request_type: 'Pumili ng serbisyo',
   type_other: 'Isulat kung ano ito',
   species_name: 'Pumili ng hayop',
+  turnover_method: 'Dadalhin mo ba, o hihilingin mong sunduin ng CENRO?',
+  turnover_walkin: 'Ikaw mismo ang magdadala sa CENRO office.',
+  turnover_pickup: 'Hihilingin mong sunduin ito ng CENRO. Hindi ito garantisadong agad.',
   animal_condition: 'Pumili ng lagay ng hayop',
   barangay: 'Pumili ng barangay',
   description: 'Isulat ang nangyari',
@@ -119,6 +122,7 @@ export const FORM_TL = {
   species_other: 'Wala sa listahan? Ilarawan mo na lang',
   species_also_called: 'Tinatawag ding',
   species_found_in: 'Karaniwang makikita sa',
+  species_handling: 'Basahin ito bago lumapit sa hayop.',
   species_protected: 'Protektadong species ito. Mapupunta ang ulat na ito sa priority review, at nakatago ang eksaktong lokasyon nito sa public map.',
 };
 

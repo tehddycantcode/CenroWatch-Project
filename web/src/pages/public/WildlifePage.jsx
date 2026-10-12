@@ -3,37 +3,10 @@ import { Link } from 'react-router-dom';
 import { gisApi, fileUrl } from '@/lib/api';
 import { humanize } from '@/lib/reports';
 import { useSpecies } from '@/lib/useSpecies';
+import { INDICATOR_TONE, HAZARD_TONE, HAZARD_LABEL, BADGE, hasHazard } from '@/lib/speciesLabels';
 import PublicHeader from '@/components/public/PublicHeader';
 import { Card } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/icons';
-
-// Keyed on SpeciesIndicator. The old map keyed on display strings and included
-// 'Caution: Venomous', which conflated conservation standing with danger - those
-// are separate fields now (indicator and hazard), because a Reticulated Python
-// is Native but dangerous and a Philippine Duck is Vulnerable but harmless.
-const INDICATOR_TONE = {
-  Common: { bg: 'bg-slate-100', fg: 'text-slate-700' },
-  Native: { bg: 'bg-emerald-100', fg: 'text-emerald-800' },
-  Endemic: { bg: 'bg-purple-100', fg: 'text-purple-800' },
-  Near_Threatened: { bg: 'bg-orange-100', fg: 'text-orange-800' },
-  Vulnerable: { bg: 'bg-amber-100', fg: 'text-amber-800' },
-  Endangered: { bg: 'bg-red-100', fg: 'text-red-800' },
-  Critically_Endangered: { bg: 'bg-red-200', fg: 'text-red-900' },
-};
-
-const HAZARD_TONE = { bg: 'bg-red-100', fg: 'text-red-800' };
-
-// Written out rather than run through humanize(), which would print
-// "Powerful Bite Or Talons". These are read by someone standing near the animal,
-// so each one is phrased as the warning rather than as an enum value.
-const HAZARD_LABEL = {
-  Venomous: 'Venomous',
-  Aggressive: 'Can be aggressive',
-  Disease_Risk: 'Disease risk',
-  Powerful_Bite_Or_Talons: 'Powerful bite or talons',
-};
-
-const BADGE = 'rounded px-2 py-0.5 text-xs font-semibold';
 
 // `indicator` is descriptive and nullable - an Admin may add a species without
 // deciding its conservation standing. Nothing is shown in that case: defaulting
@@ -198,7 +171,7 @@ export default function WildlifePage() {
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1">
                         <IndicatorBadge indicator={s.indicator} />
-                        {s.hazard && s.hazard !== 'None' && (
+                        {hasHazard(s.hazard) && (
                           <span className={`${BADGE} ${HAZARD_TONE.bg} ${HAZARD_TONE.fg}`}>
                             {HAZARD_LABEL[s.hazard] || humanize(s.hazard)}
                           </span>

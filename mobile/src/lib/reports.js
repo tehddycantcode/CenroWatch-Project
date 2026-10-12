@@ -8,6 +8,16 @@
 // still a real enum describing an animal's clinical state, not a filing
 // category an office should redefine.
 
+// Mirrors the TurnoverMethod enum. How the animal gets to CENRO, chosen by the
+// reporter. Spelled out rather than humanized: "Walk In" and "Pickup Request"
+// do not say who does the carrying, and that is the whole point of the field.
+// A DUPLICATE of the web copy in web/src/lib/reports.js - mobile is a separate
+// app and cannot import from web/src (see mobile/AGENTS.md).
+export const TURNOVER_METHODS = [
+  { value: 'Walk_In', label: 'I will bring the animal to the CENRO office' },
+  { value: 'Pickup_Request', label: 'Please send CENRO staff to collect it' },
+];
+
 export const ANIMAL_CONDITIONS = [
   { value: 'Healthy', label: 'Healthy' },
   { value: 'Injured', label: 'Injured' },

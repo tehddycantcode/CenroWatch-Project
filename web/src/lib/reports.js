@@ -14,6 +14,34 @@ export const ANIMAL_CONDITIONS = [
   { value: 'Dead', label: 'Dead' },
 ];
 
+// Mirrors the TurnoverMethod enum. How the animal gets to CENRO, chosen by the
+// reporter. Spelled out rather than run through humanize(), which would print
+// "Walk In" and "Pickup Request" - neither of which says who does the carrying,
+// and that is the entire point of the field for the staff member reading it.
+//
+// `description` is what the RESIDENT picks from; `staffLabel` is what staff see
+// on the queue and the detail page. Two phrasings of one value, because the
+// resident is choosing and the staff member is being told.
+export const TURNOVER_METHODS = [
+  {
+    value: 'Walk_In',
+    label: 'I will bring the animal to the CENRO office',
+    staffLabel: 'Walk-in (reporter brings the animal)',
+  },
+  {
+    value: 'Pickup_Request',
+    label: 'Please send CENRO staff to collect it',
+    staffLabel: 'Pickup requested (CENRO collects)',
+  },
+];
+
+// Null is a real state: every turnover filed before the question existed has no
+// method, and so does one from an app version that never asked. Never default
+// it to a value - that would put a commitment on the record that nobody made.
+export function turnoverMethodLabel(value) {
+  return TURNOVER_METHODS.find((m) => m.value === value)?.staffLabel || 'Not specified';
+}
+
 // Human-friendly label for any enum value ("Open_Burning" -> "Open Burning").
 export function humanize(value) {
   return value ? String(value).replace(/_/g, ' ') : '';

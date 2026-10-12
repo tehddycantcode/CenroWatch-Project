@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { wildlifeApi, fileUrl } from '@/lib/api';
-import { ANIMAL_CONDITIONS, humanize } from '@/lib/reports';
+import { ANIMAL_CONDITIONS, TURNOVER_METHODS, humanize } from '@/lib/reports';
 import { FORM_TL } from '@/lib/tagalog';
 import { useSpecies } from '@/lib/useSpecies';
+import { HAZARD_TONE, HAZARD_LABEL, BADGE, hasHazard } from '@/lib/speciesLabels';
 import { withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '@/lib/otherCategory';
 import { Bird } from 'lucide-react';
 import ReportFormShell from '@/components/resident/ReportFormShell';
@@ -62,6 +63,33 @@ function SpeciesOption({ value, checked, onPick, title, subtitle, photo }) {
   );
 }
 
+// The hazard badge and the species' own handling note, shown ON THE FORM and
+// not only on the public species guide. The person filling this in is the one
+// standing near the animal; they have no reason to have visited a guide page
+// first, and "keep your distance" is worth nothing on a page they never open.
+// Renders nothing when the catalogue row has neither, so a species an Admin
+// added without guidance shows no empty panel.
+function SafetyNote({ species }) {
+  const hazard = hasHazard(species.hazard);
+  if (!hazard && !species.handling_note) return null;
+  return (
+    <div className="mt-2">
+      {hazard && (
+        <span className={`${BADGE} ${HAZARD_TONE.bg} ${HAZARD_TONE.fg}`}>
+          {HAZARD_LABEL[species.hazard] || humanize(species.hazard)}
+        </span>
+      )}
+      {species.handling_note && (
+        <div className="mt-1.5 rounded-md bg-accent/50 p-2 text-xs">
+          <span className="font-semibold">Safe handling: </span>
+          {species.handling_note}
+          <span className="mt-1 block text-muted-foreground">{FORM_TL.species_handling}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // A heading plus its rows. Renders nothing when the search has emptied the
 // group, so a filtered list never shows a heading over no options.
 function SpeciesGroup({ title, subtitle, tone, rows, value, onPick }) {
@@ -95,6 +123,7 @@ export default function WildlifeFormPage() {
   const [form, setForm] = useState({
     species_category: '',
     animal_condition: '',
+    turnover_method: '',
     description: '',
     barangay_id: '',
     address_details: '',
@@ -164,6 +193,10 @@ export default function WildlifeFormPage() {
     // name would push them into guessing - which is worse than "Other" for both
     // the record and the staff reading it.
     if (!form.animal_condition) errs.animal_condition = 'Select the animal condition.';
+    // Required HERE but optional at the API, deliberately: an installed APK that
+    // predates this question must keep working. See the rule in
+    // backend/src/validators/wildlife.validators.js.
+    if (!form.turnover_method) errs.turnover_method = 'Tell us how the animal will reach CENRO.';
     // A pin OR a landmark. Mirrors the API rule in
     // backend/src/validators/location.validators.js.
     const hasPin = location.latitude != null && location.longitude != null;
@@ -205,6 +238,7 @@ export default function WildlifeFormPage() {
     // resident's answer for "Other", which has none of its own.
     if (isOther && form.species_category) fd.append('species_category', form.species_category);
     fd.append('animal_condition', form.animal_condition);
+    fd.append('turnover_method', form.turnover_method);
     fd.append('description', fullDescription);
     fd.append('barangay_id', form.barangay_id);
     // is_endangered is deliberately NOT sent: the server derives it from the species.
@@ -340,6 +374,18 @@ export default function WildlifeFormPage() {
               {FORM_TL.species_protected}
             </p>
           )}
+          <SafetyNote species={selected} />
+        </div>
+      )}
+
+      {/* "Other" has a catalogue row of its own and it carries the most
+          important handling note in the set - treat an unidentified animal as
+          dangerous. The identification card is suppressed for it (there is no
+          animal to identify), so without this the one person who does not know
+          what they are looking at got no safety guidance at all. */}
+      {isOther && byName.Other?.handling_note && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+          <SafetyNote species={byName.Other} />
         </div>
       )}
 
@@ -391,6 +437,41 @@ export default function WildlifeFormPage() {
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </Select>
+      </FormField>
+
+      {/* NO DEFAULT IS PRE-SELECTED. Either answer is a commitment - one says a
+          person will walk into the office, the other books a trip for staff -
+          and a pre-ticked box would record a commitment the reporter never
+          made. Required here and optional at the API, so an installed APK that
+          predates the question keeps working; see the validator's note. */}
+      <FormField label="How will the animal reach CENRO?" hint={FORM_TL.turnover_method} error={fieldErrors.turnover_method}>
+        <div role="radiogroup" aria-label="How will the animal reach CENRO?" className="grid gap-2">
+          {TURNOVER_METHODS.map((m) => (
+            <label
+              key={m.value}
+              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition ${
+                form.turnover_method === m.value
+                  ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                  : 'hover:bg-accent/50'
+              }`}
+            >
+              <input
+                type="radio"
+                name="turnover_method"
+                value={m.value}
+                checked={form.turnover_method === m.value}
+                onChange={() => setForm((f) => ({ ...f, turnover_method: m.value }))}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="block font-medium">{m.label}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {m.value === 'Walk_In' ? FORM_TL.turnover_walkin : FORM_TL.turnover_pickup}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
       </FormField>
 
       <FormField id="barangay_id" label="Barangay" hint={FORM_TL.barangay} error={fieldErrors.barangay_id}>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MapPin, ArrowLeft } from 'lucide-react';
 import { complaintApi, wildlifeApi, requestApi, fileUrl, isPdfPath } from '@/lib/api';
-import { trackingKind, KIND, humanize } from '@/lib/reports';
+import { trackingKind, KIND, humanize, turnoverMethodLabel } from '@/lib/reports';
 import { KIND_TL, COPY_TL } from '@/lib/tagalog';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
@@ -40,6 +40,10 @@ function buildView(kind, d) {
         ['Species', d.species_name],
         ['Category', d.species_category || '—'],
         ['Condition', humanize(d.animal_condition)],
+        // Shown back to the reporter because it is the one row here that is a
+        // commitment THEY made - someone who said they would walk the animal in
+        // needs to be able to check that is still what the record says.
+        ...(d.turnover_method ? [['Turnover method', turnoverMethodLabel(d.turnover_method)]] : []),
         ['Endangered', d.is_endangered ? 'Yes (priority review)' : 'No'],
         ['Barangay', d.barangay?.name],
         ['Submitted', fmt(d.submitted_at)],
