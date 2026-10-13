@@ -28,6 +28,24 @@ const LABEL = '#7c8a83';
 const RULE = '#d2dbd6';
 const INK = '#3f4b45'; // signature rules - darker than RULE, it is written on
 
+// Emphasis palette. Each tone is an ink and a tint of the same hue, so a
+// highlighted element reads as part of the document rather than as a sticker on
+// top of it.
+//
+// COLOUR IS NEVER THE ONLY SIGNAL. These documents get printed, and a CENRO
+// office printer is as likely to be greyscale as not - a red cell that says
+// "Yes" is meaningless in black and white. Every callout therefore carries a
+// WORD ("SLA BREACHED", "ENDANGERED SPECIES"), and the tint is what makes it
+// findable at a glance, not what makes it readable.
+const TONES = {
+  good: { ink: '#15683a', tint: '#ecfdf3', rule: '#a6f4c5' },
+  warn: { ink: '#b54708', tint: '#fffaeb', rule: '#fedf89' },
+  danger: { ink: '#b42318', tint: '#fef3f2', rule: '#fecdca' },
+  note: { ink: '#5a3fa8', tint: '#f5f3ff', rule: '#d9d6fe' },
+  neutral: { ink: '#51605a', tint: '#f3f5f4', rule: RULE },
+};
+const tone = (name) => TONES[name] || TONES.neutral;
+
 const humanize = (v) => (v == null ? '' : String(v).replace(/_/g, ' '));
 
 const textWidth = (doc) => doc.page.width - doc.page.margins.left - doc.page.margins.right;
@@ -191,6 +209,111 @@ function stampPages(doc, { reference, note = '' } = {}) {
 // ---------------------------------------------------------------------------
 // Sections and fields
 
+// ---------------------------------------------------------------------------
+// Emphasis
+//
+// What gets highlighted is deliberately SHORT. A document where six things are
+// emphasised has nothing emphasised - the eye needs somewhere to rest. Only two
+// categories qualify: the one fact that says where the case stands (its status),
+// and the exceptional conditions a reader must not miss (an SLA breach, an
+// endangered animal, a priority flag, an anonymous filing). Ordinary fields stay
+// ordinary.
+
+/**
+ * A filled status pill, drawn at an explicit position.
+ * @returns {number} the width it occupied, so a caller can lay out beside it.
+ */
+function statusChip(doc, label, toneName, x, y, { size = 8 } = {}) {
+  const t = tone(toneName);
+  const text = String(label).toUpperCase();
+  doc.fontSize(size).font('Helvetica-Bold');
+  const w = doc.widthOfString(text, { characterSpacing: 0.4 }) + 16;
+  const h = size + 9;
+  doc.save().fillColor(t.tint).roundedRect(x, y, w, h, (size + 9) / 2).fill().restore();
+  doc.save().lineWidth(0.8).strokeColor(t.rule)
+    .roundedRect(x, y, w, h, (size + 9) / 2).stroke().restore();
+  doc.fillColor(t.ink)
+    .text(text, x, y + 5, { width: w, align: 'center', characterSpacing: 0.4, lineBreak: false });
+  doc.fillColor('#000');
+  return w;
+}
+
+/**
+ * The exception strip: one tinted row per condition a reader must not miss.
+ *
+ * Renders nothing when `items` is empty, which is the common case - a routine
+ * case in good standing has no strip at all, and that absence is itself the
+ * signal. Each item is `{ label, detail, tone }`, and the LABEL carries the
+ * meaning so the row survives a greyscale printer.
+ */
+function calloutBar(doc, items) {
+  const list = (items || []).filter(Boolean);
+  if (!list.length) return;
+  const left = doc.page.margins.left;
+  const w = textWidth(doc);
+
+  for (const item of list) {
+    const t = tone(item.tone);
+    doc.fontSize(8).font('Helvetica');
+    const detailW = w - 150;
+    const h = Math.max(20, doc.heightOfString(String(item.detail || ''), { width: detailW }) + 10);
+    ensureSpace(doc, h + 6);
+    const y = doc.y;
+
+    doc.save().fillColor(t.tint).rect(left, y, w, h).fill().restore();
+    // A 3pt bar on the leading edge, which is what still reads as "flagged"
+    // once the tint has gone grey in a photocopy.
+    doc.save().fillColor(t.ink).rect(left, y, 3, h).fill().restore();
+
+    doc.fontSize(8).font('Helvetica-Bold').fillColor(t.ink)
+      .text(String(item.label).toUpperCase(), left + 12, y + 6, {
+        width: 140, characterSpacing: 0.4, lineBreak: false,
+      });
+    if (item.detail) {
+      doc.fontSize(8).font('Helvetica').fillColor(t.ink)
+        .text(String(item.detail), left + 152, y + 6, { width: detailW - 10 });
+    }
+    doc.fillColor('#000');
+    doc.x = left;
+    doc.y = y + h + 5;
+  }
+}
+
+/**
+ * A tinted box for the one passage that answers "what was actually done".
+ *
+ * The resolution note is the most-read paragraph on a closed case and it used to
+ * sit in the same grey as the description above it.
+ */
+function calloutBox(doc, title, text, toneName = 'neutral') {
+  if (!text) return;
+  const t = tone(toneName);
+  const left = doc.page.margins.left;
+  const w = textWidth(doc);
+  const inner = w - 28;
+
+  doc.fontSize(9.5).font('Helvetica');
+  const h = doc.heightOfString(String(text), { width: inner }) + (title ? 26 : 16);
+  ensureSpace(doc, h + 8);
+  const y = doc.y;
+
+  doc.save().fillColor(t.tint).rect(left, y, w, h).fill().restore();
+  doc.save().fillColor(t.ink).rect(left, y, 3, h).fill().restore();
+
+  let cur = y + 8;
+  if (title) {
+    doc.fontSize(7).font('Helvetica-Bold').fillColor(t.ink)
+      .text(String(title).toUpperCase(), left + 14, cur, { width: inner, characterSpacing: 0.5 });
+    cur = doc.y + 3;
+  }
+  doc.fontSize(9.5).font('Helvetica').fillColor('#000')
+    .text(String(text), left + 14, cur, { width: inner });
+
+  doc.x = left;
+  doc.y = y + h + 8;
+  doc.fillColor('#000');
+}
+
 /**
  * Section label: uppercase, green, over a hairline.
  *
@@ -230,11 +353,17 @@ const heading = (doc, text) => section(doc, text);
  * "Not set" eleven times is what made the old report look unfinished, and it
  * is the reason this document can carry more detail and read as less cluttered.
  */
-function fieldGrid(doc, pairs, { cols = 2 } = {}) {
+function fieldGrid(doc, pairs, { cols = 2, emphasise = [] } = {}) {
   const items = (pairs || []).filter(
     ([, v]) => v !== null && v !== undefined && String(v).trim() !== '',
   );
   if (!items.length) return;
+
+  // A handful of fields answer "where does this case stand" and the rest are
+  // supporting detail. Emphasised ones are set in bold at the same size - not
+  // larger, not coloured - which is enough to find them while scanning and
+  // quiet enough that the grid still reads as one table.
+  const strong = new Set(emphasise);
 
   const left = doc.page.margins.left;
   const gut = 18;
@@ -250,7 +379,7 @@ function fieldGrid(doc, pairs, { cols = 2 } = {}) {
     for (const [k, v] of row) {
       doc.fontSize(7).font('Helvetica-Bold');
       labelH = Math.max(labelH, doc.heightOfString(String(k).toUpperCase(), { width: colW }));
-      doc.fontSize(9.5).font('Helvetica');
+      doc.fontSize(9.5).font(strong.has(k) ? 'Helvetica-Bold' : 'Helvetica');
       valueH = Math.max(valueH, doc.heightOfString(String(v), { width: colW }));
     }
     const rowH = labelH + valueH + 7;
@@ -261,7 +390,7 @@ function fieldGrid(doc, pairs, { cols = 2 } = {}) {
       const x = left + j * (colW + gut);
       doc.fontSize(7).font('Helvetica-Bold').fillColor(LABEL)
         .text(String(k).toUpperCase(), x, y, { width: colW, characterSpacing: 0.5 });
-      doc.fontSize(9.5).font('Helvetica').fillColor('#000')
+      doc.fontSize(9.5).font(strong.has(k) ? 'Helvetica-Bold' : 'Helvetica').fillColor('#000')
         .text(String(v), x, y + labelH, { width: colW });
     });
 
@@ -599,8 +728,9 @@ function createReportDocument(title = 'CENROWATCH Analytics Report') {
 }
 
 module.exports = {
-  GREEN, MUTED, LABEL, RULE, humanize, textWidth, ensureSpace, hairline,
+  GREEN, MUTED, LABEL, RULE, TONES, humanize, textWidth, ensureSpace, hairline,
   letterhead, withRunningHeader, stampPages,
   section, heading, fieldGrid, drawRow, kv, paragraph, ruledLines, signatureBlock,
+  statusChip, calloutBar, calloutBox,
   createReportDocument, prepareEmbeddable, attachment, drawAttachment, photoGrid,
 };

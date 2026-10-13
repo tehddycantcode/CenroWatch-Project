@@ -25,7 +25,8 @@
 const {
   MUTED, humanize, letterhead, withRunningHeader, stampPages, section,
   fieldGrid, drawRow, paragraph, signatureBlock, photoGrid, attachment,
-  createReportDocument, ensureSpace,
+  createReportDocument, ensureSpace, statusChip, calloutBar, calloutBox,
+  textWidth,
 } = require('./report.layout');
 const storage = require('./storage');
 
@@ -68,7 +69,23 @@ const CLASSIFICATION = {
 // ---------------------------------------------------------------------------
 // Shared blocks
 
-function issuedLine(doc, meta, audience) {
+// Which tone a status carries. Terminal-and-successful reads green, refused
+// reads red, everything in flight reads amber, and anything not yet started
+// stays neutral - so the chip answers "is this done, stuck, or moving?" before
+// the word is read.
+const STATUS_TONE = {
+  // complaint
+  Pending: 'neutral', Under_Review: 'warn', Approved: 'warn', In_Progress: 'warn',
+  Resolved: 'good', Rejected: 'danger',
+  // wildlife
+  Pending_Review: 'neutral', Priority_Review: 'warn', Under_Care: 'warn',
+  Released: 'good', Transferred: 'good', Deceased: 'danger',
+  // request
+  Scheduled: 'warn', Completed: 'good',
+};
+
+// The status chip on the left, who issued it on the right, on one line.
+function issuedLine(doc, meta, audience, status) {
   const when = fmt(meta.generatedAt || Date.now());
   // The resident copy names no staff member. The resident-facing selects
   // deliberately omit every staff identity (see complaint.service DETAIL_SELECT),
@@ -76,10 +93,62 @@ function issuedLine(doc, meta, audience) {
   const text = audience === 'resident'
     ? `Issued ${when}`
     : `Generated ${when}${meta.by ? ` by ${meta.by}` : ''}`;
+
+  const left = doc.page.margins.left;
+  const y = doc.y;
+  if (status) statusChip(doc, humanize(status), STATUS_TONE[status] || 'neutral', left, y);
+
   doc.fontSize(7.5).font('Helvetica').fillColor(MUTED)
-    .text(text, doc.page.margins.left, doc.y, { width: 400, lineBreak: false });
-  doc.y += 12;
+    .text(text, left, y + 5, { width: textWidth(doc), align: 'right', lineBreak: false });
+  doc.x = left;
+  doc.y = y + 24;
   doc.fillColor('#000');
+}
+
+// The exceptions a reader must not miss, as a tinted strip under the chip.
+//
+// EMPTY IS THE COMMON CASE and that is the point: a routine case in good
+// standing shows no strip at all, so the strip's presence means something.
+// Each entry states its condition in WORDS, because these get printed on
+// greyscale office printers where the tint is the first thing to vanish.
+function exceptions(doc, r, kind, audience) {
+  const out = [];
+  const official = audience !== 'resident';
+  // The breach flag and the archive state are measures of CENRO's own handling
+  // and are not on the resident's tracking page, so they are not on their copy
+  // either - same rule as every other field here.
+  if (official && r.exceeded_sla) {
+    out.push({
+      tone: 'danger',
+      label: 'SLA breached',
+      detail: `The Citizens Charter deadline of ${fmt(r.sla_deadline) || 'this case'} passed before it was closed.`,
+    });
+  }
+  if (kind === 'wildlife' && r.is_endangered) {
+    out.push({
+      tone: 'note',
+      label: 'Endangered species',
+      detail: 'Handled under priority review; the exact location is withheld from the public map.',
+    });
+  }
+  if (kind === 'complaint' && r.priority) {
+    out.push({ tone: 'warn', label: 'Priority', detail: 'Flagged by CENRO for expedited handling.' });
+  }
+  if (official && kind === 'complaint' && r.is_anonymous) {
+    out.push({
+      tone: 'neutral',
+      label: 'Filed anonymously',
+      detail: 'No name, account or contact detail was recorded, and this report cannot be linked back to a filer.',
+    });
+  }
+  if (official && r.archived_at) {
+    out.push({
+      tone: 'neutral',
+      label: 'Archived',
+      detail: r.archive_reason ? String(r.archive_reason) : 'Removed from the active queues by an administrator.',
+    });
+  }
+  calloutBar(doc, out);
 }
 
 // Who filed it. Walk-in and anonymous reports have no linked account, so the
@@ -130,10 +199,13 @@ function notesBlock(doc, r, audience) {
   if (!r.staff_notes && !r.resolution_notes) return;
   section(doc, title);
   if (r.staff_notes) paragraph(doc, r.staff_notes);
+  // The resolution is the most-read paragraph on a closed case - it is the
+  // answer to "what did the office actually do" - and it used to sit in the
+  // same grey as the description. A tinted box with a green edge is enough to
+  // find it without shouting.
   if (r.resolution_notes) {
     doc.y += 6;
-    paragraph(doc, 'Resolution', { bold: true, size: 8.5, color: MUTED });
-    paragraph(doc, r.resolution_notes);
+    calloutBox(doc, 'How it was resolved', r.resolution_notes, 'good');
   }
 }
 
@@ -370,13 +442,18 @@ async function writeComplaintReport(doc, c, meta = {}) {
   const audience = meta.audience === 'resident' ? 'resident' : 'official';
   const resident = audience === 'resident';
   letterhead(doc, { title: KINDS.complaint[audience], reference: c.tracking_id });
-  issuedLine(doc, meta, audience);
+  issuedLine(doc, meta, audience, c.status);
+  exceptions(doc, c, 'complaint', audience);
 
   section(doc, resident ? 'Your Report' : 'Case Summary');
+  // Status is NOT a row here any more - it is the chip under the title band,
+  // where it cannot be missed. The flags below stay as rows even though the
+  // strip above repeats the true ones, because "Priority: No" and "SLA
+  // breached: No" are facts an auditor needs stated, and a strip that only
+  // appears on exceptions cannot state them.
   fieldGrid(doc, resident
     ? [
       ['Type', humanize(c.complaint_type)],
-      ['Status', humanize(c.status)],
       ['Barangay', c.barangay?.name],
       ['Priority', yesNo(c.priority)],
       ['Filed', fmt(c.submitted_at)],
@@ -388,7 +465,6 @@ async function writeComplaintReport(doc, c, meta = {}) {
     ]
     : [
       ['Type', humanize(c.complaint_type)],
-      ['Status', humanize(c.status)],
       ['Priority', yesNo(c.priority)],
       ['Filed anonymously', yesNo(c.is_anonymous)],
       ['Barangay', c.barangay?.name],
@@ -399,7 +475,7 @@ async function writeComplaintReport(doc, c, meta = {}) {
       ['SLA breached', yesNo(c.exceeded_sla)],
       ['Resolved', fmt(c.resolved_at) || 'Not yet resolved'],
       ['Assigned to', staffName(c.assigned_staff) || 'Unassigned'],
-    ]);
+    ], { emphasise: ['Resolved', 'Type'] });
 
   section(doc, 'Description');
   paragraph(doc, c.description || 'No description provided.');
@@ -432,7 +508,8 @@ async function writeWildlifeReport(doc, w, meta = {}) {
   const audience = meta.audience === 'resident' ? 'resident' : 'official';
   const resident = audience === 'resident';
   letterhead(doc, { title: KINDS.wildlife[audience], reference: w.reference_id });
-  issuedLine(doc, meta, audience);
+  issuedLine(doc, meta, audience, w.status);
+  exceptions(doc, w, 'wildlife', audience);
 
   section(doc, resident ? 'Your Report' : 'Case Summary');
   fieldGrid(doc, resident
@@ -445,7 +522,6 @@ async function writeWildlifeReport(doc, w, meta = {}) {
       // would put a commitment the reporter never made onto the record.
       ['Turnover method', w.turnover_method ? humanize(w.turnover_method) : 'Not specified'],
       ['Endangered', w.is_endangered ? 'Yes - priority review' : 'No'],
-      ['Status', humanize(w.status)],
       ['Barangay', w.barangay?.name],
       ['Filed', fmt(w.submitted_at)],
       ['Service commitment', fmt(w.sla_deadline)],
@@ -455,7 +531,6 @@ async function writeWildlifeReport(doc, w, meta = {}) {
       ['Category', w.species_category],
       ['Endangered', w.is_endangered ? 'Yes - priority review' : 'No'],
       ['Condition on report', humanize(w.animal_condition)],
-      ['Status', humanize(w.status)],
       ['Turnover method', w.turnover_method ? humanize(w.turnover_method) : 'Not specified'],
       ['Barangay', w.barangay?.name],
       ['Filed', fmt(w.submitted_at)],
@@ -469,7 +544,9 @@ async function writeWildlifeReport(doc, w, meta = {}) {
       // here - the staff detail page has always shown it, the PDF never did.
       ['Processed by', staffName(w.staff) || 'Unassigned'],
       ['Chain-of-custody photos', String((w.chain_of_custody_photos || []).length)],
-    ]);
+      // Emphasised because on a turnover these two ARE the outcome: what it was
+      // and where it ended up.
+    ], { emphasise: ['Species', 'Transfer destination'] });
 
   section(doc, 'Description');
   paragraph(doc, w.description || 'No description provided.');
@@ -504,13 +581,13 @@ async function writeRequestReport(doc, r, meta = {}) {
   const audience = meta.audience === 'resident' ? 'resident' : 'official';
   const resident = audience === 'resident';
   letterhead(doc, { title: KINDS.request[audience], reference: r.tracking_id });
-  issuedLine(doc, meta, audience);
+  issuedLine(doc, meta, audience, r.status);
+  exceptions(doc, r, 'request', audience);
 
   section(doc, resident ? 'Your Request' : 'Case Summary');
   fieldGrid(doc, resident
     ? [
       ['Service', humanize(r.request_type)],
-      ['Status', humanize(r.status)],
       ['Barangay', r.barangay?.name],
       ['Quantity requested', r.requested_quantity == null ? null : String(r.requested_quantity)],
       ['Preferred schedule', fmt(r.preferred_schedule)],
@@ -521,7 +598,6 @@ async function writeRequestReport(doc, r, meta = {}) {
     ]
     : [
       ['Service', humanize(r.request_type)],
-      ['Status', humanize(r.status)],
       ['Barangay', r.barangay?.name],
       ['Quantity requested', r.requested_quantity == null ? null : String(r.requested_quantity)],
       ['Preferred schedule', fmt(r.preferred_schedule)],
@@ -535,7 +611,7 @@ async function writeRequestReport(doc, r, meta = {}) {
       ['Approved by CENRO Head', yesNo(r.approved_by_cenro_head)],
       ['Approval date', fmt(r.approval_date)],
       ['Processed by', staffName(r.processor) || 'Unassigned'],
-    ]);
+    ], { emphasise: ['Service', 'Completed'] });
 
   section(doc, 'Description');
   paragraph(doc, r.description || 'No description provided.');

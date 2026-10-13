@@ -40,6 +40,9 @@ jest.mock('../src/services/report.layout', () => {
     section: jest.fn((...a) => actual.section(...a)),
     paragraph: jest.fn((...a) => actual.paragraph(...a)),
     fieldGrid: jest.fn((...a) => actual.fieldGrid(...a)),
+    statusChip: jest.fn((...a) => actual.statusChip(...a)),
+    calloutBar: jest.fn((...a) => actual.calloutBar(...a)),
+    calloutBox: jest.fn((...a) => actual.calloutBox(...a)),
   };
 });
 
@@ -66,6 +69,10 @@ const gridPairs = () => layout.fieldGrid.mock.calls.flatMap(([, pairs]) => pairs
 const gridLabels = () => gridPairs().map(([k]) => k);
 const gridValue = (label) => (gridPairs().find(([k]) => k === label) || [])[1];
 const paragraphs = () => layout.paragraph.mock.calls.map(([, text]) => String(text));
+// Every exception row drawn, flattened across calls.
+const callouts = () => layout.calloutBar.mock.calls.flatMap(([, items]) => items || []);
+const calloutLabels = () => callouts().map((c) => c.label);
+const chips = () => layout.statusChip.mock.calls.map(([, label, toneName]) => ({ label, tone: toneName }));
 
 const staff = { user_id: 3, first_name: 'Maria', last_name: 'Santos' };
 const user = { user_id: 9, first_name: 'Juan', last_name: 'Dela Cruz', email: 'j@example.com', contact_number: '0917' };
@@ -382,6 +389,83 @@ describe('the resident copy', () => {
     const history = [{ new_status: 'Resolved', note: 'Cleared.', changed_at: new Date('2026-10-09') }];
     const { pages } = await render('complaint', complaint({ status_history: history }), 'resident');
     expect(pages).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('emphasis - the status chip and the exception strip', () => {
+  test('every report gets a status chip, toned by where the case stands', async () => {
+    await render('complaint', complaint({ status: 'Resolved' }));
+    expect(chips()).toEqual([{ label: 'Resolved', tone: 'good' }]);
+
+    jest.clearAllMocks();
+    await render('complaint', complaint({ status: 'Rejected', resolved_at: null }));
+    expect(chips()[0].tone).toBe('danger');
+
+    jest.clearAllMocks();
+    await render('complaint', complaint({ status: 'In_Progress', resolved_at: null }));
+    expect(chips()[0]).toEqual({ label: 'In Progress', tone: 'warn' });
+  });
+
+  test('status is NOT also a grid row - the chip is the one place it lives', async () => {
+    await render('complaint', complaint());
+    expect(gridLabels()).not.toContain('Status');
+  });
+
+  test('a routine case in good standing draws NO strip at all', async () => {
+    // The strip's presence is the signal, so it must be absent by default.
+    await render('complaint', complaint({ priority: false, exceeded_sla: false, is_anonymous: false }));
+    expect(callouts()).toEqual([]);
+  });
+
+  test('an SLA breach is flagged, and the flag says so in WORDS', async () => {
+    // These get printed on greyscale office printers, where the tint is the
+    // first thing to vanish. A red cell saying "Yes" would mean nothing.
+    await render('complaint', complaint({ exceeded_sla: true }));
+    expect(calloutLabels()).toContain('SLA breached');
+    expect(callouts().find((c) => c.label === 'SLA breached').tone).toBe('danger');
+  });
+
+  test('an endangered turnover and a priority complaint are each flagged', async () => {
+    await render('wildlife', wildlife({ is_endangered: true }));
+    expect(calloutLabels()).toContain('Endangered species');
+
+    jest.clearAllMocks();
+    await render('complaint', complaint({ priority: true }));
+    expect(calloutLabels()).toContain('Priority');
+  });
+
+  test('an anonymous complaint and an archived case are flagged on the OFFICIAL copy', async () => {
+    await render('complaint', complaint({ is_anonymous: true, user: null, archived_at: new Date(), archive_reason: 'Duplicate' }));
+    expect(calloutLabels()).toEqual(expect.arrayContaining(['Filed anonymously', 'Archived']));
+  });
+
+  test('the resident copy withholds the breach, the anonymity flag and the archive state', async () => {
+    // Same disclosure rule as the rest of this document: it shows only what the
+    // tracking page shows. None of these three are on it.
+    await render('complaint', complaint({
+      exceeded_sla: true, is_anonymous: true, archived_at: new Date(), priority: true,
+    }), 'resident');
+    expect(calloutLabels()).not.toContain('SLA breached');
+    expect(calloutLabels()).not.toContain('Filed anonymously');
+    expect(calloutLabels()).not.toContain('Archived');
+    // Priority IS on the tracking page, so it stays.
+    expect(calloutLabels()).toContain('Priority');
+  });
+
+  test('the resident still sees the endangered flag, which their tracking page shows', async () => {
+    await render('wildlife', wildlife({ is_endangered: true, exceeded_sla: true }), 'resident');
+    expect(calloutLabels()).toEqual(['Endangered species']);
+  });
+
+  test('the resolution gets its own tinted box, not another grey paragraph', async () => {
+    await render('complaint', complaint({ resolution_notes: 'Waste hauled on 9 October.' }));
+    const boxes = layout.calloutBox.mock.calls.map(([, title, text]) => ({ title, text }));
+    expect(boxes).toEqual([{ title: 'How it was resolved', text: 'Waste hauled on 9 October.' }]);
+  });
+
+  test('no resolution means no box', async () => {
+    await render('complaint', complaint({ resolution_notes: null, staff_notes: 'Coordinated.' }));
+    expect(layout.calloutBox).not.toHaveBeenCalled();
   });
 });
 
