@@ -10,6 +10,7 @@ const validate = require('../middlewares/validate');
 const { diskUpload, MAX_FILES } = require('../middlewares/upload');
 const { createWildlifeRules } = require('../validators/wildlife.validators');
 const controller = require('../controllers/wildlife.controller');
+const residentReports = require('../controllers/resident.report.controller');
 
 const upload = diskUpload('wildlife');
 
@@ -28,6 +29,9 @@ router.use(authenticate);
 // failure shape CLAUDE.md records twice. The controller merges the two.
 router.post('/', upload.fields(PHOTO_FIELDS), requireVerifiedEmail, createWildlifeRules, validate, controller.create);
 router.get('/mine', controller.listMine);
+// The resident's own PDF copy. Two segments, so it cannot collide with the
+// one-segment /:referenceId below. Ownership is enforced by the service.
+router.get('/:referenceId/report', residentReports.wildlifeCopy);
 router.get('/:referenceId', controller.getByRef);
 
 module.exports = router;

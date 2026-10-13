@@ -10,6 +10,7 @@ const validate = require('../middlewares/validate');
 const { diskUpload, DOC_MIME, MAX_FILES } = require('../middlewares/upload');
 const { createRequestRules } = require('../validators/request.validators');
 const controller = require('../controllers/request.controller');
+const residentReports = require('../controllers/resident.report.controller');
 
 const upload = diskUpload('requests', DOC_MIME);
 
@@ -31,6 +32,9 @@ router.use(authenticate);
 // lose sight of requests they filed before the gate existed.
 router.post('/', upload.fields(REQUEST_FIELDS), requireVerifiedEmail, createRequestRules, validate, controller.create);
 router.get('/mine', controller.listMine);
+// The resident's own PDF copy. Two segments, so it cannot collide with the
+// one-segment /:trackingId below. Ownership is enforced by the service.
+router.get('/:trackingId/report', residentReports.requestCopy);
 router.get('/:trackingId', controller.getByTracking);
 
 module.exports = router;

@@ -10,6 +10,7 @@ const validate = require('../middlewares/validate');
 const { diskUpload, MAX_FILES } = require('../middlewares/upload');
 const { createComplaintRules, createAnonymousComplaintRules } = require('../validators/complaint.validators');
 const controller = require('../controllers/complaint.controller');
+const residentReports = require('../controllers/resident.report.controller');
 
 const upload = diskUpload('complaints');
 
@@ -47,6 +48,10 @@ router.post('/', upload.fields(PHOTO_FIELDS), requireVerifiedEmail, createCompla
 // READS STAY OPEN. An unconfirmed resident must keep seeing reports they filed
 // before the gate existed; withholding those punishes them for a slow mailbox.
 router.get('/mine', controller.listMine);
+// The resident's own PDF copy. Two segments, so it cannot collide with the
+// one-segment /:trackingId below. Ownership is enforced by the service, the
+// same as the JSON read.
+router.get('/:trackingId/report', residentReports.complaintCopy);
 router.get('/:trackingId', controller.getByTracking);
 
 module.exports = router;
