@@ -8,7 +8,7 @@
 
 const { body } = require('express-validator');
 const {
-  CATEGORY_VALUES, BIOME_VALUES, INDICATOR_VALUES, HAZARD_VALUES,
+  CATEGORY_VALUES, BIOME_VALUES, HABITAT_VALUES, INDICATOR_VALUES, HAZARD_VALUES,
 } = require('../services/species.service');
 
 const optionalEnum = (field, values, label) =>
@@ -22,6 +22,7 @@ const shared = [
   body('scientific_name').optional({ values: 'falsy' }).trim().isLength({ max: 200 }),
   body('local_name').optional({ values: 'falsy' }).trim().isLength({ max: 200 }),
   optionalEnum('biome', BIOME_VALUES, 'Biome'),
+  optionalEnum('habitat', HABITAT_VALUES, 'Habitat'),
   optionalEnum('indicator', INDICATOR_VALUES, 'Indicator'),
   optionalEnum('hazard', HAZARD_VALUES, 'Hazard'),
   body('is_endangered').optional().isBoolean().toBoolean(),

@@ -84,9 +84,10 @@ enum SpeciesCategory {
   Reptile
 }
 
-// Primary habitat, as an identification aid ("where you would expect to find
-// it"). One value per species: several of these animals use more than one
-// habitat, so if filtering by biome is ever required this becomes a join table.
+// The ECOSYSTEM a species is found in, as an identification aid ("where you
+// would expect to find it"). One value per species: several of these animals
+// use more than one, so if filtering by biome is ever required this becomes a
+// join table. Not to be confused with SpeciesHabitat below - see its note.
 enum SpeciesBiome {
   Forest
   Freshwater
@@ -94,6 +95,24 @@ enum SpeciesBiome {
   Agricultural
   Urban
   Cave
+}
+
+// WHERE THE ANIMAL LIVES AND MOVES, at the coarsest grain a resident reasons
+// about: in the water, on the ground, or in the air.
+//
+// A SEPARATE AXIS FROM SpeciesBiome, and the examples are what justify keeping
+// both. Three species share biome Lakeshore_Wetland and split three ways here:
+// the Philippine Duck swims (Aquatic), the Black-crowned Night Heron wades, the
+// Collared Kingfisher flies (Air). And it is not derivable from
+// SpeciesCategory either: a Large Flying Fox is a Mammal that flies, so any
+// rule of the form "Bird means Air" is wrong on the first interesting case.
+//
+// Air covers anything primarily airborne, which in this catalogue is birds and
+// one bat - it is NOT a synonym for "bird", for the reason above.
+enum SpeciesHabitat {
+  Aquatic
+  Land
+  Air
 }
 
 // Conservation standing. DESCRIPTIVE ONLY - it does not decide obfuscation.
@@ -288,6 +307,16 @@ model Species {
   // and stay optional on both create and update.
   category  SpeciesCategory?
   biome     SpeciesBiome?
+  // WHERE THE ANIMAL LIVES, at the coarsest useful grain. Deliberately a
+  // SEPARATE axis from `biome`, which is the ecosystem it is found in - the two
+  // do not determine each other, and that is the whole reason both exist. Three
+  // species share biome Lakeshore_Wetland and split across habitats: the
+  // Philippine Duck swims, the Night Heron wades, the Collared Kingfisher flies.
+  //
+  // Nor is it derivable from `category`. A Large Flying Fox is a Mammal that
+  // flies, so Bird-means-Air would be wrong for it; that species is exactly why
+  // this is stored rather than computed.
+  habitat   SpeciesHabitat?
   indicator SpeciesIndicator?
   hazard    SpeciesHazard     @default(None)
 

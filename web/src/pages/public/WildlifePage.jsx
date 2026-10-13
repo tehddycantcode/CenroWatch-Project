@@ -69,14 +69,31 @@ const FIELD_GUIDANCE = [
   },
 ];
 
+// Where the animal lives. Offered as a filter because it is the one axis a
+// visitor can answer from memory - they saw it in the creek, on the ground, or
+// flying - without knowing what it was, which is the position somebody opening a
+// field guide is actually in.
+const HABITAT_FILTERS = [
+  { value: '', label: 'All habitats' },
+  { value: 'Aquatic', label: 'Aquatic' },
+  { value: 'Land', label: 'Land' },
+  { value: 'Air', label: 'Air' },
+];
+
 export default function WildlifePage() {
   const [stats, setStats] = useState(null);
+  const [habitat, setHabitat] = useState('');
   const { common, endangered, loading, error } = useSpecies();
 
   // Every species except the `Other` sentinel, which the hook keeps separate: it
   // stands in for "an animal not in the catalogue" and is not an animal, so it
   // must never appear in a field guide.
-  const rows = common.concat(endangered);
+  const allRows = common.concat(endangered);
+  // A species with no habitat recorded is HIDDEN by a habitat filter rather than
+  // shown under every one - the filter answers "show me the ones that live
+  // here", and a row with no answer does not belong in any of them. It is still
+  // in the unfiltered list, which is the default.
+  const rows = habitat ? allRows.filter((s) => s.habitat === habitat) : allRows;
 
   // Attribution for every photo on this page, the primary one AND each gallery
   // sample. A credit with no photo attributes nothing, so both are required.
@@ -87,9 +104,13 @@ export default function WildlifePage() {
   // CC BY / CC BY-SA image published with no attribution anywhere.
   // Deduplicated: a batch uploaded under one credit would otherwise repeat that
   // credit once per file.
+  // OVER allRows, NOT the filtered list. This is a legal attribution list for
+  // CC BY / CC BY-SA photographs, so it must not shrink when a visitor picks a
+  // habitat - a filtered-away credit is a photo published with no attribution
+  // anywhere on the site.
   const credits = [];
   const seen = new Set();
-  for (const s of rows) {
+  for (const s of allRows) {
     for (const credit of [s.photo_path ? s.photo_credit : null, ...(s.photos || []).map((p) => p.photo_credit)]) {
       const key = `${s.name}|${credit}`;
       if (credit && !seen.has(key)) {
@@ -181,11 +202,46 @@ export default function WildlifePage() {
               <Spinner className="h-4 w-4" />
               Loading the species guide&hellip;
             </p>
-          ) : rows.length === 0 ? (
+          ) : allRows.length === 0 ? (
             <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-muted-foreground">
               The species guide is still being prepared. You can report a wildlife sighting or turnover either way.
             </p>
           ) : (
+            <>
+              {/* Buttons rather than a <select>: with three options a dropdown
+                  hides the choices until opened, and the whole value of this
+                  filter is seeing that "where did you see it" is a question the
+                  guide can answer. Same lesson as the species grouping. */}
+              <div
+                role="group"
+                aria-label="Filter species by habitat"
+                className="mx-auto mt-8 flex max-w-5xl flex-wrap justify-center gap-2"
+              >
+                {HABITAT_FILTERS.map((f) => (
+                  <button
+                    key={f.value || 'all'}
+                    type="button"
+                    aria-pressed={habitat === f.value}
+                    onClick={() => setHabitat(f.value)}
+                    className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${
+                      habitat === f.value
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-input bg-background text-muted-foreground hover:bg-accent/50'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {rows.length === 0 ? (
+                <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-muted-foreground">
+                  No species in the guide are recorded as {habitat.toLowerCase()}.{' '}
+                  <button type="button" onClick={() => setHabitat('')} className="font-medium text-primary underline underline-offset-2">
+                    Show all species
+                  </button>
+                </p>
+              ) : (
             <div className="mx-auto mt-10 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {rows.map((s) => (
                 <Card key={s.name} className="flex flex-col overflow-hidden">
@@ -229,10 +285,13 @@ export default function WildlifePage() {
                       </div>
                     </div>
                     <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {[s.category, s.biome && humanize(s.biome)].filter(Boolean).join(' · ')}
+                      {[s.category, s.habitat, s.biome && humanize(s.biome)].filter(Boolean).join(' · ')}
                     </div>
+                    {/* Parentheses, not quotation marks: the convention across
+                        the guide is Common Name, scientific name in italics,
+                        local name in parentheses. */}
                     {s.local_name && (
-                      <p className="mt-2 text-xs text-muted-foreground">Also called &ldquo;{s.local_name}&rdquo;</p>
+                      <p className="mt-2 text-xs text-muted-foreground">Also called ({s.local_name})</p>
                     )}
                     <SampleStrip species={s} />
                     {/* A spacer even when empty, so the handling note stays
@@ -252,6 +311,8 @@ export default function WildlifePage() {
                 </Card>
               ))}
             </div>
+              )}
+            </>
           )}
 
           {credits.length > 0 && (

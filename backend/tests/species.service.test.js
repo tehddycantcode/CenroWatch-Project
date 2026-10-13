@@ -48,8 +48,11 @@ describe('listActive - what the report forms and the public page read', () => {
     const selected = Object.keys(prisma.species.findMany.mock.calls[0][0].select);
     // An allowlist, so adding a column to the model cannot silently widen a
     // public response.
+    // `habitat` was added 2026-10-13 and belongs here: it says whether an
+    // animal lives in water, on land or in the air. Species facts, nothing
+    // about a person - which is the only reason a field may join this list.
     expect(selected.sort()).toEqual([
-      'biome', 'body_description', 'category', 'handling_note', 'hazard',
+      'biome', 'body_description', 'category', 'habitat', 'handling_note', 'hazard',
       'indicator', 'is_endangered', 'local_name', 'name', 'photo_credit',
       'photo_path', 'photos', 'scientific_name', 'sort_order',
     ]);
@@ -164,6 +167,7 @@ describe('createSpecies', () => {
       local_name: 'Haribon',
       category: 'Bird',
       biome: 'Forest',
+      habitat: 'Air',
       indicator: 'Critically_Endangered',
       hazard: 'Aggressive',
       is_endangered: true,
@@ -179,6 +183,7 @@ describe('createSpecies', () => {
       local_name: 'Haribon',
       category: 'Bird',
       biome: 'Forest',
+      habitat: 'Air',
       indicator: 'Critically_Endangered',
       hazard: 'Aggressive',
       is_endangered: true,

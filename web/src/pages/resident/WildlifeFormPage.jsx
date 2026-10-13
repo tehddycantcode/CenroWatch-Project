@@ -183,7 +183,7 @@ function SpeciesGroup({ title, subtitle, tone, rows, value, onPick }) {
             checked={value === s.name}
             onPick={onPick}
             title={s.name}
-            subtitle={s.local_name ? `“${s.local_name}”` : s.scientific_name}
+            subtitle={s.local_name ? `(${s.local_name})` : s.scientific_name}
             photo={s.photo_path}
           />
         ))}
@@ -464,11 +464,12 @@ export default function WildlifeFormPage() {
             {selected.name}
             {selected.scientific_name && <span className="ml-1 font-normal italic text-muted-foreground">{selected.scientific_name}</span>}
           </p>
-          {selected.local_name && <p className="text-muted-foreground">{FORM_TL.species_also_called} &ldquo;{selected.local_name}&rdquo;</p>}
+          {selected.local_name && <p className="text-muted-foreground">{FORM_TL.species_also_called} ({selected.local_name})</p>}
           {selected.body_description && <p className="mt-1">{selected.body_description}</p>}
           <p className="mt-2 text-xs text-muted-foreground">
             {[
               selected.category,
+              selected.habitat,
               selected.biome && `${FORM_TL.species_found_in}: ${humanize(selected.biome)}`,
               selected.indicator && humanize(selected.indicator),
             ].filter(Boolean).join(' \u00b7 ')}

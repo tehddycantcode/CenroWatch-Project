@@ -34,6 +34,7 @@ const PUBLIC_FIELDS = {
   local_name: true,
   category: true,
   biome: true,
+  habitat: true,
   indicator: true,
   hazard: true,
   is_endangered: true,
@@ -187,6 +188,10 @@ async function resolveSpecies(submittedName, submittedCategory) {
 }
 
 const BIOME_VALUES = ['Forest', 'Freshwater', 'Lakeshore_Wetland', 'Agricultural', 'Urban', 'Cave'];
+// Where the animal lives, as opposed to the ecosystem it is found in. See the
+// SpeciesHabitat note in schema.prisma for why both exist and why this is not
+// derived from category - the Large Flying Fox is the case that settles it.
+const HABITAT_VALUES = ['Aquatic', 'Land', 'Air'];
 const INDICATOR_VALUES = ['Common', 'Native', 'Endemic', 'Near_Threatened', 'Vulnerable', 'Endangered', 'Critically_Endangered'];
 const HAZARD_VALUES = ['None', 'Venomous', 'Aggressive', 'Disease_Risk', 'Powerful_Bite_Or_Talons'];
 
@@ -269,6 +274,7 @@ async function createSpecies(adminId, input, ctx = {}) {
     local_name: textCapped(input.local_name, 200, 'Local name'),
     category: enumOrThrow(input.category, CATEGORY_VALUES, 'Category'),
     biome: enumOrThrow(input.biome, BIOME_VALUES, 'Biome'),
+    habitat: enumOrThrow(input.habitat, HABITAT_VALUES, 'Habitat'),
     indicator: enumOrThrow(input.indicator, INDICATOR_VALUES, 'Indicator'),
     hazard: enumOrThrow(input.hazard, HAZARD_VALUES, 'Hazard') || 'None',
     // Default false/true when omitted, matching the column defaults - but a
@@ -333,6 +339,7 @@ async function updateSpecies(adminId, id, input, ctx = {}) {
   if (input.local_name !== undefined) data.local_name = textCapped(input.local_name, 200, 'Local name');
   if (input.category !== undefined) data.category = enumOrThrow(input.category, CATEGORY_VALUES, 'Category');
   if (input.biome !== undefined) data.biome = enumOrThrow(input.biome, BIOME_VALUES, 'Biome');
+  if (input.habitat !== undefined) data.habitat = enumOrThrow(input.habitat, HABITAT_VALUES, 'Habitat');
   if (input.indicator !== undefined) data.indicator = enumOrThrow(input.indicator, INDICATOR_VALUES, 'Indicator');
   if (input.hazard !== undefined) data.hazard = enumOrThrow(input.hazard, HAZARD_VALUES, 'Hazard') || 'None';
   if (input.is_endangered !== undefined) data.is_endangered = toBool(input.is_endangered, 'is_endangered');
@@ -637,7 +644,7 @@ async function removeSpeciesPhoto(adminId, id, photoId, ctx = {}) {
 }
 
 module.exports = {
-  OTHER_SPECIES, PUBLIC_FIELDS, CATEGORY_VALUES, BIOME_VALUES, INDICATOR_VALUES, HAZARD_VALUES,
+  OTHER_SPECIES, PUBLIC_FIELDS, CATEGORY_VALUES, BIOME_VALUES, HABITAT_VALUES, INDICATOR_VALUES, HAZARD_VALUES,
   MAX_GALLERY_PHOTOS,
   listActive, listAll, resolveSpecies, createSpecies, updateSpecies, setSpeciesPhoto,
   addSpeciesPhotos, removeSpeciesPhoto,

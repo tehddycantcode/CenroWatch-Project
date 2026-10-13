@@ -28,6 +28,10 @@ import ConfirmDialog, { useConfirm } from '@/components/ui/confirm-dialog';
 
 const CATEGORIES = ['Bird', 'Mammal', 'Reptile'];
 const BIOMES = ['Forest', 'Freshwater', 'Lakeshore_Wetland', 'Agricultural', 'Urban', 'Cave'];
+// Where the animal lives, as distinct from BIOMES above, which is the ecosystem
+// it is found in. Both are kept because neither determines the other - three
+// species share Lakeshore_Wetland and split across all three habitats.
+const HABITATS = ['Aquatic', 'Land', 'Air'];
 const INDICATORS = ['Common', 'Native', 'Endemic', 'Near_Threatened', 'Vulnerable', 'Endangered', 'Critically_Endangered'];
 const HAZARDS = ['None', 'Venomous', 'Aggressive', 'Disease_Risk', 'Powerful_Bite_Or_Talons'];
 
@@ -44,6 +48,7 @@ const EMPTY_CREATE = {
   local_name: '',
   category: '',
   biome: '',
+  habitat: '',
   indicator: '',
   hazard: 'None',
   is_endangered: false,
@@ -355,6 +360,15 @@ function SpeciesRow({ row, busy, onField, onPhoto, onAddPhotos, onRemovePhoto })
         </td>
         <td className="px-4 py-3">
           <EnumSelect
+            label={`Habitat for ${row.name}`}
+            value={row.habitat}
+            options={HABITATS}
+            disabled={busy}
+            onChange={(v) => set({ habitat: v })}
+          />
+        </td>
+        <td className="px-4 py-3">
+          <EnumSelect
             label={`Indicator for ${row.name}`}
             value={row.indicator}
             options={INDICATORS}
@@ -599,6 +613,7 @@ export default function AdminSpeciesPage() {
         local_name: form.local_name.trim() || undefined,
         category: form.category,
         biome: form.biome || undefined,
+        habitat: form.habitat || undefined,
         indicator: form.indicator || undefined,
         hazard: form.hazard || 'None',
         is_endangered: form.is_endangered,
@@ -676,6 +691,12 @@ export default function AdminSpeciesPage() {
                 {BIOMES.map((b) => <option key={b} value={b}>{humanize(b)}</option>)}
               </Select>
             </FormField>
+            <FormField id="sp-habitat" label="Habitat" hint="Optional. Whether it lives in the water, on land, or in the air.">
+              <Select id="sp-habitat" value={form.habitat} onChange={setF('habitat')}>
+                <option value="">Not recorded</option>
+                {HABITATS.map((h) => <option key={h} value={h}>{h}</option>)}
+              </Select>
+            </FormField>
             <FormField id="sp-indicator" label="Indicator" hint="Optional. The conservation status shown on the species guide.">
               <Select id="sp-indicator" value={form.indicator} onChange={setF('indicator')}>
                 <option value="">Not recorded</option>
@@ -725,7 +746,7 @@ export default function AdminSpeciesPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <TableHead
-              columns={['Photo', 'Name', 'Category', 'Biome', 'Indicator', 'Hazard', 'Endangered', 'Used by', 'Active']}
+              columns={['Photo', 'Name', 'Category', 'Biome', 'Habitat', 'Indicator', 'Hazard', 'Endangered', 'Used by', 'Active']}
             />
             <tbody className="divide-y">
               {rows.map((row) => (
