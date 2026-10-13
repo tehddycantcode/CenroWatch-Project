@@ -1,6 +1,15 @@
 # Web-to-APK (Adviser Suggestion) - Decision Record
 
 Date: 2026-07-17
+
+> **Partly superseded 2026-10-13.** The decision itself stands. One premise no
+> longer holds: this record says "push notifications and offline mode are out of
+> scope", and push was subsequently built - server, FCM credentials, app code
+> and an APK containing `expo-notifications`. See
+> `docs/push-notifications-remaining.md`. Left as written rather than edited,
+> because the reasoning was sound on the evidence available at the time and
+> rewriting it would hide that the scope changed. Offline mode remains out of
+> scope.
 Status: Decided with the team - no code change now; this document is the
 deliverable, written to be brought to the thesis adviser.
 

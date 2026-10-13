@@ -1,39 +1,58 @@
 # Push notifications — what is left
 
-**State (2026-09-25):**
+**State (2026-10-13):**
 
 | Half | State |
 |---|---|
-| Server | **done, tested, deployed** (`17753b2`) |
+| Server | **done, tested, deployed** (`17753b2`) — 14 tests |
 | FCM credentials | **done** — Firebase project `cenrowatch-mobile-app`, FCM V1 service-account key uploaded to EAS |
-| App code | **done** — see the plan and spec below |
-| **Build + on-device verification** | **NOT DONE. This is all that remains.** |
+| App code | **done** — present and wired; 14 tests on the pure logic |
+| **Build with the native module** | **DONE** — build `589c0f39-9ffc-4b3a-b61c-56b452861015`, runtime `5fee0555b1dbfc34024e59e6df885e5d5d4aa19c` |
+| **OTA** | **WORKING** — re-verified 2026-10-13, local fingerprint matches that build exactly |
+| **On-device verification** | **NOT DONE. This is all that remains, and it needs a physical Android phone.** |
 
 Design: `docs/superpowers/specs/2026-09-25-mobile-push-notifications-design.md`
 Plan: `docs/superpowers/plans/2026-09-25-mobile-push-notifications.md`
 
-> **OTA IS CURRENTLY BROKEN, BY DESIGN.** `expo-notifications` landed in
-> `df1aed5`, which changed the EAS fingerprint. `eas update` no longer reaches
-> the installed APK (`7181dd4a`, runtime `a1d292d6…`) and will report success
-> while reaching nobody. **The build below is what fixes that.** Until it runs,
-> no JS change can ship to a phone.
+> **This file used to say the build had not run and that OTA was broken, citing
+> runtime `a1d292d6…`.** Both were true when it was written (2026-09-25) and
+> both are now false: a build containing `expo-notifications` shipped, and
+> `eas fingerprint:compare --build-id 589c0f39-…` reports an exact match, so
+> `eas update` reaches installed phones again. Two OTA updates have been
+> published against that runtime since.
+
+---
+
+## What is wired, end to end
+
+Worth stating because it is spread across six files and reads as unfinished
+when it is not:
+
+```
+staff changes a status
+  → staff.{complaint,wildlife,request}.service.js
+  → notification.service.js  notifyStatusChange()
+      ├── writes the in-app Notification row
+      └── push.service.js  notifyReportUpdate()   ← NOT awaited, never rejects
+            → one HTTPS POST to exp.host
+            → Expo relays to FCM with the credential stored in EAS
+            → mobile/src/lib/push.js receives it
+```
+
+The app registers its token on sign-in and deletes it on sign-out
+(`AuthContext.js`), prompts once with `PushPermissionPrompt`, and makes a
+decline reversible from the Profile screen.
 
 ---
 
 ## What remains
 
-### 1. Build
+### 1. Install the APK on a REAL device
 
-```bash
-cd mobile
-eas build --platform android --profile preview
-```
+Push does not work in Expo Go, and an emulator needs Play Services. The current
+build is `589c0f39-9ffc-4b3a-b61c-56b452861015`.
 
-### 2. Install on a REAL device
-
-Push does not work in Expo Go, and an emulator needs Play Services.
-
-### 3. Verify — do not skip step 2 of this list
+### 2. Verify — do not skip step 2 of this list
 
 1. Sign in → the permission prompt appears → **Allow** → accept the OS dialog.
 2. **Confirm a `PushToken` row exists for that user.** This is the step that
@@ -62,28 +81,25 @@ Push does not work in Expo Go, and an emulator needs Play Services.
     the session is *restored* rather than freshly logged in), then sign out.
     The `PushToken` row must still be gone. This is the path that previously
     left a phone registered to someone who had signed out.
-11. **Offline sign-out** (deferred from the code work, which could not test it
-   without this build): sign in, enable airplane mode, sign out. It must return
-   to the login screen with no error and no hang.
+11. **Offline sign-out:** sign in, enable airplane mode, sign out. It must
+    return to the login screen with no error and no hang.
 12. **Decline path:** fresh install → **Don't allow** → confirm the prompt does
-   not return on the next launch, and that the Profile toggle turns it back on.
+    not return on the next launch, and that the Profile toggle turns it back on.
 
-### 4. Re-pin OTA to the new fingerprint
+> Steps 1 and 2 are the ones that distinguish "the code is right" from "it
+> works". Everything above them has been verified by tests or by inspection;
+> nothing below them has been verified at all.
+
+### 3. If a later build changes the native side
 
 ```bash
 eas fingerprint:compare --build-id <new build id>
 ```
 
-Expected: no differences. A CRLF difference here silently stops updates reaching
-the build — see the `.gitattributes` entries, which now cover
-`mobile/google-services.json` as well.
-
-### 5. Rewrite the manuscript
-
-`notification.service.js` used to say push was out of scope, and the paper's
-limitations section says the same. Once this is verified that is no longer true:
-it becomes a limitation identified and then closed, which is a better story, but
-it has to be rewritten rather than left.
+Expected: no differences. A CRLF difference here silently stops updates
+reaching the build — `.gitattributes` pins `eas.json`, `app.json`,
+`.gitignore`, `package.json` and `mobile/google-services.json` to LF for
+exactly this reason, and all five were confirmed LF on 2026-10-13.
 
 ---
 
@@ -148,3 +164,12 @@ never registered with FCM and token registration fails.
 The app never imports Firebase, and the API never talks to it: `push.service.js`
 sends one HTTPS POST to `exp.host`, and Expo relays to FCM using the credential
 stored in EAS. Firebase here is a delivery pipe, not an integration.
+
+## The production trap this already hit once
+
+`PushToken` was never created in the production database: migrations used to run
+on container boot, that was removed deliberately (see `backend/Dockerfile`), and
+the replacement Railway pre-deploy step had not been configured. Every push
+silently failed while the API reported success. The pre-deploy command
+(`npx prisma migrate deploy`, DEPLOYMENT.md Part 4) is configured now — a
+schema-touching deploy on 2026-10-13 applied cleanly, which re-confirms it.

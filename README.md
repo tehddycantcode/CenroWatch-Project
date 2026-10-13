@@ -75,9 +75,19 @@ npm start                     # opens Expo; scan QR with Expo Go
 - [x] **Sprint 4** — Admin analytics, GIS dashboard, audit logs, PDF export
 
 ### Notifications
-Residents are notified of report status changes via **email** (Nodemailer/Gmail) and an
-**in-app notification panel** (the bell in the resident header; `/notifications` API).
-Mobile/web **push notifications (FCM)** are intentionally **out of scope** for this capstone —
-documented as a future enhancement.
+Residents are notified of report status changes three ways: by **email**
+(Brevo over HTTPS in production, Nodemailer/Gmail locally), in an **in-app
+notification panel** (the bell in the resident header; `/notifications` API),
+and by **Android push notification** (Expo Push → FCM).
+
+Push was originally scoped out and then built: the server, the FCM credentials,
+the app code and the APK containing the native module are all done. What is
+still outstanding is verification on a physical phone — see
+[`docs/push-notifications-remaining.md`](./docs/push-notifications-remaining.md)
+for the checklist and for why the banner deliberately says almost nothing.
+
+iOS is not covered. Apple issues APNs push credentials only to paid developer
+accounts; the code is already cross-platform, so it is a credentials and budget
+decision rather than a rewrite.
 
 See [`CLAUDE.md`](./CLAUDE.md) for the authoritative project context and rules.

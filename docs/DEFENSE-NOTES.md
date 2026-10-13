@@ -5,7 +5,7 @@ the source on 2026-09-29, not from memory. If a panelist asks something not on a
 card, say "I'd have to check the code" rather than guess — that answer costs you
 far less than a wrong one.
 
-**Test figures you may quote:** backend **408 tests / 30 suites**, mobile
+**Test figures you may quote:** backend **758 tests / 47 suites**, mobile
 **47 tests / 4 suites**. Run `npm test` in `backend/` and `mobile/` to confirm on
 the day. The web app has **no test runner** — say so plainly if asked.
 
@@ -313,7 +313,7 @@ Panels probe for honesty. These are true, so say them plainly.
   them. It's the one privacy gap we know about and documented rather than hid.
 - **"What isn't tested?"** The web app has no test runner, and mobile UI
   components can't be unit-tested without a device — we test the pure logic
-  (47 tests) and verify screens on a real phone. Backend has 408 tests.
+  (47 tests) and verify screens on a real phone. Backend has 758 tests across 47 suites.
 - **"Biggest bug you found?"** The `PushToken` table was never created in
   production: migrations used to run on container boot, that was removed, and the
   replacement pre-deploy step was never configured. Every push silently failed

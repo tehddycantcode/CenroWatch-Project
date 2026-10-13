@@ -822,16 +822,26 @@ Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
     was true of the container only.
 - Known gotcha: Express 5 req.query is read-only — coerce query params in services
   (see memory `express5-query-readonly`).
-- **Push notifications are HALF DONE and that is deliberate.** The server side
-  is live (`push.service.js`, `PushToken` + migration, `POST/DELETE
-  /notifications/devices`, hooked into `notifyStatusChange`, 14 tests). The APP
-  side is NOT started, because `expo-notifications` is a native module:
-  installing it changes the EAS fingerprint, which blocks OTA updates to the
-  installed APK until a new build exists. The backend is inert until a device
-  registers, so nothing is broken meanwhile. Everything remaining — FCM
-  credentials, packages, the app code, the build, and the manuscript change —
-  is written down in `docs/push-notifications-remaining.md`. **The banner
-  deliberately says nothing identifying** (no reference, no status, no staff
-  note) because it is readable on a locked phone; the tests assert that
-  absence, so "make it more useful" fails the suite rather than quietly
-  undoing it.
+- **Push notifications are CODE-COMPLETE and unverified on a phone.** This entry
+  used to read "HALF DONE ... the APP side is NOT started", which has been wrong
+  since the `expo-notifications` build shipped. Current state, re-checked
+  2026-10-13: the server is live (`push.service.js`, `PushToken`, `POST/DELETE
+  /notifications/devices`, 14 tests) and is reached from all three staff
+  services via `notification.service.js` → `notifyStatusChange` →
+  `notifyReportUpdate` — **not** `utils/notify.js`, which is where you will look
+  first and not find it. The app half is present and wired
+  (`lib/push.js`, `lib/pushDecision.js` + 14 tests, `PushPermissionPrompt`,
+  `AuthContext` register/unregister, the Profile toggle), FCM credentials are
+  uploaded to EAS, and the APK containing the native module is build
+  `589c0f39-9ffc-4b3a-b61c-56b452861015` (runtime
+  `5fee0555b1dbfc34024e59e6df885e5d5d4aa19c`). **OTA is NOT blocked** — the
+  local fingerprint matches that build exactly, confirmed before each publish.
+  What remains is the one thing no test can do: installing it on a real Android
+  phone and walking the 12-step checklist in
+  `docs/push-notifications-remaining.md`. Steps 1-2 of that list are the ones
+  that matter — if `getExpoPushTokenAsync()` fails, sign-in still succeeds, no
+  `PushToken` row is written, and the server sends to nobody while reporting
+  success. **The banner deliberately says nothing identifying** (no reference,
+  no status, no staff note) because it is readable on a locked phone; the tests
+  assert that absence, so "make it more useful" fails the suite rather than
+  quietly undoing it.
