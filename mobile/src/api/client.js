@@ -142,6 +142,26 @@ let speciesFetchedAt = 0;
 // hour, the same figure web/src/lib/api.js uses - keep the two in step.
 const SPECIES_MAX_AGE_MS = 15 * 60 * 1000;
 
+// Ask the server for a short-lived link to this report's PDF, and return it as
+// an absolute URL ready for Linking.openURL.
+//
+// WHY A LINK AND NOT A DOWNLOAD. The app authenticates with a Bearer header out
+// of expo-secure-store, but a PDF has to be handed to the PHONE'S BROWSER to be
+// viewed or saved, and that browser has neither the header nor a cookie. The
+// alternative - expo-sharing - is a native module, and adding one changes the
+// EAS fingerprint, which silently cuts every installed APK off from ALL
+// over-the-air updates until a new APK ships and everyone reinstalls. So the
+// server mints a credential good for one report, for a few minutes.
+//
+// The server returns a path relative to the API root rather than an absolute
+// URL, because building one there would depend on TRUST_PROXY being set and a
+// misconfiguration would hand an https deployment an http:// link. The client
+// already knows its own base.
+async function reportLink(base, reference, token) {
+  const res = await request(`/${base}/${reference}/report-link`, { token });
+  return `${API_URL}${res.data.path}`;
+}
+
 export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
@@ -212,16 +232,19 @@ export const api = {
     // 403 for it even to the person who filed it.
     createAnonymous: (form) => requestForm('/complaints/anonymous', form),
     trackPublic: (trackingId) => request(`/complaints/track/${trackingId}`),
+    reportLink: (trackingId, token) => reportLink('complaints', trackingId, token),
   },
   wildlife: {
     create: (form, token) => requestForm('/wildlife', form, token),
     mine: (token) => request('/wildlife/mine', { token }),
     get: (referenceId, token) => request(`/wildlife/${referenceId}`, { token }),
+    reportLink: (referenceId, token) => reportLink('wildlife', referenceId, token),
   },
   requests: {
     create: (form, token) => requestForm('/requests', form, token),
     mine: (token) => request('/requests/mine', { token }),
     get: (trackingId, token) => request(`/requests/${trackingId}`, { token }),
+    reportLink: (trackingId, token) => reportLink('requests', trackingId, token),
   },
 
   // In-app notifications. A user only ever sees and mutates their own — the

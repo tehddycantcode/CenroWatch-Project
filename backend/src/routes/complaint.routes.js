@@ -11,6 +11,7 @@ const { diskUpload, MAX_FILES } = require('../middlewares/upload');
 const { createComplaintRules, createAnonymousComplaintRules } = require('../validators/complaint.validators');
 const controller = require('../controllers/complaint.controller');
 const residentReports = require('../controllers/resident.report.controller');
+const signedReportLink = require('../middlewares/signedReportLink');
 
 const upload = diskUpload('complaints');
 
@@ -32,6 +33,20 @@ const PHOTO_FIELDS = [{ name: 'photo', maxCount: 1 }, { name: 'photos', maxCount
 router.post('/anonymous', upload.fields(PHOTO_FIELDS), createAnonymousComplaintRules, validate, controller.createAnonymous);
 router.get('/track/:trackingId', controller.trackPublic);
 
+// The resident's own PDF copy.
+//
+// DECLARED HERE, ABOVE the authenticate gate, ONLY so a short-lived signed link
+// can reach it - the phone's browser has no cookie and no Bearer header, and
+// the native module that would avoid needing a browser would cut every
+// installed APK off from OTA updates. It is NOT public: signedReportLink hands
+// a request with no signature straight to `authenticate`, so the web app takes
+// exactly the path it took before, and a request WITH one is refused unless the
+// HMAC verifies. The service's ownership check runs either way.
+//
+// Two segments, so it collides with neither /track/:trackingId above nor
+// /:trackingId below.
+router.get('/:trackingId/report', signedReportLink('complaint', 'trackingId'), residentReports.complaintCopy);
+
 // --- Everything below requires authentication ---
 router.use(authenticate);
 
@@ -48,10 +63,10 @@ router.post('/', upload.fields(PHOTO_FIELDS), requireVerifiedEmail, createCompla
 // READS STAY OPEN. An unconfirmed resident must keep seeing reports they filed
 // before the gate existed; withholding those punishes them for a slow mailbox.
 router.get('/mine', controller.listMine);
-// The resident's own PDF copy. Two segments, so it cannot collide with the
-// one-segment /:trackingId below. Ownership is enforced by the service, the
-// same as the JSON read.
-router.get('/:trackingId/report', residentReports.complaintCopy);
+// Mints the signed link the route above accepts. Authenticated normally, and it
+// loads the report through the same ownership check first, so a link only ever
+// exists for a report the caller could already open.
+router.get('/:trackingId/report-link', residentReports.complaintLink);
 router.get('/:trackingId', controller.getByTracking);
 
 module.exports = router;

@@ -17,6 +17,7 @@ const wildlifeService = require('../services/wildlife.service');
 const requestService = require('../services/request.service');
 const reportService = require('../services/staff.report.service');
 const { writeAuditLog } = require('../utils/audit');
+const { signReport } = require('../utils/reportToken');
 
 const KINDS = {
   complaint: {
@@ -25,6 +26,7 @@ const KINDS = {
     targetTable: 'Complaint',
     targetId: (r) => r.complaint_id,
     action: 'COMPLAINT_RESIDENT_COPY_EXPORT',
+    base: 'complaints',
   },
   wildlife: {
     load: (ref, userId) => wildlifeService.getMyTurnoverByRef(userId, ref),
@@ -32,6 +34,7 @@ const KINDS = {
     targetTable: 'WildlifeTurnover',
     targetId: (r) => r.turnover_id,
     action: 'WILDLIFE_RESIDENT_COPY_EXPORT',
+    base: 'wildlife',
   },
   request: {
     load: (ref, userId) => requestService.getMyRequestByTracking(userId, ref),
@@ -39,6 +42,7 @@ const KINDS = {
     targetTable: 'EnvironmentalRequest',
     targetId: (r) => r.request_id,
     action: 'REQUEST_RESIDENT_COPY_EXPORT',
+    base: 'requests',
   },
 };
 
@@ -61,7 +65,11 @@ function exportCopy(kind) {
       action: cfg.action,
       targetTable: cfg.targetTable,
       targetId: cfg.targetId(record),
-      data: { reference, format: 'pdf' },
+      // `via` distinguishes a download taken inside the app or the web console
+      // from one opened through a short-lived signed link in the phone's
+      // browser. Same person either way - the link carries the user it was
+      // minted for - but the trail should say which door was used.
+      data: { reference, format: 'pdf', via: req.viaSignedLink ? 'signed_link' : 'session' },
       ipAddress: req.ip,
     });
 
@@ -82,8 +90,41 @@ function exportCopy(kind) {
   });
 }
 
+/**
+ * Mint a short-lived link to the PDF above that opens without a session.
+ *
+ * FOR THE PHONE. The mobile app holds its token in expo-secure-store and sends
+ * it as a Bearer header, but a PDF has to be handed to the phone's browser to be
+ * viewed or saved, and that browser carries neither the header nor a cookie.
+ * This is authenticated normally and does the SAME ownership load as the export
+ * itself, so a link is only ever minted for a report the caller already has.
+ *
+ * Returns a path relative to the API root rather than an absolute URL: the
+ * client already knows its own API base, and building one here would depend on
+ * req.protocol being correct, which in turn depends on TRUST_PROXY being set -
+ * a misconfiguration would hand an https deployment an http:// link.
+ */
+function linkFor(kind) {
+  const cfg = KINDS[kind];
+  return asyncHandler(async (req, res) => {
+    const ref = req.params.trackingId || req.params.referenceId;
+    // Loaded, not trusted: this 403s or 404s before any link exists if the
+    // report is not theirs.
+    const record = await cfg.load(ref, req.user.user_id);
+    const reference = cfg.ref(record);
+    const query = signReport(kind, reference, req.user.user_id);
+    res.json({
+      success: true,
+      data: { path: `/${cfg.base}/${encodeURIComponent(reference)}/report?${query}` },
+    });
+  });
+}
+
 module.exports = {
   complaintCopy: exportCopy('complaint'),
   wildlifeCopy: exportCopy('wildlife'),
   requestCopy: exportCopy('request'),
+  complaintLink: linkFor('complaint'),
+  wildlifeLink: linkFor('wildlife'),
+  requestLink: linkFor('request'),
 };

@@ -103,11 +103,34 @@ function buildView(kind, d) {
 // blocks nested three levels deep inside that choice. Separating them means
 // the screen reads as the three states it actually has, and everything below
 // only ever runs with a report in hand, so none of it needs `view?.` guards.
-function ReportDetail({ view, kind }) {
+const COPY_FETCHERS = {
+  complaint: (ref, token) => api.complaints.reportLink(ref, token),
+  wildlife: (ref, token) => api.wildlife.reportLink(ref, token),
+  request: (ref, token) => api.requests.reportLink(ref, token),
+};
+
+function ReportDetail({ view, kind, token }) {
   const mediaUrl = fileUrl(view.media);
   const certificateUrl = fileUrl(view.certificate);
   const isPdf = isPdfPath(view.media);
   const hasGeo = view.latitude != null && view.longitude != null;
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState('');
+
+  async function onDownloadCopy() {
+    setPdfBusy(true);
+    setPdfError('');
+    try {
+      // The link is minted per tap and lives for minutes, so it is never held
+      // in state where it could go stale between renders.
+      const url = await COPY_FETCHERS[kind](view.id, token);
+      await Linking.openURL(url);
+    } catch (e) {
+      setPdfError(e.message || 'Could not open the copy. Please try again.');
+    } finally {
+      setPdfBusy(false);
+    }
+  }
 
   return (
     <View style={styles.card}>
@@ -181,6 +204,26 @@ function ReportDetail({ view, kind }) {
           ))}
         </View>
       ) : null}
+
+      {/* The resident's own copy of their own case, as a PDF. Opened through a
+          short-lived signed link rather than downloaded in-app: see
+          api/client.js reportLink, and the native-module cost that rules the
+          alternative out. */}
+      <View style={styles.block}>
+        <Pressable
+          onPress={onDownloadCopy}
+          disabled={pdfBusy}
+          accessibilityRole="button"
+          accessibilityLabel="Download a PDF copy of this report"
+          style={[styles.copyButton, pdfBusy && { opacity: 0.6 }]}
+        >
+          <Icon name="download-outline" size={16} color={colors.primary} />
+          <Text style={styles.copyButtonText}>
+            {pdfBusy ? 'Preparing...' : 'Download PDF copy'}
+          </Text>
+        </Pressable>
+        {pdfError ? <Text style={styles.copyError}>{pdfError}</Text> : null}
+      </View>
 
       {/* The staff-signed document that closes the case. Shown only when one
           has been filed - it is optional, because the signed paper often comes
@@ -262,7 +305,7 @@ export default function TrackReportScreen({ id }) {
         ) : !view ? (
           <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
         ) : (
-          <ReportDetail view={view} kind={kind} />
+          <ReportDetail view={view} kind={kind} token={token} />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -316,6 +359,20 @@ const styles = StyleSheet.create({
   certificateHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   certificateTitle: { flex: 1, fontSize: 13, fontWeight: '700', color: colors.text },
   certificateBody: { fontSize: 13, color: colors.muted, marginTop: 6, lineHeight: 19 },
+
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: 11,
+    marginTop: 14,
+  },
+  copyButtonText: { fontSize: 14, fontWeight: '600', color: colors.primary },
+  copyError: { fontSize: 13, color: colors.danger, marginTop: 8 },
 
   error: { fontSize: 14, color: colors.danger, textAlign: 'center' },
   link: { fontSize: 14, fontWeight: '700', color: colors.primary },
