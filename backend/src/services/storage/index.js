@@ -22,7 +22,14 @@ const remove = (storedPath) => driver.remove(storedPath);
 // upload was lost still prints - see report.layout.attachment().
 const read = (storedPath) => driver.read(storedPath);
 
-const FILE_FIELDS = new Set(['photo_path', 'document_path', 'resolution_proof_path', 'completion_proof_path']);
+// An EXPLICIT allowlist, not a `_path` suffix rule: a new column is only signed
+// once somebody adds it here, and an unsigned path 403s at /uploads rather than
+// failing quietly. closure_certificate_path is resident-visible, so it is the
+// one entry here that is served outside the staff console.
+const FILE_FIELDS = new Set([
+  'photo_path', 'document_path', 'resolution_proof_path', 'completion_proof_path',
+  'closure_certificate_path',
+]);
 
 // Columns holding an ARRAY of stored paths, signed element by element.
 //

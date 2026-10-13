@@ -26,6 +26,7 @@ const DETAIL_SELECT = {
   priority: true,
   staff_notes: true,
   resolution_notes: true,
+  closure_certificate_path: true,
   submitted_at: true,
   observed_at: true,
   updated_at: true,

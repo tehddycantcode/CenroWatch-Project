@@ -440,7 +440,16 @@ model Complaint {
   resolution_notes String?         @db.Text
   // Evidence that the work actually happened, required before the report can be
   // Resolved (staff.complaint.service). Rejected is exempt - see that guard.
+  // INTERNAL: staff-only, and deliberately absent from the resident's copy.
   resolution_proof_path String? @db.VarChar(500)
+  // The signed document handed back to the resident when the case closes - a
+  // scan of a wet-signed certification, or a PDF. OPTIONAL, unlike the work
+  // proof above: the signed form often returns from the CENRO head or another
+  // office days after the work is done, and requiring it would make staff
+  // either hold cases open or attach something arbitrary to get past the gate.
+  // Named ..._path so storage.signFiles signs it - that helper matches on key
+  // name, and a tidier name returns an unsigned path that 403s.
+  closure_certificate_path String? @db.VarChar(500)
   submitted_at     DateTime        @default(now()) // filing date/time (auto)
   observed_at      DateTime? // optional: when the resident says they saw the issue
   updated_at       DateTime        @updatedAt
@@ -541,6 +550,10 @@ model WildlifeTurnover {
   intake_date             DateTime?
   release_date            DateTime?
   transfer_destination    String?         @db.VarChar(255)
+  // Signed release/transfer certification, scanned back in. See the note on
+  // Complaint.closure_certificate_path - optional, resident-visible, and the
+  // ..._path suffix is what makes storage.signFiles sign it.
+  closure_certificate_path String?        @db.VarChar(500)
   staff_notes             String?         @db.Text
   submitted_at            DateTime        @default(now())
   updated_at              DateTime        @updatedAt
@@ -619,7 +632,12 @@ model EnvironmentalRequest {
   completion_date    DateTime?
   staff_notes        String?       @db.Text
   // Evidence the service was delivered, required before Completed.
+  // INTERNAL: staff-only, and deliberately absent from the resident's copy.
   completion_proof_path String? @db.VarChar(500)
+  // Signed completion certification, scanned back in. See the note on
+  // Complaint.closure_certificate_path - optional, resident-visible, and the
+  // ..._path suffix is what makes storage.signFiles sign it.
+  closure_certificate_path String? @db.VarChar(500)
   submitted_at       DateTime      @default(now())
   updated_at         DateTime      @updatedAt
 

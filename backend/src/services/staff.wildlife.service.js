@@ -55,6 +55,7 @@ const DETAIL_SELECT = {
   release_date: true,
   transfer_destination: true,
   staff_notes: true,
+  closure_certificate_path: true,
   submitted_at: true,
   updated_at: true,
   sla_deadline: true,

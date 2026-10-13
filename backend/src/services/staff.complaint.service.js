@@ -57,6 +57,7 @@ const DETAIL_SELECT = {
   staff_notes: true,
   resolution_notes: true,
   resolution_proof_path: true,
+  closure_certificate_path: true,
   submitted_at: true,
   observed_at: true,
   updated_at: true,

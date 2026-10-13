@@ -39,6 +39,7 @@ const DETAIL_SELECT = {
   photo_path: true,
   photo_paths: true,
   completion_proof_path: true,
+  closure_certificate_path: true,
   latitude: true,
   longitude: true,
   address_details: true,

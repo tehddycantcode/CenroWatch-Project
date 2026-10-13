@@ -27,6 +27,7 @@ const DETAIL_SELECT = {
   scheduled_date: true,
   completion_date: true,
   staff_notes: true,
+  closure_certificate_path: true,
   submitted_at: true,
   updated_at: true,
   sla_deadline: true,
