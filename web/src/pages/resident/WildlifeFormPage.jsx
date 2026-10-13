@@ -91,6 +91,78 @@ function SafetyNote({ species }) {
   );
 }
 
+// Shown under the walk-in choice, and ONLY under it.
+//
+// THE LAST SENTENCE IS THE POINT. Everything before it is generic containment
+// advice, and generic containment advice is wrong for exactly the animals that
+// matter most: the catalogue's own notes say "Do not attempt to catch large
+// individuals" (python), "Never handle bats with bare hands - rabies risk"
+// (flying fox), "Do not keep as a pet" (civet). So this cannot be the final
+// word - it defers to the species note rendered ABOVE it on this same page
+// (SafetyNote), and it names the way out for somebody who picked walk-in before
+// reading that note: switch to asking CENRO to collect it. That option is the
+// other radio button, two lines up, so the escape route is real and reachable.
+//
+// It deliberately promises nothing about CENRO's side. Nothing here schedules a
+// collection or states a response time.
+function WalkInSafety() {
+  return (
+    <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs">
+      <p className="font-semibold text-amber-900">Only bring it in if you can do so safely.</p>
+      <p className="mt-1 text-amber-900">
+        Do not handle it with bare hands. If you can, put it in a sturdy, ventilated box or
+        carrier, keep it covered and quiet, and keep children and pets away.
+      </p>
+      <p className="mt-1.5 font-semibold text-amber-900">
+        If the note above says not to approach or catch this animal, do not &mdash; ask CENRO to
+        collect it instead.
+      </p>
+      <p className="mt-1.5 text-amber-800">{FORM_TL.walkin_safety}</p>
+    </div>
+  );
+}
+
+// What to do with the animal NOW, on the success screen.
+//
+// BRANCHED, because the two answers are opposites. Telling somebody who is
+// waiting for a CENRO pickup to contain and cover the animal is the one piece
+// of advice that would put them next to it for longer.
+//
+// The species' own note goes FIRST when there is one. The generic line below it
+// is the weaker claim, and ordering is how it defers: a reader meets "Never
+// handle bats with bare hands" before anything about boxes.
+//
+// NOTHING HERE SAYS WHEN STAFF WILL ARRIVE. The system schedules nothing on
+// submission - a turnover lands in a queue - so a time would be a promise no
+// code keeps, which CLAUDE.md records as this project's most repeated mistake.
+function TurnoverNextSteps({ method, species }) {
+  const note = species?.handling_note;
+  if (!method && !note) return null;
+  return (
+    <div className="space-y-2">
+      {note && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+            Safe handling for {species.name}
+          </div>
+          <p className="mt-1 text-amber-900">{note}</p>
+        </div>
+      )}
+      {method === 'Walk_In' && (
+        <div className="rounded-lg bg-accent/50 p-3 text-sm">
+          Bring it to the CENRO office during office hours with your reference number. Keep it
+          contained and covered until you hand it over.
+        </div>
+      )}
+      {method === 'Pickup_Request' && (
+        <div className="rounded-lg bg-accent/50 p-3 text-sm">
+          Keep your distance and keep people and pets away until CENRO staff arrive.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // A heading plus its rows. Renders nothing when the search has emptied the
 // group, so a filtered list never shows a heading over no options.
 function SpeciesGroup({ title, subtitle, tone, rows, value, onPick }) {
@@ -280,6 +352,15 @@ export default function WildlifeFormPage() {
       error={error}
       success={success}
       submitLabel="Submit Report"
+      // `selected` is null for "Other", which has its own catalogue row and the
+      // most important note in the set - treat an unidentified animal as
+      // dangerous - so fall back to it rather than showing nothing.
+      successNotice={
+        <TurnoverNextSteps
+          method={form.turnover_method}
+          species={selected || (isOther ? byName.Other : null)}
+        />
+      }
     >
       {!speciesError && (
         <FormField id="species_filter" label="Find a species" hint={FORM_TL.species_filter}>
@@ -470,29 +551,36 @@ export default function WildlifeFormPage() {
       <FormField label="How will the animal reach CENRO?" hint={FORM_TL.turnover_method} error={fieldErrors.turnover_method}>
         <div role="radiogroup" aria-label="How will the animal reach CENRO?" className="grid gap-2">
           {TURNOVER_METHODS.map((m) => (
-            <label
-              key={m.value}
-              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition ${
-                form.turnover_method === m.value
-                  ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                  : 'hover:bg-accent/50'
-              }`}
-            >
-              <input
-                type="radio"
-                name="turnover_method"
-                value={m.value}
-                checked={form.turnover_method === m.value}
-                onChange={() => setForm((f) => ({ ...f, turnover_method: m.value }))}
-                className="mt-0.5"
-              />
-              <span>
-                <span className="block font-medium">{m.label}</span>
-                <span className="block text-xs text-muted-foreground">
-                  {m.value === 'Walk_In' ? FORM_TL.turnover_walkin : FORM_TL.turnover_pickup}
+            <div key={m.value}>
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition ${
+                  form.turnover_method === m.value
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                    : 'hover:bg-accent/50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="turnover_method"
+                  value={m.value}
+                  checked={form.turnover_method === m.value}
+                  onChange={() => setForm((f) => ({ ...f, turnover_method: m.value }))}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="block font-medium">{m.label}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {m.value === 'Walk_In' ? FORM_TL.turnover_walkin : FORM_TL.turnover_pickup}
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+              {/* Shown only once walk-in is CHOSEN, directly under that choice.
+                  Someone who asked CENRO to collect the animal should not be
+                  told how to box it up - that is the opposite of what they
+                  need, and advice aimed at the wrong person is how people stop
+                  reading the advice that matters. */}
+              {m.value === 'Walk_In' && form.turnover_method === 'Walk_In' && <WalkInSafety />}
+            </div>
           ))}
         </div>
       </FormField>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { IconChip } from '@/components/ui/icon-chip';
 
-function SuccessCard({ trackingId, anonymous }) {
+function SuccessCard({ trackingId, anonymous, notice }) {
   // WHERE THIS LINKS IS NOT COSMETIC. /resident/track/:id calls
   // getMyComplaintByTracking, which throws 403 when complaint.user_id !== the
   // caller - and an anonymous report has user_id NULL, so it 403s for everyone
@@ -39,6 +39,10 @@ function SuccessCard({ trackingId, anonymous }) {
             you about it.
           </p>
         )}
+        {/* Form-specific guidance for what to do NEXT. Left-aligned inside a
+            centred card on purpose: it is instructions to follow, not a
+            headline, and centred prose is hard to read line to line. */}
+        {notice && <div className="pt-2 text-left">{notice}</div>}
         <div className="flex flex-wrap justify-center gap-3 pt-2">
           <Link to={trackTo}>
             <Button>{anonymous ? 'Check its status' : 'Track this report'}</Button>
@@ -65,6 +69,10 @@ export default function ReportFormShell({
   // Set by the complaint form when the resident ticked "file anonymously".
   // Only affects the success screen; the submission itself is the caller's job.
   anonymous = false,
+  // Optional node shown on the success screen, for guidance only this form can
+  // supply - the wildlife form uses it to say what to do with the animal now,
+  // which differs depending on whether they are bringing it in or waiting.
+  successNotice = null,
   children,
 }) {
   // THE BLOCK LIVES HERE, not in the three form pages. All of
@@ -76,7 +84,7 @@ export default function ReportFormShell({
   const { user } = useAuth();
   const unverified = !!user && !user.email_verified_at;
 
-  if (success) return <SuccessCard trackingId={success} anonymous={anonymous} />;
+  if (success) return <SuccessCard trackingId={success} anonymous={anonymous} notice={successNotice} />;
 
   return (
     <div className="mx-auto max-w-xl">

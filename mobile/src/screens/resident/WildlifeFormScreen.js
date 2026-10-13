@@ -84,6 +84,79 @@ function SafetyNote({ species }) {
   );
 }
 
+// Shown under the walk-in choice, and ONLY under it.
+//
+// THE LAST SENTENCE IS THE POINT. Everything before it is generic containment
+// advice, and generic containment advice is wrong for exactly the animals that
+// matter most: the catalogue's own notes say "Do not attempt to catch large
+// individuals" (python), "Never handle bats with bare hands - rabies risk"
+// (flying fox), "Do not keep as a pet" (civet). So this is not the final word -
+// it defers to the species note rendered ABOVE it on this same screen
+// (SafetyNote), and it names the way out for somebody who picked walk-in before
+// reading that note: switch to asking CENRO to collect it. That is the other
+// option, immediately above, so the escape route is real and reachable.
+//
+// It promises nothing about CENRO's side. Nothing here schedules a collection
+// or states a response time.
+function WalkInSafety() {
+  return (
+    <View style={styles.walkinBox}>
+      <Text style={styles.walkinLead}>Only bring it in if you can do so safely.</Text>
+      <Text style={styles.walkinText}>
+        Do not handle it with bare hands. If you can, put it in a sturdy, ventilated box or
+        carrier, keep it covered and quiet, and keep children and pets away.
+      </Text>
+      <Text style={styles.walkinLead}>
+        If the note above says not to approach or catch this animal, do not - ask CENRO to collect
+        it instead.
+      </Text>
+      <Text style={styles.walkinTl}>{FORM_TL.walkin_safety}</Text>
+    </View>
+  );
+}
+
+// What to do with the animal NOW, on the success screen.
+//
+// BRANCHED, because the two answers are opposites. Telling somebody who is
+// waiting for a CENRO pickup to contain and cover the animal is the one piece
+// of advice that would keep them next to it for longer.
+//
+// The species' own note goes FIRST when there is one. The generic line below it
+// is the weaker claim, and ordering is how it defers: a reader meets "Never
+// handle bats with bare hands" before anything about boxes.
+//
+// NOTHING HERE SAYS WHEN STAFF WILL ARRIVE. Submission schedules nothing - a
+// turnover lands in a queue - so a time would be a promise no code keeps.
+function TurnoverNextSteps({ method, species }) {
+  const note = species?.handling_note;
+  if (!method && !note) return null;
+  return (
+    <View style={{ gap: 8 }}>
+      {note ? (
+        <View style={styles.walkinBox}>
+          <Text style={styles.walkinLead}>Safe handling for {species.name}</Text>
+          <Text style={styles.walkinText}>{note}</Text>
+        </View>
+      ) : null}
+      {method === 'Walk_In' ? (
+        <View style={styles.nextStepBox}>
+          <Text style={styles.nextStepText}>
+            Bring it to the CENRO office during office hours with your reference number. Keep it
+            contained and covered until you hand it over.
+          </Text>
+        </View>
+      ) : null}
+      {method === 'Pickup_Request' ? (
+        <View style={styles.nextStepBox}>
+          <Text style={styles.nextStepText}>
+            Keep your distance and keep people and pets away until CENRO staff arrive.
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 // A heading plus its rows. Renders nothing when the search has emptied the
 // group, so a filtered list never shows a heading over no options.
 function SpeciesGroup({ title, subtitle, tone, rows, value, onPick }) {
@@ -290,6 +363,15 @@ export default function WildlifeFormScreen() {
       submitting={submitting}
       error={error}
       success={success}
+      // `selected` is null for "Other", which has its own catalogue row and the
+      // most important note in the set - treat an unidentified animal as
+      // dangerous - so fall back to it rather than showing nothing.
+      successNotice={
+        <TurnoverNextSteps
+          method={form.turnover_method}
+          species={selected || (isOther ? byName.Other : null)}
+        />
+      }
     >
       {speciesError ? (
         // A picker with no options cannot be submitted, so this is stated
@@ -490,6 +572,12 @@ export default function WildlifeFormScreen() {
               </Pressable>
             );
           })}
+          {/* Shown only once walk-in is CHOSEN, directly under the choices.
+              Somebody who asked CENRO to collect the animal must not be told
+              how to box it up - that is the opposite of what they need, and
+              advice aimed at the wrong person is how people stop reading the
+              advice that matters. */}
+          {form.turnover_method === 'Walk_In' ? <WalkInSafety /> : null}
         </View>
       </Field>
 
@@ -610,6 +698,23 @@ const styles = StyleSheet.create({
   handlingBox: { gap: 4, backgroundColor: colors.tint, borderRadius: radius.sm, padding: 8 },
   handlingText: { fontSize: 12, color: colors.text },
   handlingLead: { fontWeight: '700' },
+
+  // Amber, matching otherSafety below and the web form's walk-in notice, so
+  // "something here needs care" looks the same everywhere it appears.
+  walkinBox: {
+    gap: 5,
+    borderWidth: 1,
+    borderColor: '#fcd34d',
+    backgroundColor: '#fffbeb',
+    borderRadius: radius.sm,
+    padding: 10,
+    marginTop: 8,
+  },
+  walkinLead: { fontSize: 12.5, fontWeight: '700', color: '#78350f' },
+  walkinText: { fontSize: 12.5, color: '#78350f', lineHeight: 18 },
+  walkinTl: { fontSize: 12, color: '#92400e', lineHeight: 17 },
+  nextStepBox: { backgroundColor: colors.tint, borderRadius: radius.sm, padding: 10 },
+  nextStepText: { fontSize: 13, color: colors.text, lineHeight: 19 },
   otherSafety: {
     borderWidth: 1, borderColor: '#fcd34d', backgroundColor: '#fffbeb',
     borderRadius: radius.md, padding: 12,

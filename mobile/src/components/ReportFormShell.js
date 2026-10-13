@@ -49,6 +49,10 @@ export default function ReportFormShell({
   // Set by the complaint form when the resident ticked "file anonymously".
   // Changes the success screen only; sending the flag is the caller's job.
   anonymous = false,
+  // Optional node for the success screen, for guidance only one form can give -
+  // the wildlife form uses it to say what to do with the animal now, which is
+  // the opposite depending on whether they are bringing it in or waiting.
+  successNotice = null,
   children,
 }) {
   const { navigate, switchTab } = useResidentNav();
@@ -77,6 +81,12 @@ export default function ReportFormShell({
           <View style={styles.idPill}>
             <Text style={styles.idText}>{success}</Text>
           </View>
+          {/* Left-aligned inside a centred screen on purpose: these are
+              instructions to follow, and centred prose is hard to read line to
+              line. */}
+          {successNotice ? (
+            <View style={{ width: '100%', marginTop: 4 }}>{successNotice}</View>
+          ) : null}
           <View style={{ width: '100%', gap: 12, marginTop: 8 }}>
             {/* WHICH SCREEN THIS OPENS IS NOT COSMETIC. 'track' calls
                 complaints.get(), which the server answers 403 for whenever the

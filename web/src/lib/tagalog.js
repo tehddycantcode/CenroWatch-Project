@@ -102,6 +102,12 @@ export const FORM_TL = {
   turnover_method: 'Dadalhin mo ba, o hihilingin mong sunduin ng CENRO?',
   turnover_walkin: 'Ikaw mismo ang magdadala sa CENRO office.',
   turnover_pickup: 'Hihilingin mong sunduin ito ng CENRO. Hindi ito garantisadong agad.',
+  // Deliberately does NOT translate the escape clause of the English above it.
+  // That sentence sends someone to a different radio button, and a Tagalog
+  // paraphrase that drifted would be a safety instruction that disagrees with
+  // itself. The English carries it; this covers the containment advice.
+  walkin_safety:
+    'Dalhin lang kung ligtas. Huwag hawakan nang walang proteksyon. Kung kaya, ilagay sa matibay na lalagyan na may butas-hangin, takpan, at ilayo sa bata at alagang hayop.',
   animal_condition: 'Pumili ng lagay ng hayop',
   barangay: 'Pumili ng barangay',
   description: 'Isulat ang nangyari',
