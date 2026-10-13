@@ -111,14 +111,61 @@ describe('getRoute', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
-  // A failure must not be cached as if it were an answer, or one blip would
-  // leave that report with no route until the next restart.
-  test('does not cache a failure', async () => {
+  // A FAILURE IS REMEMBERED, BUT ONLY BRIEFLY, and the two halves of that are
+  // in tension - which is why both are pinned here.
+  //
+  // This test used to assert that a failure was not cached AT ALL, and an
+  // immediate retry called out again. That was changed deliberately on
+  // 2026-10-13: the web client stopped caching a null answer (one transient
+  // OpenRouteService hiccup was stranding a report on a straight line for the
+  // whole browser session), so without a short memory HERE an outage would mean
+  // one upstream call per report view, each waiting out the 6s timeout, against
+  // a free quota.
+  //
+  // The original intent survives intact: a blip must not cost the report its
+  // route for any meaningful length of time. A minute, not a day, and not until
+  // the process restarts.
+  test('remembers a failure briefly, so an outage is not re-asked on every view', async () => {
     global.fetch.mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({}) });
     expect(await svc.getRoute(OFFICE, REPORT)).toBeNull();
+
     global.fetch.mockResolvedValue(okResponse());
-    expect(await svc.getRoute(OFFICE, REPORT)).not.toBeNull();
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    // Still within the failure TTL: answered from memory, no second call out.
+    expect(await svc.getRoute(OFFICE, REPORT)).toBeNull();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('and forgets it a minute later, so recovery is picked up on its own', async () => {
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date('2026-10-13T00:00:00Z'));
+      global.fetch.mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({}) });
+      expect(await svc.getRoute(OFFICE, REPORT)).toBeNull();
+
+      // Past the 60s failure TTL. A success is now reachable again without a
+      // restart, a redeploy, or anybody noticing.
+      jest.setSystemTime(new Date('2026-10-13T00:01:30Z'));
+      global.fetch.mockResolvedValue(okResponse());
+      expect(await svc.getRoute(OFFICE, REPORT)).not.toBeNull();
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('a success outlives the failure TTL - it is a fact about geography', async () => {
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date('2026-10-13T00:00:00Z'));
+      expect(await svc.getRoute(OFFICE, REPORT)).not.toBeNull();
+      // Ten minutes on: still cached, still one call. A route does not expire
+      // the way an outage does.
+      jest.setSystemTime(new Date('2026-10-13T00:10:00Z'));
+      expect(await svc.getRoute(OFFICE, REPORT)).not.toBeNull();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 

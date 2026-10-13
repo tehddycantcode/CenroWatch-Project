@@ -36,6 +36,19 @@ const SERVICE_AREA = { west: 121.06, south: 14.19, east: 121.2, north: 14.33 };
 // fixed when it is submitted. Caching means opening the same report ten times
 // costs one request instead of ten.
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+// A FAILURE is remembered too, but only for a minute.
+//
+// The two TTLs answer different questions. A successful route is a fact about
+// geography and keeps for a day. A failure is a fact about OpenRouteService
+// right now - quota exhausted, timing out, down - and must expire quickly, or
+// one bad minute would cost every report its route for the rest of the day.
+//
+// Without this the client retries on every report view, and during an outage
+// that is one upstream call per view, each waiting out the 6s timeout, against
+// a free quota. With it, a burst costs ONE call. The client deliberately does
+// not cache a null (see web/src/lib/useRoadRoute.js), so this is the only place
+// protecting the quota - do not remove both.
+const FAILURE_TTL_MS = 60 * 1000;
 const CACHE_MAX = 500;
 const cache = new Map();
 
@@ -58,14 +71,18 @@ function isWithinServiceArea(point) {
 const key = (from, to) =>
   [from.lat, from.lng, to.lat, to.lng].map((n) => Number(n).toFixed(5)).join(',');
 
+// Returns { route } on a hit - including a remembered failure, whose route is
+// null - and null when there is nothing usable. The wrapper matters: it is what
+// lets a caller tell "we know there is no route" from "we have not asked".
 function readCache(k) {
   const hit = cache.get(k);
   if (!hit) return null;
-  if (Date.now() - hit.at > CACHE_TTL_MS) {
+  const ttl = hit.route ? CACHE_TTL_MS : FAILURE_TTL_MS;
+  if (Date.now() - hit.at > ttl) {
     cache.delete(k);
     return null;
   }
-  return hit.route;
+  return hit;
 }
 
 function writeCache(k, route) {
@@ -82,7 +99,7 @@ async function getRoute(from, to) {
 
   const k = key(from, to);
   const cached = readCache(k);
-  if (cached) return cached;
+  if (cached) return cached.route;
 
   let body;
   try {
@@ -100,11 +117,13 @@ async function getRoute(from, to) {
     });
     if (!res.ok) {
       console.warn(`[routing] openrouteservice answered ${res.status}; falling back to a straight line`);
+      writeCache(k, null);
       return null;
     }
     body = await res.json();
   } catch (e) {
     console.warn(`[routing] openrouteservice unreachable (${e.name}: ${e.message}); falling back to a straight line`);
+    writeCache(k, null);
     return null;
   }
 
@@ -113,6 +132,7 @@ async function getRoute(from, to) {
   const summary = feature?.properties?.summary;
   if (!Array.isArray(coordinates) || coordinates.length < 2) {
     console.warn('[routing] openrouteservice returned no usable geometry');
+    writeCache(k, null);
     return null;
   }
 
@@ -121,8 +141,9 @@ async function getRoute(from, to) {
     distance_m: Number(summary?.distance) || 0,
     duration_s: Number(summary?.duration) || 0,
   };
-  // Only a real answer is cached. Caching a failure would leave that report
-  // without a route until the process restarted.
+  // Kept for a day; a failure above is kept for a minute. Both are cached, with
+  // very different lifetimes - see FAILURE_TTL_MS. This used to cache successes
+  // only, which meant an outage was re-asked on every single report view.
   writeCache(k, route);
   return route;
 }

@@ -19,6 +19,22 @@ import { staffApi } from '@/lib/api';
 // old one. Returning `from` here lets the caller draw the marker from the same
 // answer that produced the line, so they cannot drift apart.
 //
+// ONLY A REAL ROUTE IS CACHED, and that is the whole point of this cache.
+//
+// A failure must NOT be remembered. The endpoint answers 200 with `route: null`
+// for every unhappy path - no key, quota exhausted, provider timing out - so a
+// transient OpenRouteService hiccup arrives here as a perfectly successful
+// response carrying null. Caching that pinned the report to a straight line for
+// the rest of the browser session: the map silently got worse and only a reload
+// fixed it, which is exactly how it presents - "the route was fine, now it is a
+// straight line again". The `.catch` below always said a blip must not cost a
+// report its route; the common blip was never reaching it.
+//
+// Not caching null means one extra request to OUR OWN API per report view when
+// routing is down. That is cheap, and it does not reach OpenRouteService on a
+// loop either: routing.service caches its own failures briefly, so a burst
+// during an outage costs one upstream call rather than one per view.
+//
 // Cached per destination for the session: a pin does not move, so reopening the
 // same report costs nothing and the free routing tier is spent once per report.
 // The office is NOT in the cache key, deliberately - the client is not the
@@ -52,12 +68,15 @@ export function useRoadRoute(to) {
         // keeps the pin and the line from ever disagreeing - see the note at the
         // top of this file.
         const value = r?.data?.route ? { ...r.data.route, from: r.data.from ?? null } : null;
-        cache.set(k, value);
+        // Successes only. A null here is "no route RIGHT NOW" - see the note at
+        // the top - and remembering it would strand this report on a straight
+        // line until the tab is reloaded.
+        if (value) cache.set(k, value);
         if (!cancelled) setRoute(value);
       })
       .catch(() => {
-        // Deliberately not cached: a blip now should not cost this report its
-        // route for the rest of the session.
+        // Not cached either, for the same reason: a blip now should not cost
+        // this report its route for the rest of the session.
         if (!cancelled) setRoute(null);
       });
     return () => {
