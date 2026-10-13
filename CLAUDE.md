@@ -299,6 +299,26 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   **Verifying a generated PDF means LOOKING at it.** Fonts are subset and glyph
   ids are written as hex, so the text cannot be grepped out of the output —
   every structural assertion here passed while the document was wrong.
+- **AN ENDPOINT THAT REPORTS FAILURE AS A SUCCESSFUL RESPONSE WILL HAVE THAT
+  FAILURE CACHED AS AN ANSWER.** `/staff/route` answers 200 with `route: null`
+  for every unhappy path - no ORS key, quota exhausted, provider timing out -
+  on purpose, so the client can treat them alike and keep its straight line.
+  The consequence nobody drew: in the browser that is a *successful* promise,
+  so it went down `.then()`, and `useRoadRoute` cached it for the session. One
+  momentary OpenRouteService hiccup pinned that report to a straight line until
+  the tab was reloaded. The `.catch()` directly beneath it carried the comment
+  "a blip now should not cost this report its route for the rest of the
+  session" - correct, and unreachable for the blip that actually happens, since
+  only a failure talking to OUR OWN api gets there.
+  The shape to watch for: a deliberate "failures look like successes" contract
+  at the API boundary, plus any `cache.set(k, value)` on the client that does
+  not ask whether `value` is a real answer. **Cache successes only, and let the
+  SERVER own the third-party quota** with a short negative cache (60s here)
+  rather than letting the client remember a failure forever.
+  It also inverted an existing test, which asserted "does not cache a failure"
+  and had to be rewritten rather than deleted - the same lesson as the
+  `preflight.mjs` entry below: a test encodes the behaviour that was true when
+  it was written, and fixing the system can turn its assertion into the bug.
 - **A test that asserts something is ABSENT must use a fixture that would
   otherwise contain it.** The resident PDF copy must name no staff member. In
   production it never would, because the resident `DETAIL_SELECT`s carry no
