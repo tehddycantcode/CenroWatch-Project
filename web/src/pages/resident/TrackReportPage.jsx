@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MapPin, ArrowLeft } from 'lucide-react';
+import { MapPin, ArrowLeft, Download, FileCheck2 } from 'lucide-react';
 import { complaintApi, wildlifeApi, requestApi, fileUrl, isPdfPath } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 import { trackingKind, KIND, humanize, turnoverMethodLabel } from '@/lib/reports';
 import { KIND_TL, COPY_TL } from '@/lib/tagalog';
 import { Card } from '@/components/ui/card';
@@ -11,6 +12,14 @@ import { ReportUpdates } from '@/components/resident/ReportUpdates';
 import { Spinner } from '@/components/ui/icons';
 
 const fmt = (d) => (d ? new Date(d).toLocaleString() : '—');
+
+// Keyed by the same `kind` the tracking number resolves to, so the button can
+// never ask the wrong endpoint for a reference it will not recognise.
+const DOWNLOADERS = {
+  complaint: (ref) => complaintApi.downloadReport(ref),
+  wildlife: (ref) => wildlifeApi.downloadReport(ref),
+  request: (ref) => requestApi.downloadReport(ref),
+};
 
 function buildView(kind, d) {
   if (kind === 'complaint') {
@@ -79,6 +88,8 @@ export default function TrackReportPage() {
   const kind = trackingKind(trackingId);
   const [view, setView] = useState(null);
   const [error, setError] = useState('');
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState('');
 
   useEffect(() => {
     const fetchers = {
@@ -139,10 +150,36 @@ export default function TrackReportPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <Link to="/resident/my-reports" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        My Reports
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link to="/resident/my-reports" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          My Reports
+        </Link>
+        {/* The resident's own copy of their own case. It prints exactly what
+            this page shows them - no staff notes beyond these, no SLA breach
+            flag, no assignment - so downloading it can never reveal more than
+            they are already looking at. */}
+        <Button
+          variant="outline"
+          size="sm"
+          loading={pdfBusy}
+          onClick={async () => {
+            setPdfBusy(true);
+            setPdfError('');
+            try {
+              await DOWNLOADERS[kind](view.id);
+            } catch (e) {
+              setPdfError(e.message || 'Could not download the copy.');
+            } finally {
+              setPdfBusy(false);
+            }
+          }}
+        >
+          <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
+          Download PDF copy
+        </Button>
+      </div>
+      {pdfError && <p className="text-sm text-destructive">{pdfError}</p>}
 
       <Card className="p-6">
         <div className="flex items-start justify-between gap-4">
@@ -195,6 +232,35 @@ export default function TrackReportPage() {
               CENRO notes <span className="normal-case tracking-normal">/ {COPY_TL.cenroNotes}</span>
             </div>
             <p className="mt-1 text-sm text-foreground">{view.notes}</p>
+          </div>
+        )}
+
+        {/* The staff-signed document that closes the case. Shown only when one
+            has been filed - it is optional, because the signed paper often
+            comes back from another office days after the work is done. */}
+        {view.closure_certificate_path && (
+          <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <div className="flex items-start gap-3">
+              <FileCheck2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-foreground">
+                  Signed closure document{' '}
+                  <span className="font-normal text-muted-foreground">/ {COPY_TL.signedDocument}</span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  CENRO Cabuyao has signed and filed the document for this case. Keep a copy for your records.
+                </p>
+                <a
+                  href={view.closure_certificate_path}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  {isPdfPath(view.closure_certificate_path) ? 'Download the signed document (PDF)' : 'Open the signed document'}
+                </a>
+              </div>
+            </div>
           </div>
         )}
 

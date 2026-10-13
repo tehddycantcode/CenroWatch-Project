@@ -12,6 +12,7 @@ import StatusHistory from '@/components/staff/StatusHistory';
 import { Rows, ReporterCard, Attachment, LocationBlock, PrintReportButton, ArchiveControl } from '@/components/staff/detail';
 import { CHART_COLORS } from '@/components/admin/chart-colors';
 import CustodyPhotos from '@/components/staff/CustodyPhotos';
+import ClosureCertificate from '@/components/staff/ClosureCertificate';
 
 export default function WildlifeDetailPage() {
   const { id } = useParams();
@@ -175,6 +176,17 @@ export default function WildlifeDetailPage() {
               conservation accountability.
             </p>
             <CustodyPhotos id={id} photos={w.chain_of_custody_photos || []} onChange={load} />
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold">Signed closure document</h2>
+            <ClosureCertificate
+              kind="wildlife"
+              id={id}
+              path={w.closure_certificate_path}
+              status={w.status}
+              onChange={load}
+            />
           </Card>
 
           <StatusHistory history={w.status_history} />

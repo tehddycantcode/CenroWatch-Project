@@ -43,6 +43,7 @@ function buildView(kind, d) {
       longitude: d.longitude,
       address: d.address_details,
       status: d.status,
+      certificate: d.closure_certificate_path,
       history: d.status_history || [],
     };
   }
@@ -66,6 +67,7 @@ function buildView(kind, d) {
       longitude: d.longitude,
       address: d.address_details,
       status: d.status,
+      certificate: d.closure_certificate_path,
       history: d.status_history || [],
     };
   }
@@ -88,6 +90,7 @@ function buildView(kind, d) {
     longitude: d.longitude,
     address: d.address_details,
     status: d.status,
+    certificate: d.closure_certificate_path,
     history: d.status_history || [],
   };
 }
@@ -102,6 +105,7 @@ function buildView(kind, d) {
 // only ever runs with a report in hand, so none of it needs `view?.` guards.
 function ReportDetail({ view, kind }) {
   const mediaUrl = fileUrl(view.media);
+  const certificateUrl = fileUrl(view.certificate);
   const isPdf = isPdfPath(view.media);
   const hasGeo = view.latitude != null && view.longitude != null;
 
@@ -175,6 +179,32 @@ function ReportDetail({ view, kind }) {
               </Text>
             </View>
           ))}
+        </View>
+      ) : null}
+
+      {/* The staff-signed document that closes the case. Shown only when one
+          has been filed - it is optional, because the signed paper often comes
+          back from another office days after the work is done.
+          `certificate` is already a SIGNED URL (1h TTL), so Linking can hand it
+          to the phone's browser with no credentials, exactly like the PDF
+          attachment path below. */}
+      {certificateUrl ? (
+        <View style={styles.certificate}>
+          <View style={styles.certificateHead}>
+            <Icon name="document-text-outline" size={16} color={colors.primary} />
+            <Text style={styles.certificateTitle}>
+              Signed closure document
+              <Text style={styles.rowLabelTl}> / {COPY_TL.signedDocument}</Text>
+            </Text>
+          </View>
+          <Text style={styles.certificateBody}>
+            CENRO Cabuyao has signed and filed the document for this case. Keep a copy for your records.
+          </Text>
+          <Pressable onPress={() => Linking.openURL(certificateUrl)} style={{ marginTop: 8 }}>
+            <Text style={styles.link}>
+              {isPdfPath(view.certificate) ? 'Download the signed document (PDF)' : 'Open the signed document'}
+            </Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -273,6 +303,19 @@ const styles = StyleSheet.create({
   notesText: { fontSize: 14, color: colors.text, marginTop: 4, lineHeight: 20 },
 
   media: { width: '100%', height: 220, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, marginTop: 8 },
+
+  // Outlined rather than filled, so it reads as the one actionable item on the
+  // card without competing with the CENRO notes block above it.
+  certificate: {
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: radius.md,
+    padding: 14,
+    marginTop: 16,
+  },
+  certificateHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  certificateTitle: { flex: 1, fontSize: 13, fontWeight: '700', color: colors.text },
+  certificateBody: { fontSize: 13, color: colors.muted, marginTop: 6, lineHeight: 19 },
 
   error: { fontSize: 14, color: colors.danger, textAlign: 'center' },
   link: { fontSize: 14, fontWeight: '700', color: colors.primary },

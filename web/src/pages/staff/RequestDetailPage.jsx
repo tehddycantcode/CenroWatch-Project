@@ -10,6 +10,7 @@ import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
 import { Rows, ReporterCard, Attachment, LocationBlock, PrintReportButton, ArchiveControl } from '@/components/staff/detail';
+import ClosureCertificate from '@/components/staff/ClosureCertificate';
 
 const todayStr = () => new Date().toLocaleDateString('en-CA');
 
@@ -93,6 +94,17 @@ export default function RequestDetailPage() {
                 color: CHART_COLORS.requests,
               }}
               address={q.address_details}
+            />
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold">Signed closure document</h2>
+            <ClosureCertificate
+              kind="request"
+              id={id}
+              path={q.closure_certificate_path}
+              status={q.status}
+              onChange={load}
             />
           </Card>
 

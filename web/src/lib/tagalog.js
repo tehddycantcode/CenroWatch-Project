@@ -144,6 +144,8 @@ export const COPY_TL = {
   description: 'Detalye',
   attachment: 'Kalakip na file',
   cenroNotes: 'Paalala mula sa CENRO',
+  signedDocument: 'Nilagdaang dokumento',
+  downloadCopy: 'I-download ang kopya ng ulat mo (PDF)',
   anonymousHint:
     'Hindi hihingin ang pangalan mo. Itago ang numero ng ulat para ma-check mo ito mamaya.',
 };

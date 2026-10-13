@@ -158,6 +158,7 @@ export const COPY_TL = {
   progress: 'Status ng ulat',
   description: 'Detalye',
   attachment: 'Kalakip na file',
+  signedDocument: 'Nilagdaang dokumento',
   cenroNotes: 'Paalala mula sa CENRO',
   anonymousHint:
     'Hindi hihingin ang pangalan mo. Itago ang numero ng ulat para ma-check mo ito mamaya.',

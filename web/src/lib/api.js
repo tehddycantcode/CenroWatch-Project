@@ -244,10 +244,17 @@ export const speciesApi = {
 };
 
 // Report APIs — create() takes a FormData (so an optional photo/document attaches).
+// The resident's own PDF copy of their own case. Behind the same ownership
+// check as the JSON read, and NOT available for an anonymous complaint - that
+// row has no owner, so the authenticated lookup 403s. The public tracker
+// deliberately returns status only.
+const residentReport = (base, ref) => downloadFile(`/${base}/${ref}/report`, `cenrowatch-${ref}.pdf`);
+
 export const complaintApi = {
   create: (form) => apiFetch('/complaints', { method: 'POST', body: form }),
   listMine: () => apiFetch('/complaints/mine'),
   get: (trackingId) => apiFetch(`/complaints/${trackingId}`),
+  downloadReport: (trackingId) => residentReport('complaints', trackingId),
   // Public anonymous/whistleblower submission + status lookup (no auth).
   createAnonymous: (form) => apiFetch('/complaints/anonymous', { method: 'POST', body: form, auth: false }),
   track: (trackingId) => apiFetch(`/complaints/track/${trackingId}`, { auth: false }),
@@ -257,12 +264,14 @@ export const wildlifeApi = {
   create: (form) => apiFetch('/wildlife', { method: 'POST', body: form }),
   listMine: () => apiFetch('/wildlife/mine'),
   get: (referenceId) => apiFetch(`/wildlife/${referenceId}`),
+  downloadReport: (referenceId) => residentReport('wildlife', referenceId),
 };
 
 export const requestApi = {
   create: (form) => apiFetch('/requests', { method: 'POST', body: form }),
   listMine: () => apiFetch('/requests/mine'),
   get: (trackingId) => apiFetch(`/requests/${trackingId}`),
+  downloadReport: (trackingId) => residentReport('requests', trackingId),
 };
 
 // Public GIS / feed / stats (no auth, zero personal data).
@@ -298,6 +307,13 @@ function staffResource(name) {
     update: (id, body) => apiFetch(`/staff/${name}/${id}`, { method: 'PATCH', body }),
     // Printable copy of one report for CENRO hardcopy files.
     downloadReport: (id) => downloadFile(`/staff/${name}/${id}/report`, `cenrowatch-${id}.pdf`),
+    // The signed closure document scanned back in. `form` is a FormData with a
+    // single `certificate` field - PDF or image, unlike the status endpoint's
+    // proof, which is images only.
+    uploadCertificate: (id, form) =>
+      apiFetch(`/staff/${name}/${id}/certificate`, { method: 'POST', body: form }),
+    removeCertificate: (id) =>
+      apiFetch(`/staff/${name}/${id}/certificate`, { method: 'DELETE' }),
   };
 }
 

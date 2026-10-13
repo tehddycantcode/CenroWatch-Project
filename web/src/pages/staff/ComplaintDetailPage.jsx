@@ -10,6 +10,7 @@ import { Spinner } from '@/components/ui/icons';
 import StatusUpdateForm from '@/components/staff/StatusUpdateForm';
 import StatusHistory from '@/components/staff/StatusHistory';
 import { Rows, ComplaintReporter, Attachment, LocationBlock, PrintReportButton, ArchiveControl } from '@/components/staff/detail';
+import ClosureCertificate from '@/components/staff/ClosureCertificate';
 import { CHART_COLORS } from '@/components/admin/chart-colors';
 
 export default function ComplaintDetailPage() {
@@ -92,6 +93,17 @@ export default function ComplaintDetailPage() {
               {c.photo_path && <Attachment path={c.photo_path} paths={c.photo_paths} label="Photos" />}
               {c.resolution_proof_path && <Attachment path={c.resolution_proof_path} label="Proof of work" />}
             </div>
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold">Signed closure document</h2>
+            <ClosureCertificate
+              kind="complaint"
+              id={id}
+              path={c.closure_certificate_path}
+              status={c.status}
+              onChange={load}
+            />
           </Card>
 
           {/* Status history */}
