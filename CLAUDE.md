@@ -182,8 +182,12 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   reads existing table names back from the database for an ALTER, but a CREATE
   emits the model name verbatim from the schema. The `SpeciesPhoto` migration
   came out correctly cased with no intervention. So a new-table migration is
-  not a false alarm waiting to happen, and an ALTER still is — seven for seven
-  on ALTERs.
+  not a false alarm waiting to happen, and an ALTER still is — **nine for nine
+  on ALTERs** (the `closure_certificate` migration on 2026-10-13 emitted all
+  three of `complaint`, `environmentalrequest` and `wildlifeturnover` in
+  lowercase). The workflow that works, unchanged: `migrate dev --create-only`,
+  read the SQL, fix the casing, `npm test` (migrationCasing catches it), then
+  `migrate deploy`.
 - **A status enum value missing from the OPEN/TERMINAL arrays vanishes silently:**
   the overdue query is `status IN (...OPEN) AND sla_deadline < now`, so a status
   absent from those arrays never matches — every report in that state drops out of
@@ -279,6 +283,32 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   it would have first appeared the day a resident attached one. Both clients now
   export `isPdfPath()`, which strips the query first. GCS signed URLs have the
   same shape, so this was already latent for `STORAGE_DRIVER=gcs`.
+- **pdfkit APPENDS A PAGE whenever text would cross the bottom margin — which
+  is exactly where a page footer goes.** Stamping "Page X of Y" onto a 3-page
+  report produced a **12-page** document: three footer cells x three pages,
+  each one triggering `addPage()`. The numbers printed on the real pages were
+  correct, because `bufferedPageRange()` had already been read, so the bug was
+  invisible from the code and from the returned count — the only thing that
+  showed it was opening the PDF and seeing "1 / 12" with nine blank pages.
+  Set `doc.page.margins.bottom = 0` around the write and restore it after.
+  Two companions to the same rule, both in `report.layout.js`: `stampPages`
+  must be the LAST call before `doc.end()`, because `switchToPage` leaves the
+  cursor on whichever page it visited; and a block that advances by a fixed
+  line height will draw straight through a value that wrapped, so measure the
+  row with `heightOfString` and advance by the tallest cell.
+  **Verifying a generated PDF means LOOKING at it.** Fonts are subset and glyph
+  ids are written as hex, so the text cannot be grepped out of the output —
+  every structural assertion here passed while the document was wrong.
+- **A test that asserts something is ABSENT must use a fixture that would
+  otherwise contain it.** The resident PDF copy must name no staff member. In
+  production it never would, because the resident `DETAIL_SELECT`s carry no
+  staff relation — so a fixture built from those selects proves nothing, and
+  the exclusion would have held by accident until somebody widened a select.
+  Feeding the writer a record that DOES carry `assigned_staff` immediately
+  showed "Certified by: Maria Santos" on the resident's copy. The fix was to
+  make the rule explicit in the writer rather than rely on the query shape.
+  Generally: build the fixture to contain the thing you are asserting is not
+  there, or the test only measures the fixture.
 - **When you close a security hole, check whether `preflight.mjs` asserts the
   hole.** Its "Uploads served" check fetched a bare `/uploads/...` path and
   PASSED on HTTP 200 — which, after the fix, is exactly the symptom of the hole

@@ -1,7 +1,11 @@
 # PDF case record: professional layout, signature blocks, resident copy
 
 **Date:** 2026-10-13
-**Status:** Design, awaiting approval
+**Status:** IMPLEMENTED and deployed 2026-10-13 (`e0bd61f`, `2876a26`, `350c1a2`).
+Two things changed during implementation, both recorded here rather than silently:
+the resident copy gets a one-column acknowledgement line instead of CENRO's
+three-column Certification (§6), and `is_priority_review` was dropped from the
+official copy because it duplicates `Endangered` (§5).
 **Scope:** `backend/src/services/report.layout.js`, `staff.report.service.js`,
 `admin.report.service.js`, the three staff status services, both clients.
 
@@ -254,6 +258,15 @@ because that is what the receiving department disputes later.
 **Complaint and request - "Certification"**, three columns: `Certified by`
 (the assigned or processing staff member), `Noted by` (blank, for the CENRO
 head), `Received by` (the resident, blank, with a date line).
+
+**The resident copy gets a one-column "Acknowledgement of Receipt" instead** -
+their own line only. Decided during implementation, when a test built from a
+fixture that carried a staff relation showed "Certified by: Maria Santos" on the
+resident's copy. Reproducing CENRO's certification columns there would either
+print a blank "Certified by", stating that nobody certified it, or print a name
+on a document whose whole rule is that it shows only what the tracking page
+shows. The counter-signed original reaches them as the uploaded closure
+document, which is where that name belongs.
 
 ### The block does not render on an open case
 
