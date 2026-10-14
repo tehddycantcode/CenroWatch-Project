@@ -39,7 +39,7 @@ export const REQUEST_STATUSES = ['Pending', 'Approved', 'Scheduled', 'Completed'
 // can still be moved on. See backend/src/validators/staff.validators.js and the
 // statusPartitions test, which pin the full enums.
 export const COMPLAINT_WORKFLOW = ['Pending', 'Under_Review', 'In_Progress', 'Resolved', 'Rejected'];
-export const WILDLIFE_WORKFLOW = ['Pending_Review', 'Under_Care', 'Released', 'Transferred', 'Deceased'];
+export const WILDLIFE_WORKFLOW = ['Under_Care', 'Released', 'Transferred', 'Deceased'];
 
 export const WILDLIFE_LABELS = {
   Pending_Review: 'Pending',
