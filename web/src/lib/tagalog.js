@@ -97,6 +97,8 @@ export const STAT_TL = {
 export const FORM_TL = {
   complaint_type: 'Pumili ng klase ng reklamo',
   request_type: 'Pumili ng serbisyo',
+  request_disclaimer:
+    'Maaaring may bayad ang ilang serbisyo. Karaniwang 3-5 araw bago matapos pagkatapos aprubahan, at aasahan ang unang sagot sa loob ng 24-48 oras.',
   type_other: 'Isulat kung ano ito',
   species_name: 'Pumili ng hayop',
   turnover_method: 'Dadalhin mo ba, o hihilingin mong sunduin ng CENRO?',

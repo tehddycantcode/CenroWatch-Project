@@ -6,6 +6,7 @@ import { FORM_TL } from '@/lib/tagalog';
 import LocationField from '@/components/resident/LocationField';
 import { Sprout } from 'lucide-react';
 import ReportFormShell from '@/components/resident/ReportFormShell';
+import RequestDisclaimer, { DISCLAIMER_POINTS } from '@/components/resident/RequestDisclaimer';
 import BarangaySelect from '@/components/resident/BarangaySelect';
 import PhotoField from '@/components/resident/PhotoField';
 import { FormField } from '@/components/ui/field';
@@ -87,7 +88,18 @@ export default function ServiceRequestFormPage() {
     // that is about to be rejected anyway.
     const ok = await ask({
       title: 'Ipadala na sa CENRO?',
-      body: 'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.',
+      body: (
+        <div className="space-y-2">
+          <p>Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.</p>
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-2.5">
+            {DISCLAIMER_POINTS.map(([term, desc]) => (
+              <p key={term} className="text-xs leading-snug text-amber-900">
+                <span className="font-semibold">{term}:</span> {desc}
+              </p>
+            ))}
+          </div>
+        </div>
+      ),
       confirmLabel: 'Ipadala',
       cancelLabel: 'Hindi pa',
     });
@@ -166,6 +178,8 @@ export default function ServiceRequestFormPage() {
           />
         </FormField>
       )}
+
+      <RequestDisclaimer />
 
       <FormField id="barangay_id" label="Barangay" hint={FORM_TL.barangay} error={fieldErrors.barangay_id}>
         <BarangaySelect value={form.barangay_id} onChange={set('barangay_id')} />

@@ -8,6 +8,7 @@ import { FORM_TL } from '../../lib/tagalog';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
 import ReportFormShell, { Field } from '../../components/ReportFormShell';
+import RequestDisclaimer, { DISCLAIMER_POINTS } from '../../components/RequestDisclaimer';
 import Select from '../../components/Select';
 import BarangayPicker from '../../components/BarangayPicker';
 import DatePicker from '../../components/DatePicker';
@@ -83,7 +84,9 @@ export default function RequestFormScreen() {
     // about to be rejected, and before any FormData or submitting state.
     const ok = await ask({
       title: 'Ipadala na sa CENRO?',
-      body: 'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.',
+      body:
+        'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.\n\n' +
+        DISCLAIMER_POINTS.map(([term, desc]) => `${term}: ${desc}`).join('\n\n'),
       confirmLabel: 'Ipadala',
       cancelLabel: 'Hindi pa',
     });
@@ -152,6 +155,8 @@ export default function RequestFormScreen() {
           />
         </Field>
       ) : null}
+
+      <RequestDisclaimer />
 
       <BarangayPicker
         items={barangays}
