@@ -57,7 +57,7 @@ export const TIMELINE_TL = {
     Submitted: 'Naipasa na',
     'Under Review': 'Tinitingnan na',
     Scheduled: 'May iskedyul na',
-    Released: 'Naibigay na',
+    Completed: 'Tapos na',
   },
 };
 
