@@ -162,6 +162,15 @@ async function reportLink(base, reference, token) {
   return `${API_URL}${res.data.path}`;
 }
 
+// Service feedback on a closed case. `get` answers whether this person may
+// leave any - the server owns that rule (owner, terminal state, one per case),
+// so the screen never has to re-derive it and the two cannot disagree.
+const feedbackApi = (base) => ({
+  get: (reference, token) => request(`/${base}/${reference}/feedback`, { token }),
+  submit: (reference, token, body) =>
+    request(`/${base}/${reference}/feedback`, { method: 'POST', token, body }),
+});
+
 export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
@@ -233,18 +242,21 @@ export const api = {
     createAnonymous: (form) => requestForm('/complaints/anonymous', form),
     trackPublic: (trackingId) => request(`/complaints/track/${trackingId}`),
     reportLink: (trackingId, token) => reportLink('complaints', trackingId, token),
+    feedback: feedbackApi('complaints'),
   },
   wildlife: {
     create: (form, token) => requestForm('/wildlife', form, token),
     mine: (token) => request('/wildlife/mine', { token }),
     get: (referenceId, token) => request(`/wildlife/${referenceId}`, { token }),
     reportLink: (referenceId, token) => reportLink('wildlife', referenceId, token),
+    feedback: feedbackApi('wildlife'),
   },
   requests: {
     create: (form, token) => requestForm('/requests', form, token),
     mine: (token) => request('/requests/mine', { token }),
     get: (trackingId, token) => request(`/requests/${trackingId}`, { token }),
     reportLink: (trackingId, token) => reportLink('requests', trackingId, token),
+    feedback: feedbackApi('requests'),
   },
 
   // In-app notifications. A user only ever sees and mutates their own — the

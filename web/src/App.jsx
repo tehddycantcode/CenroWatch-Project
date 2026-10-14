@@ -38,6 +38,7 @@ import AdminAuditLogsPage from '@/pages/admin/AdminAuditLogsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 import AdminCategoriesPage from '@/pages/admin/AdminCategoriesPage';
 import AdminSpeciesPage from '@/pages/admin/AdminSpeciesPage';
+import AdminFeedbackPage from '@/pages/admin/AdminFeedbackPage';
 import NotFound from '@/components/NotFound';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -130,6 +131,7 @@ export default function App() {
         {/* No sidebar entry - AdminLayout's header is already full (see the
             measured note there), so this is reached from the Categories page. */}
         <Route path="/admin/species" element={<AdminSpeciesPage />} />
+        <Route path="/admin/feedback" element={<AdminFeedbackPage />} />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
         <Route path="/admin/account" element={<AccountPage />} />
       </Route>

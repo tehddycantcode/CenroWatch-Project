@@ -12,6 +12,8 @@ const { createComplaintRules, createAnonymousComplaintRules } = require('../vali
 const controller = require('../controllers/complaint.controller');
 const residentReports = require('../controllers/resident.report.controller');
 const signedReportLink = require('../middlewares/signedReportLink');
+const feedback = require('../controllers/feedback.controller');
+const { submitFeedbackRules } = require('../validators/feedback.validators');
 
 const upload = diskUpload('complaints');
 
@@ -67,6 +69,10 @@ router.get('/mine', controller.listMine);
 // loads the report through the same ownership check first, so a link only ever
 // exists for a report the caller could already open.
 router.get('/:trackingId/report-link', residentReports.complaintLink);
+// Service feedback, once the case is closed. Ownership, the terminal-state rule
+// and one-per-case all live in feedback.service.
+router.get('/:trackingId/feedback', feedback.mineComplaint);
+router.post('/:trackingId/feedback', submitFeedbackRules, validate, feedback.submitComplaint);
 router.get('/:trackingId', controller.getByTracking);
 
 module.exports = router;

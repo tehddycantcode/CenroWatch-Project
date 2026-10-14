@@ -250,11 +250,20 @@ export const speciesApi = {
 // deliberately returns status only.
 const residentReport = (base, ref) => downloadFile(`/${base}/${ref}/report`, `cenrowatch-${ref}.pdf`);
 
+// Service feedback on a closed case. `get` answers whether this person may
+// leave any - the server owns that rule (owner, terminal state, one per case),
+// so the form never has to re-derive it.
+const feedbackApi = (base) => ({
+  get: (ref) => apiFetch(`/${base}/${ref}/feedback`),
+  submit: (ref, body) => apiFetch(`/${base}/${ref}/feedback`, { method: 'POST', body }),
+});
+
 export const complaintApi = {
   create: (form) => apiFetch('/complaints', { method: 'POST', body: form }),
   listMine: () => apiFetch('/complaints/mine'),
   get: (trackingId) => apiFetch(`/complaints/${trackingId}`),
   downloadReport: (trackingId) => residentReport('complaints', trackingId),
+  feedback: feedbackApi('complaints'),
   // Public anonymous/whistleblower submission + status lookup (no auth).
   createAnonymous: (form) => apiFetch('/complaints/anonymous', { method: 'POST', body: form, auth: false }),
   track: (trackingId) => apiFetch(`/complaints/track/${trackingId}`, { auth: false }),
@@ -265,6 +274,7 @@ export const wildlifeApi = {
   listMine: () => apiFetch('/wildlife/mine'),
   get: (referenceId) => apiFetch(`/wildlife/${referenceId}`),
   downloadReport: (referenceId) => residentReport('wildlife', referenceId),
+  feedback: feedbackApi('wildlife'),
 };
 
 export const requestApi = {
@@ -272,6 +282,7 @@ export const requestApi = {
   listMine: () => apiFetch('/requests/mine'),
   get: (trackingId) => apiFetch(`/requests/${trackingId}`),
   downloadReport: (trackingId) => residentReport('requests', trackingId),
+  feedback: feedbackApi('requests'),
 };
 
 // Public GIS / feed / stats (no auth, zero personal data).
@@ -343,6 +354,9 @@ export const staffApi = {
 
 // Admin APIs (Admin only) — analytics, user management, audit log, settings.
 export const adminApi = {
+  // Service feedback left by residents on closed cases. Read-only on purpose:
+  // an Admin reading feedback must not be able to edit what was said about them.
+  feedback: (params) => apiFetch(`/admin/feedback${qs(params)}`),
   // params: { range } or { startDate, endDate }. The PDF takes the SAME params
   // so an export always matches the window on screen - exporting a six-month
   // report from a one-month view would be worse than no export at all.

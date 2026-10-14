@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { StatusTimeline } from '@/components/resident/StatusTimeline';
 import { ReportUpdates } from '@/components/resident/ReportUpdates';
+import FeedbackForm from '@/components/resident/FeedbackForm';
 import { Spinner } from '@/components/ui/icons';
 
 const fmt = (d) => (d ? new Date(d).toLocaleString() : '—');
@@ -19,6 +20,14 @@ const DOWNLOADERS = {
   complaint: (ref) => complaintApi.downloadReport(ref),
   wildlife: (ref) => wildlifeApi.downloadReport(ref),
   request: (ref) => requestApi.downloadReport(ref),
+};
+
+// Keyed the same way, so the feedback form can never be pointed at the wrong
+// endpoint for the reference it is showing.
+const FEEDBACK_APIS = {
+  complaint: complaintApi.feedback,
+  wildlife: wildlifeApi.feedback,
+  request: requestApi.feedback,
 };
 
 function buildView(kind, d) {
@@ -307,6 +316,10 @@ export default function TrackReportPage() {
             </div>
           </div>
         )}
+
+        {/* Renders nothing unless the server says this person may rate this
+            case - owner, closed, not already rated. See FeedbackForm. */}
+        <FeedbackForm api={FEEDBACK_APIS[kind]} reference={view.id} />
       </Card>
     </div>
   );

@@ -12,6 +12,8 @@ const { createRequestRules } = require('../validators/request.validators');
 const controller = require('../controllers/request.controller');
 const residentReports = require('../controllers/resident.report.controller');
 const signedReportLink = require('../middlewares/signedReportLink');
+const feedback = require('../controllers/feedback.controller');
+const { submitFeedbackRules } = require('../validators/feedback.validators');
 
 const upload = diskUpload('requests', DOC_MIME);
 
@@ -42,6 +44,10 @@ router.post('/', upload.fields(REQUEST_FIELDS), requireVerifiedEmail, createRequ
 router.get('/mine', controller.listMine);
 // Mints the signed link the route above accepts, after the same ownership load.
 router.get('/:trackingId/report-link', residentReports.requestLink);
+// Service feedback, once the case is closed. Ownership, the terminal-state rule
+// and one-per-case all live in feedback.service.
+router.get('/:trackingId/feedback', feedback.mineRequest);
+router.post('/:trackingId/feedback', submitFeedbackRules, validate, feedback.submitRequest);
 router.get('/:trackingId', controller.getByTracking);
 
 module.exports = router;

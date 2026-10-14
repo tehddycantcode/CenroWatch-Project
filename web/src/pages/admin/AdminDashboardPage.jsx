@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { FileText, Users, Clock, ShieldAlert, Download } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { FileText, Users, Clock, ShieldAlert, Download, Star } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -14,6 +15,62 @@ import { CHART_COLORS } from '@/components/admin/chart-colors';
 // Module scope: pure, depends on nothing in the component. Declaring it inside
 // AdminDashboardPage rebuilt it on every render for no reason.
 const fmt = (iso) => new Date(iso).toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' });
+
+// What residents said after their case closed, summarised. Fetched on its own
+// rather than folded into /admin/analytics: feedback is a separate table with
+// its own lifetime, and a dashboard that fails to load because nobody has rated
+// anything yet would be worse than this card simply not appearing.
+function FeedbackSummary() {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    adminApi.feedback({ limit: 1 })
+      .then((r) => { if (!cancelled) setData(r.data); })
+      .catch(() => { if (!cancelled) setData(null); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!data) return null;
+
+  const score = (v) => (v == null ? '—' : v.toFixed(1));
+  return (
+    <Card className="p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Service feedback</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {data.total === 0
+              ? 'No responses yet. Residents are offered this once their report is closed.'
+              : `${data.total} response${data.total === 1 ? '' : 's'} from residents whose reports were closed.`}
+          </p>
+        </div>
+        <Link to="/admin/feedback" className="text-sm font-medium text-primary hover:underline">
+          Read all feedback
+        </Link>
+      </div>
+
+      {data.total > 0 && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          {[
+            ['Overall', data.averages.rating_overall],
+            ['Speed', data.averages.rating_speed],
+            ['Staff response', data.averages.rating_staff],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-lg bg-muted/40 p-4">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
+                <span className="font-display text-2xl tabular-nums">{score(value)}</span>
+                <span className="text-sm text-muted-foreground">/ 5</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 function Stat({ icon, tone, label, value, sub }) {
   return (
@@ -205,6 +262,15 @@ export default function AdminDashboardPage() {
         <SlaCard label="Wildlife SLA" sla={a.sla.wildlife} />
         <SlaCard label="Request SLA" sla={a.sla.requests} />
       </div>
+
+      {/* SLA says how fast the office was by its own clock; this says how it
+          felt to the person waiting. They are worth reading next to each other,
+          which is why this sits here rather than on a page of its own that
+          nobody opens.
+          REACHED FROM HERE, NOT THE NAV: the header row is measured at ~1203px
+          against 1280 with ten links, so an eleventh would break it - the same
+          reason /admin/species hangs off the Categories page. */}
+      <FeedbackSummary />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="p-6">

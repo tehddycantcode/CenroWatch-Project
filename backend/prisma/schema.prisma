@@ -212,6 +212,7 @@ model User {
   password_reset_tokens PasswordResetToken[]
   email_verification_tokens EmailVerificationToken[]
   push_tokens           PushToken[]
+  feedback              Feedback[]
 
   @@index([email])
   @@index([role])
@@ -514,6 +515,7 @@ model Complaint {
   assigned_staff User?                    @relation("AssignedStaff", fields: [assigned_to], references: [user_id])
   logged_by_staff User?                   @relation("LoggedByStaff", fields: [logged_by], references: [user_id])
   status_history ComplaintStatusHistory[]
+  feedback       Feedback?
 
   @@index([tracking_id])
   @@index([status])
@@ -621,6 +623,7 @@ model WildlifeTurnover {
   // description. That is what makes a required key safe here.
   species Species @relation(fields: [species_name], references: [name], onUpdate: Cascade, onDelete: Restrict)
   status_history WildlifeStatusHistory[]
+  feedback       Feedback?
 
   @@index([reference_id])
   @@index([barangay_id])
@@ -689,6 +692,7 @@ model EnvironmentalRequest {
   processor User?    @relation("ProcessedRequests", fields: [processed_by], references: [user_id])
   type      RequestType @relation(fields: [request_type], references: [name], onUpdate: Cascade, onDelete: Restrict)
   status_history RequestStatusHistory[]
+  feedback       Feedback?
 
   @@index([tracking_id])
   @@index([status])
@@ -765,6 +769,53 @@ model Notification {
   user User @relation(fields: [user_id], references: [user_id])
 
   @@index([user_id, is_read])
+  @@index([created_at])
+}
+
+// ============================================================
+// SERVICE FEEDBACK
+// ============================================================
+
+// What the resident thought of how their case was handled, once it is closed.
+//
+// THREE NULLABLE FOREIGN KEYS, EXACTLY ONE SET. The alternative - a `kind` plus
+// a loose reference string, the shape AuditLog uses - cannot be joined, and the
+// admin view exists to read feedback ALONGSIDE the case it is about. Each FK is
+// @unique, so "one feedback per case" is enforced by the database rather than by
+// remembering to check; the service turns the resulting constraint error into a
+// plain 409.
+//
+// WHO CAN LEAVE ONE: the owner, and only once the case is in a terminal state.
+// Both are enforced in the service. An ANONYMOUS complaint has user_id NULL and
+// therefore no owner, so it can never receive feedback - that is a consequence
+// of true anonymity, not an oversight.
+//
+// Three scores rather than one, because "it was slow but the staff were kind" is
+// a real and useful answer that a single star rating destroys. All three are
+// required; the comment is optional, since forcing prose is how you get "ok".
+model Feedback {
+  feedback_id Int @id @default(autoincrement())
+  user_id     Int
+
+  complaint_id Int? @unique
+  turnover_id  Int? @unique
+  request_id   Int? @unique
+
+  // 1-5. Range is enforced in the service: MySQL CHECK constraints are not
+  // expressible in this schema, and a TINYINT would still accept 9.
+  rating_overall Int
+  rating_speed   Int
+  rating_staff   Int
+  comment        String? @db.Text
+
+  created_at DateTime @default(now())
+
+  user      User                  @relation(fields: [user_id], references: [user_id])
+  complaint Complaint?            @relation(fields: [complaint_id], references: [complaint_id])
+  turnover  WildlifeTurnover?     @relation(fields: [turnover_id], references: [turnover_id])
+  request   EnvironmentalRequest? @relation(fields: [request_id], references: [request_id])
+
+  @@index([user_id])
   @@index([created_at])
 }
 

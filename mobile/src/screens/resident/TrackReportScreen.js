@@ -19,6 +19,7 @@ import { useResidentNav } from '../../navigation/navContext';
 import ScreenHeader from '../../components/ScreenHeader';
 import StatusBadge from '../../components/StatusBadge';
 import Icon from '../../components/Icon';
+import FeedbackForm from '../../components/FeedbackForm';
 
 const fmt = (d) => (d ? new Date(d).toLocaleString() : '—');
 
@@ -107,6 +108,14 @@ const COPY_FETCHERS = {
   complaint: (ref, token) => api.complaints.reportLink(ref, token),
   wildlife: (ref, token) => api.wildlife.reportLink(ref, token),
   request: (ref, token) => api.requests.reportLink(ref, token),
+};
+
+// Keyed the same way, so the feedback form can never be pointed at the wrong
+// endpoint for the reference it is showing.
+const FEEDBACK_APIS = {
+  complaint: api.complaints.feedback,
+  wildlife: api.wildlife.feedback,
+  request: api.requests.feedback,
 };
 
 function ReportDetail({ view, kind, token }) {
@@ -265,6 +274,10 @@ function ReportDetail({ view, kind, token }) {
           )}
         </View>
       ) : null}
+
+      {/* Renders nothing unless the server says this person may rate this case -
+          owner, closed, not already rated. See FeedbackForm. */}
+      <FeedbackForm api={FEEDBACK_APIS[kind]} reference={view.id} token={token} />
     </View>
   );
 }

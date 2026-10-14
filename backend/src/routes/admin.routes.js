@@ -10,6 +10,8 @@ const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
 const { diskUpload } = require('../middlewares/upload');
 const v = require('../validators/admin.validators');
+const feedback = require('../controllers/feedback.controller');
+const { listFeedbackRules } = require('../validators/feedback.validators');
 const sv = require('../validators/species.validators');
 const controller = require('../controllers/admin.controller');
 
@@ -64,6 +66,10 @@ router.delete('/species/:id/photos/:photoId', controller.removeSpeciesPhoto);
 router.get('/barangays', controller.listBarangays);
 router.post('/barangays', v.createBarangayRules, validate, controller.createBarangay);
 router.patch('/barangays/:id', v.updateBarangayRules, validate, controller.updateBarangay);
+
+// Service feedback left by residents on closed cases. Read-only: an Admin
+// reading feedback must not be able to edit what somebody said about them.
+router.get('/feedback', listFeedbackRules, validate, feedback.list);
 
 // System settings
 router.get('/settings', controller.listSettings);

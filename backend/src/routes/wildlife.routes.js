@@ -12,6 +12,8 @@ const { createWildlifeRules } = require('../validators/wildlife.validators');
 const controller = require('../controllers/wildlife.controller');
 const residentReports = require('../controllers/resident.report.controller');
 const signedReportLink = require('../middlewares/signedReportLink');
+const feedback = require('../controllers/feedback.controller');
+const { submitFeedbackRules } = require('../validators/feedback.validators');
 
 const upload = diskUpload('wildlife');
 
@@ -39,6 +41,10 @@ router.post('/', upload.fields(PHOTO_FIELDS), requireVerifiedEmail, createWildli
 router.get('/mine', controller.listMine);
 // Mints the signed link the route above accepts, after the same ownership load.
 router.get('/:referenceId/report-link', residentReports.wildlifeLink);
+// Service feedback, once the case is closed. Ownership, the terminal-state rule
+// and one-per-case all live in feedback.service.
+router.get('/:referenceId/feedback', feedback.mineWildlife);
+router.post('/:referenceId/feedback', submitFeedbackRules, validate, feedback.submitWildlife);
 router.get('/:referenceId', controller.getByRef);
 
 module.exports = router;
