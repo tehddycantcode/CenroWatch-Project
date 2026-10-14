@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { COMPLAINT_STATUSES, fmtDate, useSectionBase, isBreached } from '@/lib/staff';
+import { COMPLAINT_WORKFLOW, fmtDate, useSectionBase, isBreached } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/badge';
@@ -115,7 +115,7 @@ export default function ComplaintDetailPage() {
           <Card className="p-6">
             <h2 className="mb-4 text-lg font-semibold">Update status</h2>
             <StatusUpdateForm
-              statuses={COMPLAINT_STATUSES}
+              statuses={COMPLAINT_WORKFLOW}
               current={c.status}
               extraFields={[
                 { name: 'resolution_notes', label: 'Resolution notes', type: 'textarea', visibleFor: ['Resolved'], hint: 'Recorded on the complaint.' },

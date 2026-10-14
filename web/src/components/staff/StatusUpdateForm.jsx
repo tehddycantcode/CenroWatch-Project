@@ -31,6 +31,14 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
   const [ok, setOk] = useState(false);
   const [confirmProps, ask] = useConfirm();
 
+  // The dropdown offers the curated workflow set (see web/src/lib/staff.js), but
+  // a record already in a status that is no longer offered - a complaint marked
+  // Approved before the list was trimmed, or an endangered animal the system
+  // auto-set to Priority_Review - must still show its OWN status as the selected
+  // option. Without this the Select renders blank and a plain save would
+  // silently post the first option over the record's real status.
+  const options = statuses.includes(current) ? statuses : [current, ...statuses];
+
   const visibleExtras = extraFields.filter((f) => !f.visibleFor || f.visibleFor.includes(status));
 
   // A required extra field blocks submission here as well as in the API, so a
@@ -97,7 +105,7 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
     <form onSubmit={submit} className="space-y-4">
       <FormField id="status" label="Update status">
         <Select id="status" value={status} onChange={(e) => setPicked(e.target.value)}>
-          {statuses.map((s) => (
+          {options.map((s) => (
             <option key={s} value={s}>{humanize(s)}</option>
           ))}
         </Select>

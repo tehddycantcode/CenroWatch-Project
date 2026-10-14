@@ -18,6 +18,30 @@ export const COMPLAINT_STATUSES = ['Pending', 'Under_Review', 'Approved', 'In_Pr
 export const WILDLIFE_STATUSES = ['Pending_Review', 'Priority_Review', 'Under_Care', 'Released', 'Transferred', 'Deceased'];
 export const REQUEST_STATUSES = ['Pending', 'Approved', 'Scheduled', 'Completed', 'Rejected'];
 
+// The *_STATUSES lists above are the FULL enums - used by the queue FILTERS, so
+// staff can still find a report in any state, including ones no longer offered
+// as a manual choice. The *_WORKFLOW lists below are the trimmed sets the
+// "Update status" dropdown offers: the states staff actually move a report
+// through, with the redundant and system-managed ones left out.
+//
+// Dropped on purpose:
+//  - complaint "Approved": redundant with In Progress. Under Review covers
+//    "being assessed" and In Progress covers "being acted on"; Approved sat
+//    between them and added a step without a distinct meaning for this office.
+//  - wildlife "Priority_Review": the SYSTEM sets this for endangered animals at
+//    intake (the fail-safe flag), so it is not a manual transition a staff
+//    member chooses.
+//
+// Nothing is lost: the schema keeps every value, the backend validators still
+// accept every value (so no transition is newly rejected), and
+// StatusUpdateForm always includes a record's CURRENT status in the dropdown
+// even when it is outside these lists - so a report already in a dropped state
+// can still be moved on. See backend/src/validators/staff.validators.js and the
+// statusPartitions test, which pin the full enums.
+export const COMPLAINT_WORKFLOW = ['Pending', 'Under_Review', 'In_Progress', 'Resolved', 'Rejected'];
+export const WILDLIFE_WORKFLOW = ['Pending_Review', 'Under_Care', 'Released', 'Transferred', 'Deceased'];
+export const REQUEST_WORKFLOW = ['Pending', 'Approved', 'Scheduled', 'Completed', 'Rejected'];
+
 export const KIND_META = {
   complaint: { label: 'Complaint', plural: 'Complaints', statuses: COMPLAINT_STATUSES, base: '/staff/complaints' },
   wildlife: { label: 'Wildlife', plural: 'Wildlife', statuses: WILDLIFE_STATUSES, base: '/staff/wildlife' },

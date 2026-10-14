@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
 import { humanize, turnoverMethodLabel } from '@/lib/reports';
-import { WILDLIFE_STATUSES, fmtDate, useSectionBase, isBreached } from '@/lib/staff';
+import { WILDLIFE_WORKFLOW, fmtDate, useSectionBase, isBreached } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -200,7 +200,7 @@ export default function WildlifeDetailPage() {
               photo. Add one in the Chain-of-custody documentation section before changing the status.
             </p>
             <StatusUpdateForm
-              statuses={WILDLIFE_STATUSES}
+              statuses={WILDLIFE_WORKFLOW}
               current={w.status}
               extraFields={[
                 { name: 'transfer_destination', label: 'Transfer destination', type: 'text', visibleFor: ['Transferred'], hint: 'e.g. DENR-CALABARZON, Wildlife Rescue Center' },

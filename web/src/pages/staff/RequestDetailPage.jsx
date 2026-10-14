@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
 import { humanize } from '@/lib/reports';
-import { REQUEST_STATUSES, fmtDate, fmtDay, useSectionBase, isBreached } from '@/lib/staff';
+import { REQUEST_WORKFLOW, fmtDate, fmtDay, useSectionBase, isBreached } from '@/lib/staff';
 import { CHART_COLORS } from '@/components/admin/chart-colors';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
@@ -115,7 +115,7 @@ export default function RequestDetailPage() {
           <Card className="p-6">
             <h2 className="mb-4 text-lg font-semibold">Update status</h2>
             <StatusUpdateForm
-              statuses={REQUEST_STATUSES}
+              statuses={REQUEST_WORKFLOW}
               current={q.status}
               extraFields={[
                 { name: 'scheduled_date', label: 'Scheduled date', type: 'date', min: todayStr(), visibleFor: ['Scheduled'], hint: 'When the service will be carried out. Cannot be in the past.' },
