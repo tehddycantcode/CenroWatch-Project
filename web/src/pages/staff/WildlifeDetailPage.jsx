@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { staffApi } from '@/lib/api';
 import { humanize, turnoverMethodLabel } from '@/lib/reports';
-import { WILDLIFE_WORKFLOW, fmtDate, useSectionBase, isBreached } from '@/lib/staff';
+import { WILDLIFE_WORKFLOW, WILDLIFE_LABELS, fmtDate, useSectionBase, isBreached } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -202,6 +202,7 @@ export default function WildlifeDetailPage() {
             <StatusUpdateForm
               statuses={WILDLIFE_WORKFLOW}
               current={w.status}
+              labels={WILDLIFE_LABELS}
               extraFields={[
                 { name: 'transfer_destination', label: 'Transfer destination', type: 'text', visibleFor: ['Transferred'], hint: 'e.g. DENR-CALABARZON, Wildlife Rescue Center' },
               ]}

@@ -40,6 +40,15 @@ export const REQUEST_STATUSES = ['Pending', 'Approved', 'Scheduled', 'Completed'
 // statusPartitions test, which pin the full enums.
 export const COMPLAINT_WORKFLOW = ['Pending', 'Under_Review', 'In_Progress', 'Resolved', 'Rejected'];
 export const WILDLIFE_WORKFLOW = ['Pending_Review', 'Under_Care', 'Released', 'Transferred', 'Deceased'];
+
+export const WILDLIFE_LABELS = {
+  Pending_Review: 'Pending',
+  Priority_Review: 'Priority Review',
+  Under_Care: 'In Progress',
+  Released: 'Resolved',
+  Transferred: 'Transferred',
+  Deceased: 'Closed',
+};
 export const REQUEST_WORKFLOW = ['Pending', 'Approved', 'Scheduled', 'Completed', 'Rejected'];
 
 export const KIND_META = {

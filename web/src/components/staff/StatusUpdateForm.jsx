@@ -14,12 +14,14 @@ const TERMINAL = ['Resolved', 'Rejected', 'Completed', 'Released', 'Transferred'
 // Status-update panel shared by the three detail pages. `extraFields` are
 // resource-specific inputs (e.g. resolution notes, transfer destination,
 // scheduled date) shown only for the relevant target status.
-export default function StatusUpdateForm({ statuses, current, extraFields = [], onSubmit }) {
+export default function StatusUpdateForm({ statuses, current, labels, extraFields = [], onSubmit }) {
   // Hold only the staff member's pending choice; the displayed value is derived
   // from `current` whenever they have not picked one. The three detail pages all
   // refetch the record while this form stays mounted (its own save, the archive
   // control, `onChanged={load}`), so a copy captured at mount would go stale and
   // re-submit an outdated status over whatever the record actually holds now.
+  const label = (s) => (labels && labels[s]) || humanize(s);
+
   const [picked, setPicked] = useState(null);
   const status = picked ?? current;
   const [note, setNote] = useState('');
@@ -57,9 +59,9 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
       // the office says it is finished with the report. It can be changed
       // afterwards, but the resident has already been told.
       const confirmed = await ask({
-        title: `Mark this report as ${humanize(status)}?`,
+        title: `Mark this report as ${label(status)}?`,
         body: 'This closes the report and stops its deadline clock. If they filed through an account, we email them to tell them. You can change the status afterwards, but they will already have been told.',
-        confirmLabel: `Mark ${humanize(status)}`,
+        confirmLabel: `Mark ${label(status)}`,
         destructive: true,
       });
       if (!confirmed) return;
@@ -106,7 +108,7 @@ export default function StatusUpdateForm({ statuses, current, extraFields = [], 
       <FormField id="status" label="Update status">
         <Select id="status" value={status} onChange={(e) => setPicked(e.target.value)}>
           {options.map((s) => (
-            <option key={s} value={s}>{humanize(s)}</option>
+            <option key={s} value={s}>{label(s)}</option>
           ))}
         </Select>
       </FormField>
