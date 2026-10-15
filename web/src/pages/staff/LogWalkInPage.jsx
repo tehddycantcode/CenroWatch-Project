@@ -96,12 +96,17 @@ export default function LogWalkInPage() {
     }
     if (!form.complaint_type) errs.complaint_type = 'Please choose a complaint type.';
     if (!form.barangay_id) errs.barangay_id = 'Please select a barangay.';
-    if (form.description.trim().length < 10) errs.description = 'Describe the concern (at least 10 characters).';
+    if (!form.description.trim()) errs.description = 'Please describe the concern.';
+    else if (form.description.trim().length < 10) errs.description = 'Describe the concern (at least 10 characters).';
     if (needsOther && !form.type_other.trim()) {
       errs.type_other = 'Please describe the type of complaint.';
     }
     if (withOtherDetail(form.description.trim(), form.type_other).length > DESCRIPTION_MAX) {
       errs.description = `Description is too long (limit ${DESCRIPTION_MAX} characters).`;
+    }
+    if (!anonymous) {
+      if (!form.reporter_name.trim()) errs.reporter_name = 'Please enter the reporter\'s name.';
+      if (!form.reporter_contact.trim()) errs.reporter_contact = 'Please enter the reporter\'s contact number or email.';
     }
     return errs;
   }
@@ -122,8 +127,8 @@ export default function LogWalkInPage() {
     fd.append('received_via', form.received_via);
     fd.append('is_anonymous', String(anonymous));
     if (!anonymous) {
-      if (form.reporter_name.trim()) fd.append('reporter_name', form.reporter_name.trim());
-      if (form.reporter_contact.trim()) fd.append('reporter_contact', form.reporter_contact.trim());
+      fd.append('reporter_name', form.reporter_name.trim());
+      fd.append('reporter_contact', form.reporter_contact.trim());
     }
     if (form.observed_at) fd.append('observed_at', form.observed_at);
     if (location.latitude != null) {
@@ -228,7 +233,7 @@ export default function LogWalkInPage() {
 
           {!anonymous && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <FormField id="reporter_name" label="Reporter name" hint="Optional">
+              <FormField id="reporter_name" label="Reporter name" error={fieldErrors.reporter_name}>
                 <Input
                   id="reporter_name"
                   placeholder="e.g. Maria Santos"
@@ -236,7 +241,7 @@ export default function LogWalkInPage() {
                   onChange={set('reporter_name')}
                 />
               </FormField>
-              <FormField id="reporter_contact" label="Reporter contact" hint="Optional: phone or email">
+              <FormField id="reporter_contact" label="Reporter contact" hint="Phone or email" error={fieldErrors.reporter_contact}>
                 <Input
                   id="reporter_contact"
                   placeholder="e.g. 0917 000 0000"
