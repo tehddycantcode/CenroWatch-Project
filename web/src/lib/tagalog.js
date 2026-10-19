@@ -149,8 +149,9 @@ export const FORM_TL = {
   // Kept so an older bundle referencing it does not render `undefined`.
   photo_optional: 'Pakilagay ng larawan. Maaaring higit sa isa.',
   document: 'Pakilagay ng larawan o dokumento. Maaaring higit sa isa.',
-  quantity: 'Pakisulat kung ilan (hindi sapilitan)',
-  schedule: 'Pakipili ang nais na petsa (hindi sapilitan)',
+  // Review, 2026-10-19: "(opsyonal)" over "(hindi sapilitan)".
+  quantity: 'Pakisulat kung ilan (opsyonal)',
+  schedule: 'Pakipili ang nais na petsa (opsyonal)',
   species_filter: 'Pakisulat ang pangalan ng hayop, hal. "sawa"',
   species_none: 'Walang katugmang hayop. Pakipili ang "Other" at ilarawan ito.',
   species_group_common: 'Karaniwang nakikita',
