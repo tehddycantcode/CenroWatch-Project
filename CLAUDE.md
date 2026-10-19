@@ -704,6 +704,22 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   success and `next(err)` for a failure, both wired into one Promise. Do not
   'fix' asyncHandler to return the promise - Express ignores the return value,
   and changing it to satisfy a test would be the test driving production code.
+- **RESIDENT TAGALOG IS POLITE FILIPINO NOW, NOT CASUAL TAGLISH - and the
+  defense panel is who decided it.** On 2026-10-19 a panelist flagged lines like
+  "Ilarawan mo na lang" and "Ikaw mismo ang magdadala" as impolite and asked for
+  "iyo/iyong" in place of "mo". The rules are in the REGISTER header of
+  `web/src/lib/tagalog.js`: no mo/ka/ikaw, requests start with Paki-, the
+  standard word over English or colloquial ones (palatandaan, kalagayan, uri ng
+  hayop). Put new resident Tagalog in BOTH `tagalog.js` files, never inline in
+  a component - an inline string never sees that header, and the panel also
+  asked that Filipino majors review the wording, which needs one list to hand
+  them. That review was still pending when this was written; the review sheet
+  is a private claude.ai artifact the user shares with the reviewers.
+  The two files had silently DRIFTED while their header promised
+  "byte-identical": mobile still had a stale `request.Released` timeline key and
+  each side carried keys the other lacked. Change web, then regenerate mobile's
+  body from it (`head -n 8` of mobile + `tail -n +4` of web) and `diff` the two
+  bodies - hand-editing both is how they drifted.
 ## Current Sprint
 Sprint 4 — Admin Analytics & Management (COMPLETE). All four sprints are done.
 - **Post-sprint work on branch `feature/verified-reporting-and-anonymity`
