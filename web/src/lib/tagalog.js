@@ -33,7 +33,8 @@
 //     options: "I will bring the animal..."), so does the Tagalog.
 // "po" is left out on purpose: the panelist's own rewrites did not use it.
 // The panelist also asked that Filipino majors review this copy, not just an AI
-// translation. Until that review is recorded, treat every line as a draft.
+// translation. A line changed through that review says so beside it, and its
+// wording wins over these rules. Every other line is still a draft.
 //
 // Deliberately partial. Staff and admin surfaces stay English (office users,
 // and the system terms have no settled Tagalog).
@@ -118,7 +119,8 @@ export const FORM_TL = {
   // under ("I will bring the animal...", "Please send CENRO staff..."), so
   // neither line needs a "you" at all.
   turnover_walkin: 'Ako mismo ang magdadala ng hayop sa tanggapan ng CENRO.',
-  turnover_pickup: 'Hihilingin ko sa CENRO na kunin ang hayop. Maaaring hindi ito magawa kaagad.',
+  // Review sheet, 2026-10-19: no timing caveat here, matching the English.
+  turnover_pickup: 'Hihilingin ko sa CENRO na kunin ang hayop.',
   // Deliberately does NOT translate the escape clause of the English above it.
   // That sentence sends someone to a different radio button, and a Tagalog
   // paraphrase that drifted would be a safety instruction that disagrees with
@@ -126,7 +128,9 @@ export const FORM_TL = {
   // commands here, not "Paki-": a safety warning should not read as optional.
   walkin_safety:
     'Dalhin lamang ang hayop kung ligtas itong gawin. Huwag itong hawakan nang walang proteksyon sa kamay. Kung maaari, ilagay ito sa matibay na kahon o lalagyang may butas para sa hangin, takpan, panatilihing tahimik, at ilayo sa mga bata at alagang hayop.',
-  animal_condition: 'Pakipili ang kalagayan ng hayop',
+  // Review sheet, 2026-10-19. Keeps "lagay" and a plain "Piliin" on purpose -
+  // the reviewer's wording wins over the rules in the header.
+  animal_condition: 'Piliin kung ano ang kasalukuyang lagay ng hayop.',
   barangay: 'Pakipili ang barangay',
   // Shared by the complaint, wildlife and service-request forms, so it asks for
   // the situation rather than "what happened" - a seedling request has no

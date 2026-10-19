@@ -710,7 +710,9 @@ Standing rule: whenever I make a mistake, append the lesson here (and to
   "iyo/iyong" in place of "mo". The rules are in the REGISTER header of
   `web/src/lib/tagalog.js`: no mo/ka/ikaw, requests start with Paki-, the
   standard word over English or colloquial ones (palatandaan, kalagayan, uri ng
-  hayop). Put new resident Tagalog in BOTH `tagalog.js` files, never inline in
+  hayop). A line changed through the review is commented as such and wins over
+  those rules (`animal_condition` keeps "lagay" on purpose) - never "fix" it
+  back. Put new resident Tagalog in BOTH `tagalog.js` files, never inline in
   a component - an inline string never sees that header, and the panel also
   asked that Filipino majors review the wording, which needs one list to hand
   them. That review was still pending when this was written; the review sheet
