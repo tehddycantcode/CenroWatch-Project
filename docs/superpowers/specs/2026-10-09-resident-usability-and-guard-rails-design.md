@@ -1,5 +1,10 @@
 # Resident usability, location flexibility, and action guard rails — design
 
+> **Superseded in part (2026-10-19):** the "casual Taglish" register in item 6 / section 6.2 was
+> replaced by polite Filipino after defense-panel feedback. The current rules live in the header
+> of `web/src/lib/tagalog.js`. This document is left as written, as the record of the earlier
+> decision.
+
 **Date:** 2026-10-09
 **Status:** Approved in conversation; implementation sequenced AFTER the six remaining
 Plan A tasks (14, 16, 17, 18, 19, 20) of

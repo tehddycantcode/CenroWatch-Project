@@ -187,7 +187,7 @@ export default function MapPicker({ value, onChange, height = 220, focusToken = 
       {!has && (
         <View pointerEvents="none" style={styles.overlay}>
           <Text style={styles.overlayText}>Tap the map to pin the location</Text>
-          <Text style={styles.overlayTextTl}>I-tap ang mapa para itakda ang lugar</Text>
+          <Text style={styles.overlayTextTl}>Pakipindot ang mapa para markahan ang lugar</Text>
         </View>
       )}
     </View>

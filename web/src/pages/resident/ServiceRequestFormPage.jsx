@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { requestApi } from '@/lib/api';
 import { useCategories } from '@/lib/useCategories';
 import { isOtherCategory, withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '@/lib/otherCategory';
-import { FORM_TL } from '@/lib/tagalog';
+import { FORM_TL, COPY_TL } from '@/lib/tagalog';
 import LocationField from '@/components/resident/LocationField';
 import { Sprout } from 'lucide-react';
 import ReportFormShell from '@/components/resident/ReportFormShell';
@@ -87,10 +87,10 @@ export default function ServiceRequestFormPage() {
     // Asked only after validate() passes, so nobody is asked to confirm a form
     // that is about to be rejected anyway.
     const ok = await ask({
-      title: 'Ipadala na sa CENRO?',
+      title: COPY_TL.submitTitle,
       body: (
         <div className="space-y-2">
-          <p>Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.</p>
+          <p>{COPY_TL.submitBody}</p>
           <div className="rounded-md border border-amber-300 bg-amber-50 p-2.5">
             {DISCLAIMER_POINTS.map(([term, desc]) => (
               <p key={term} className="text-xs leading-snug text-amber-900">
@@ -100,8 +100,8 @@ export default function ServiceRequestFormPage() {
           </div>
         </div>
       ),
-      confirmLabel: 'Ipadala',
-      cancelLabel: 'Hindi pa',
+      confirmLabel: COPY_TL.submitConfirm,
+      cancelLabel: COPY_TL.submitCancel,
     });
     if (!ok) return;
 

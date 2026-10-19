@@ -185,7 +185,7 @@ export default function DashboardScreen() {
         ) : recent.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>
-              {COPY_TL.noReports} Pumili ng gagawin sa itaas para makapagsimula.
+              {COPY_TL.noReports} {COPY_TL.startHint}
             </Text>
           </View>
         ) : (

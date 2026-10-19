@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { wildlifeApi, fileUrl } from '@/lib/api';
 import { ANIMAL_CONDITIONS, TURNOVER_METHODS, humanize } from '@/lib/reports';
-import { FORM_TL } from '@/lib/tagalog';
+import { FORM_TL, COPY_TL } from '@/lib/tagalog';
 import { useSpecies } from '@/lib/useSpecies';
 import { HAZARD_TONE, HAZARD_LABEL, BADGE, hasHazard } from '@/lib/speciesLabels';
 import { withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '@/lib/otherCategory';
@@ -300,10 +300,10 @@ export default function WildlifeFormPage() {
     // Asked only after validate() passes, so nobody is asked to confirm a form
     // that is about to be rejected anyway.
     const ok = await ask({
-      title: 'Ipadala na sa CENRO?',
-      body: 'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.',
-      confirmLabel: 'Ipadala',
-      cancelLabel: 'Hindi pa',
+      title: COPY_TL.submitTitle,
+      body: COPY_TL.submitBody,
+      confirmLabel: COPY_TL.submitConfirm,
+      cancelLabel: COPY_TL.submitCancel,
     });
     if (!ok) return;
 

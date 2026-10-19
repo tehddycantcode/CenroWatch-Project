@@ -159,7 +159,7 @@ export default function DashboardPage() {
         </div>
         {recent.length === 0 ? (
           <Card className="p-8 text-center text-sm text-muted-foreground">
-            {COPY_TL.noReports} Pumili ng gagawin sa itaas para makapagsimula.
+            {COPY_TL.noReports} {COPY_TL.startHint}
           </Card>
         ) : (
           <Card className="divide-y">

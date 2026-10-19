@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { useCategories } from '../../lib/useCategories';
 import { isOtherCategory, withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '../../lib/otherCategory';
-import { FORM_TL } from '../../lib/tagalog';
+import { FORM_TL, COPY_TL } from '../../lib/tagalog';
 import useBarangays from '../../lib/useBarangays';
 import { colors, radius } from '../../theme';
 import ReportFormShell, { Field } from '../../components/ReportFormShell';
@@ -83,12 +83,12 @@ export default function RequestFormScreen() {
     // Asked only after validate() passes, so nobody confirms a form that is
     // about to be rejected, and before any FormData or submitting state.
     const ok = await ask({
-      title: 'Ipadala na sa CENRO?',
+      title: COPY_TL.submitTitle,
       body:
-        'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.\n\n' +
+        `${COPY_TL.submitBody}\n\n` +
         DISCLAIMER_POINTS.map(([term, desc]) => `${term}: ${desc}`).join('\n\n'),
-      confirmLabel: 'Ipadala',
-      cancelLabel: 'Hindi pa',
+      confirmLabel: COPY_TL.submitConfirm,
+      cancelLabel: COPY_TL.submitCancel,
     });
     if (!ok) return;
 

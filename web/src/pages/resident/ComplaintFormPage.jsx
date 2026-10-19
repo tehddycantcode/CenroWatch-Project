@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react';
 import { complaintApi } from '@/lib/api';
 import { useCategories } from '@/lib/useCategories';
 import { isOtherCategory, withOtherDetail, OTHER_DETAIL_MAX, DESCRIPTION_MAX } from '@/lib/otherCategory';
-import { FORM_TL } from '@/lib/tagalog';
+import { FORM_TL, COPY_TL } from '@/lib/tagalog';
 import ReportFormShell from '@/components/resident/ReportFormShell';
 import BarangaySelect from '@/components/resident/BarangaySelect';
 import PhotoField from '@/components/resident/PhotoField';
@@ -83,12 +83,12 @@ export default function ComplaintFormPage() {
     // Asked only after validate() passes, so nobody is asked to confirm a form
     // that is about to be rejected anyway.
     const ok = await ask({
-      title: anonymous ? 'Send this anonymously?' : 'Ipadala na sa CENRO?',
+      title: anonymous ? 'Send this anonymously?' : COPY_TL.submitTitle,
       body: anonymous
         ? 'CENRO will not know who filed it, and that cannot be undone later even if you ask. It will not appear in My Reports and you will get no updates about it - save the reference number on the next screen.'
-        : 'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.',
-      confirmLabel: anonymous ? 'Send anonymously' : 'Ipadala',
-      cancelLabel: anonymous ? undefined : 'Hindi pa',
+        : COPY_TL.submitBody,
+      confirmLabel: anonymous ? 'Send anonymously' : COPY_TL.submitConfirm,
+      cancelLabel: anonymous ? undefined : COPY_TL.submitCancel,
       destructive: anonymous,
     });
     if (!ok) return;

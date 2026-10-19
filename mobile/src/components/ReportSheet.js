@@ -28,7 +28,7 @@ export default function ReportSheet({ visible, onClose, onPick }) {
       <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
         <View style={styles.grabber} />
         <Text style={styles.title}>File a report</Text>
-        <Text style={styles.titleTl}>Ano ang gusto mong i-report?</Text>
+        <Text style={styles.titleTl}>Ano ang iyong nais iulat?</Text>
 
         <View style={styles.list}>
           {REPORT_ACTIONS.map((a) => {

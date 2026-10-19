@@ -5,7 +5,7 @@
 // call site. Two policies, and the difference between them matters:
 //
 //   1. INSTRUCTIONAL copy (form hints, empty states, page guidance) is ONE
-//      casual Taglish line. The English sentence is gone, not demoted: a hint
+//      Filipino line. The English sentence is gone, not demoted: a hint
 //      that says the same thing twice makes a phone screen twice as long and
 //      tells the reader that one of the two is the "real" one. Field LABELS and
 //      button text stay short English, so they never wrap on a phone.
@@ -16,12 +16,24 @@
 //      shared word the moment they phone the office. Do not drop the English
 //      from the badge, the legend or the timeline.
 //
-// REGISTER: everyday conversational Tagalog, the way a Cabuyao resident would
-// actually say it - NOT the formal register of a government memo. Deliberately
-// avoided: isinasagawa, nakatakda, maglakip, kahilingan, upang, kabuuang.
-// Loanwords that are genuinely the everyday word (status, report, litrato,
-// landmark, iskedyul) are kept, because "kalagayan" and "iulat" read as stiffer
-// than the English.
+// REGISTER: polite, plain Filipino (magalang at malinaw). This replaced an
+// earlier "casual Taglish" register on 2026-10-19, after a defense panelist
+// flagged it as impolite. The rules, all from that panel note:
+//   - No "mo", "ka" or "ikaw". The possessive is "iyong" ("ang iyong ulat"),
+//     as the panelist asked; elsewhere the sentence is built without a
+//     second-person pronoun at all.
+//   - A request starts with "Paki-" (Pakipili, Pakisulat, Pakilarawan), never a
+//     bare command like "Isulat ang nangyari".
+//   - The standard word over an English or colloquial one: palatandaan (not
+//     landmark), kalagayan (not lagay), uri ng hayop (not species), tanggapan
+//     (not office), larawan (not litrato), maaari (not pwede).
+//   - No dismissive "na lang" ("Ilarawan mo na lang"). Where "only" is meant,
+//     the word is "lamang".
+//   - Where the English speaks in the resident's own voice (the turnover
+//     options: "I will bring the animal..."), so does the Tagalog.
+// "po" is left out on purpose: the panelist's own rewrites did not use it.
+// The panelist also asked that Filipino majors review this copy, not just an AI
+// translation. Until that review is recorded, treat every line as a draft.
 //
 // Deliberately partial. Staff and admin surfaces stay English (office users,
 // and the system terms have no settled Tagalog).
@@ -72,16 +84,16 @@ export const KIND_TL = {
 // and the kind is the one identifier both already carry.
 export const ACTION_TL = {
   complaint: {
-    title: 'Mag-report ng reklamo',
-    desc: 'Basurang itinapon kahit saan, sunog, ingay, polusyon.',
+    title: 'Maghain ng reklamo',
+    desc: 'Ilegal na pagtatapon at pagsusunog ng basura, ingay, polusyon.',
   },
   wildlife: {
-    title: 'Mag-report ng ligaw na hayop',
-    desc: 'I-report o dalhin sa CENRO ang hayop na nailigtas mo.',
+    title: 'Mag-ulat ng ligaw na hayop',
+    desc: 'Iulat o dalhin sa CENRO ang hayop na iyong nailigtas.',
   },
   request: {
-    title: 'Mag-request ng serbisyo',
-    desc: 'Punla, hakot ng basura, linis ng sapa.',
+    title: 'Humiling ng serbisyo',
+    desc: 'Punla, paghakot ng basura, paglilinis ng sapa.',
   },
 };
 
@@ -93,67 +105,99 @@ export const STAT_TL = {
 };
 
 // Report-form field guidance. Each entry IS the hint under the field - one
-// Taglish line, no English twin. The English label above it stays.
+// Filipino line, no English twin. The English label above it stays.
 export const FORM_TL = {
-  complaint_type: 'Pumili ng klase ng reklamo',
-  request_type: 'Pumili ng serbisyo',
+  complaint_type: 'Pakipili ang uri ng reklamo',
+  request_type: 'Pakipili ang serbisyong kailangan',
   request_disclaimer:
-    'Maaaring may bayad ang ilang serbisyo. Karaniwang 3-5 araw bago matapos pagkatapos aprubahan, at aasahan ang unang sagot sa loob ng 24-48 oras.',
-  type_other: 'Isulat kung ano ito',
-  species_name: 'Pumili ng hayop',
-  turnover_method: 'Dadalhin mo ba, o hihilingin mong sunduin ng CENRO?',
-  turnover_walkin: 'Ikaw mismo ang magdadala sa CENRO office.',
-  turnover_pickup: 'Hihilingin mong sunduin ito ng CENRO. Hindi ito garantisadong agad.',
+    'Maaaring may bayad ang ilang serbisyo, depende sa dami at layo; ipaaalam muna ito sa iyo bago itakda ang serbisyo. Karaniwang natatapos ito sa loob ng 3-5 araw ng trabaho matapos maaprubahan, depende sa uri ng serbisyo. Asahan ang unang tugon sa loob ng 24-48 oras matapos itong maipasa.',
+  type_other: 'Pakisulat kung ano ito',
+  species_name: 'Pakipili ang uri ng hayop',
+  turnover_method: 'Pakipili kung paano makararating ang hayop sa CENRO',
+  // In the resident's own voice, like the English option labels these sit
+  // under ("I will bring the animal...", "Please send CENRO staff..."), so
+  // neither line needs a "you" at all.
+  turnover_walkin: 'Ako mismo ang magdadala ng hayop sa tanggapan ng CENRO.',
+  turnover_pickup: 'Hihilingin ko sa CENRO na kunin ang hayop. Maaaring hindi ito magawa kaagad.',
   // Deliberately does NOT translate the escape clause of the English above it.
   // That sentence sends someone to a different radio button, and a Tagalog
   // paraphrase that drifted would be a safety instruction that disagrees with
-  // itself. The English carries it; this covers the containment advice.
+  // itself. The English carries it; this covers the containment advice. Plain
+  // commands here, not "Paki-": a safety warning should not read as optional.
   walkin_safety:
-    'Dalhin lang kung ligtas. Huwag hawakan nang walang proteksyon. Kung kaya, ilagay sa matibay na lalagyan na may butas-hangin, takpan, at ilayo sa bata at alagang hayop.',
-  animal_condition: 'Pumili ng lagay ng hayop',
-  barangay: 'Pumili ng barangay',
-  description: 'Isulat ang nangyari',
-  observed_at: 'Pumili ng petsa',
-  location: 'Ituro sa mapa o isulat ang landmark',
-  location_found: 'Ituro sa mapa kung saan mo nakita',
-  location_service: 'Ituro sa mapa kung saan kailangan',
-  address_details: 'Isulat ang kalye, purok, o landmark',
-  photo: 'Maglagay ng litrato, pwedeng marami',
+    'Dalhin lamang ang hayop kung ligtas itong gawin. Huwag itong hawakan nang walang proteksyon sa kamay. Kung maaari, ilagay ito sa matibay na kahon o lalagyang may butas para sa hangin, takpan, panatilihing tahimik, at ilayo sa mga bata at alagang hayop.',
+  animal_condition: 'Pakipili ang kalagayan ng hayop',
+  barangay: 'Pakipili ang barangay',
+  // Shared by the complaint, wildlife and service-request forms, so it asks for
+  // the situation rather than "what happened" - a seedling request has no
+  // incident to describe.
+  description: 'Pakilarawan nang malinaw ang sitwasyon',
+  observed_at: 'Pakipili ang petsa kung kailan ito napansin',
+  location: 'Pakituro sa mapa ang lugar, o magbigay ng palatandaan nito',
+  location_found: 'Pakituro sa mapa kung saan nakita ang hayop',
+  location_service: 'Pakituro sa mapa kung saan kailangan ang serbisyo',
+  address_details: 'Pakisulat ang kalye o purok, o magbigay ng palatandaan ng lugar',
+  // Shown when GPS puts the reporter outside the city. The point is still
+  // pinned - this tells them why the map will not follow it. Mobile only.
+  locationOutside: 'Nasa labas ng Cabuyao ang iyong lokasyon. Pakituro sa mapa ang tamang lugar sa loob ng Cabuyao.',
+  photo: 'Pakilagay ng larawan. Maaaring higit sa isa.',
   // No longer used by any form - every upload is required since 2026-10-12.
   // Kept so an older bundle referencing it does not render `undefined`.
-  photo_optional: 'Maglagay ng litrato, pwedeng marami',
-  document: 'Litrato o dokumento, pwedeng marami',
-  quantity: 'Isulat kung ilan (opsyonal)',
-  schedule: 'Pumili ng petsa (opsyonal)',
-  species_filter: 'I-type ang pangalan ng hayop, hal. "sawa"',
-  species_none: 'Walang tugma. Piliin ang "Other" at ilarawan ang hayop',
+  photo_optional: 'Pakilagay ng larawan. Maaaring higit sa isa.',
+  document: 'Pakilagay ng larawan o dokumento. Maaaring higit sa isa.',
+  quantity: 'Pakisulat kung ilan (hindi sapilitan)',
+  schedule: 'Pakipili ang nais na petsa (hindi sapilitan)',
+  species_filter: 'Pakisulat ang pangalan ng hayop, hal. "sawa"',
+  species_none: 'Walang katugmang hayop. Pakipili ang "Other" at ilarawan ito.',
   species_group_common: 'Karaniwang nakikita',
-  species_group_endangered: 'Protektado o endangered',
-  species_other: 'Wala sa listahan? Ilarawan mo na lang',
+  species_group_endangered: 'Protektado o nanganganib na uri',
+  species_other: 'Wala sa pagpipilian? Pakilarawan ang uri ng hayop.',
   species_also_called: 'Tinatawag ding',
   species_found_in: 'Karaniwang makikita sa',
-  species_handling: 'Basahin ito bago lumapit sa hayop.',
-  species_protected: 'Protektadong species ito. Mapupunta ang ulat na ito sa priority review, at nakatago ang eksaktong lokasyon nito sa public map.',
+  species_handling: 'Pakibasa muna ito bago lumapit sa hayop.',
+  species_protected:
+    'Ito ay protektadong uri ng hayop. Uunahing suriin ang ulat na ito, at hindi ipakikita ang eksaktong lokasyon nito sa pampublikong mapa.',
 };
 
-// Short Taglish lines used on empty states and page guidance.
+// Empty states, page guidance and the submit confirmation.
 export const COPY_TL = {
-  noReports: 'Wala ka pang naipapasang ulat.',
-  noReportsInTab: 'Wala pang ulat sa klaseng ito.',
+  noReports: 'Wala pang naipapasang ulat.',
+  noReportsInTab: 'Wala pang ulat sa uring ito.',
+  // Follows noReports on the dashboard, where the three actions sit above it.
+  startHint: 'Pakipili ang nais gawin sa itaas para makapagsimula.',
   legendIntro: 'Ano ang ibig sabihin ng bawat kulay',
-  trackHint: 'Ilagay ang numero ng ulat mo para makita ang status nito.',
+  trackHint: 'Pakilagay ang numero ng iyong ulat para makita ang katayuan nito.',
   updatesFromCenro: 'Mga update mula sa CENRO',
   notifications: 'Mga abiso',
-  noNotifications: 'Wala ka pang abiso. Sasabihan ka namin kapag may bago sa ulat mo.',
-  confirmEmail: 'Kumpirmahin ang email mo',
-  confirmEmailWhy: 'Dito ipapadala ng CENRO ang update sa ulat mo.',
-  wrongAddress: 'Mali ang address? Palitan mo.',
-  progress: 'Status ng ulat',
+  // Describes the screen, not a delivery promise: what reaches this list is
+  // decided by the server, and an anonymous report never appears here at all.
+  noNotifications: 'Wala pang abiso. Dito lalabas ang mga ito kapag may bagong update sa iyong ulat.',
+  confirmEmail: 'Pakikumpirma ang iyong email',
+  confirmEmailWhy: 'Dito ipadadala ng CENRO ang mga update tungkol sa iyong ulat.',
+  wrongAddress: 'Mali ang address? Pakipalitan dito.',
+  // Mobile only - the web reset page has no Tagalog line.
+  forgotPassword: 'Nakalimutan ang password?',
+  forgotPasswordWhy: 'Pakilagay ang iyong email at magpapadala kami ng link para makagawa ng bagong password.',
+  // Deliberately says "kung" (if) - the server answers the same way whether or
+  // not the address has an account, and this line must not contradict that.
+  forgotPasswordSent:
+    'Kung may account na nakarehistro sa email na ito, nakapagpadala na kami ng link. Pakitingnan din ang spam folder.',
+  // RESET_TTL_MINUTES is 60 and the token is single-use (auth.service.js).
+  forgotPasswordOpens:
+    'Magbubukas ang link sa iyong browser, at doon mapapalitan ang iyong password. Magagamit lamang ito nang isang beses at sa loob ng isang oras.',
+  progress: 'Katayuan ng ulat',
   description: 'Detalye',
   attachment: 'Kalakip na file',
-  cenroNotes: 'Paalala mula sa CENRO',
+  cenroNotes: 'Mga tala mula sa CENRO',
   signedDocument: 'Nilagdaang dokumento',
-  downloadCopy: 'I-download ang kopya ng ulat mo (PDF)',
+  downloadCopy: 'I-download ang kopya ng iyong ulat (PDF)',
   anonymousHint:
-    'Hindi hihingin ang pangalan mo. Itago ang numero ng ulat para ma-check mo ito mamaya.',
+    'Hindi hihingin ang iyong pangalan. Pakitago ang numero ng ulat para matingnan ang katayuan nito sa ibang pagkakataon.',
+  // The confirmation every signed-in report form asks before sending. Only for
+  // a report filed under the resident's own name: an anonymous one never
+  // appears in My Reports, and its form says so in its own (English) dialog.
+  submitTitle: 'Ipadala na sa CENRO?',
+  submitBody: 'Matatanggap agad ito ng CENRO, at masusubaybayan ang katayuan nito sa My Reports.',
+  submitConfirm: 'Ipadala',
+  submitCancel: 'Hindi pa',
 };

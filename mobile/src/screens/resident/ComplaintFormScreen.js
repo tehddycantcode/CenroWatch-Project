@@ -89,10 +89,10 @@ export default function ComplaintFormScreen() {
             destructive: true,
           }
         : {
-            title: 'Ipadala na sa CENRO?',
-            body: 'Matatanggap agad ito ng CENRO, at pwede mo itong sundan sa My Reports.',
-            confirmLabel: 'Ipadala',
-            cancelLabel: 'Hindi pa',
+            title: COPY_TL.submitTitle,
+            body: COPY_TL.submitBody,
+            confirmLabel: COPY_TL.submitConfirm,
+            cancelLabel: COPY_TL.submitCancel,
           },
     );
     if (!ok) return;

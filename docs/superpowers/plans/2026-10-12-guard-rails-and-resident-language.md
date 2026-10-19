@@ -1,5 +1,10 @@
 # Guard Rails and Resident Language Implementation Plan (Specs B + C)
 
+> **Superseded in part (2026-10-19):** the "casual Taglish" register this plan applies (Task 7,
+> Step 3) was replaced by polite Filipino after defense-panel feedback. The current rules live in
+> the header of `web/src/lib/tagalog.js`. This plan is left as written, as the record of the
+> earlier decision.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Stop a resident booking a service for yesterday, make every irreversible action ask first, require proof before a ticket is closed, and make the resident-facing copy casual Taglish with species findable by their local name.

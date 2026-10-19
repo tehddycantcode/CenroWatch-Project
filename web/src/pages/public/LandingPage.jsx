@@ -245,7 +245,7 @@ export default function LandingPage() {
             From the first report to a resolved case in three simple steps.
           </p>
           <div className="mx-auto mt-10 grid max-w-4xl gap-8 sm:grid-cols-3">
-            <Step n={1} icon={ClipboardList} tone="primary" title="Report" titleTl="Mag-report"
+            <Step n={1} icon={ClipboardList} tone="primary" title="Report" titleTl="Mag-ulat"
               desc="File a complaint, wildlife turnover, or service request with a photo and a map pin." />
             <Step n={2} icon={Search} tone="blue" title="Review" titleTl="Titingnan"
               desc="CENRO staff verify the report, set a priority, and begin processing within the SLA." />
